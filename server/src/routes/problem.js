@@ -8,12 +8,20 @@ const prisma = new PrismaClient();
 // Create problem
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { latex, topics, quality } = req.body;
+    const { latex, topics, quality, solution } = req.body;
+
+    if (!latex || !topics || topics.length === 0 || !quality) {
+      return res.status(400).json({ error: 'Missing required fields: latex, topics, quality' });
+    }
 
     // Get user for initials
     const user = await prisma.user.findUnique({
       where: { id: req.userId }
     });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     // Get count of user's problems
     const count = await prisma.problem.count({
@@ -24,10 +32,11 @@ router.post('/', authenticate, async (req, res) => {
     const problemId = `${user.initials}${count + 1}`;
 
     const problem = await prisma.problem.create({
-       data : {
+      data: {
         id: problemId,
         authorId: req.userId,
         latex,
+        solution: solution || '',
         topics,
         quality,
         stage: 'Idea'
@@ -46,7 +55,7 @@ router.post('/', authenticate, async (req, res) => {
     res.json(problem);
   } catch (error) {
     console.error('Create problem error:', error);
-    res.status(500).json({ error: 'Failed to create problem' });
+    res.status(500).json({ error: 'Failed to create problem', details: error.message });
   }
 });
 
@@ -86,7 +95,7 @@ router.get('/', authenticate, async (req, res) => {
     res.json(problems);
   } catch (error) {
     console.error('Get problems error:', error);
-    res.status(500).json({ error: 'Failed to fetch problems' });
+    res.status(500).json({ error: 'Failed to fetch problems', details: error.message });
   }
 });
 
@@ -100,10 +109,9 @@ router.get('/my', authenticate, async (req, res) => {
       },
       orderBy: { createdAt: 'desc' }
     });
-
     res.json(problems);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch problems' });
+    res.status(500).json({ error: 'Failed to fetch problems', details: error.message });
   }
 });
 
@@ -137,14 +145,14 @@ router.get('/:id', authenticate, async (req, res) => {
 
     res.json(problem);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch problem' });
+    res.status(500).json({ error: 'Failed to fetch problem', details: error.message });
   }
 });
 
 // Update problem
 router.put('/:id', authenticate, async (req, res) => {
   try {
-    const { latex, topics, quality, stage } = req.body;
+    const { latex, topics, quality, stage, solution } = req.body;
 
     const existing = await prisma.problem.findUnique({
       where: { id: req.params.id }
@@ -160,7 +168,13 @@ router.put('/:id', authenticate, async (req, res) => {
 
     const problem = await prisma.problem.update({
       where: { id: req.params.id },
-       data: { latex, topics, quality, stage },
+      data: {
+        latex,
+        solution: solution !== undefined ? solution : existing.solution,
+        topics,
+        quality,
+        stage
+      },
       include: {
         author: {
           select: {
@@ -174,7 +188,7 @@ router.put('/:id', authenticate, async (req, res) => {
 
     res.json(problem);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update problem' });
+    res.status(500).json({ error: 'Failed to update problem', details: error.message });
   }
 });
 
@@ -199,7 +213,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     res.json({ message: 'Problem deleted' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete problem' });
+    res.status(500).json({ error: 'Failed to delete problem', details: error.message });
   }
 });
 

@@ -11,7 +11,7 @@ router.post('/', authenticate, async (req, res) => {
     const { competition, name, description, version, problemIds } = req.body;
 
     const test = await prisma.test.create({
-       {
+       data : {
         competition,
         name,
         description,

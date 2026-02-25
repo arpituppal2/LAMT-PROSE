@@ -92,7 +92,7 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     const newFeedback = await prisma.feedback.create({
-       {
+       data : {
         problemId,
         userId: req.userId,
         answer,

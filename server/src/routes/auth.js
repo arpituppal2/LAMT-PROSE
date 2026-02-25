@@ -29,7 +29,7 @@ router.post('/register', async (req, res) => {
     const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
 
 const user = await prisma.user.create({
-   {
+   data : {
     email,
     password: hashedPassword,
     firstName,

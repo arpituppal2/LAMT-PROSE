@@ -24,7 +24,7 @@ router.post('/', authenticate, async (req, res) => {
     const problemId = `${user.initials}${count + 1}`;
 
     const problem = await prisma.problem.create({
-       {
+       data : {
         id: problemId,
         authorId: req.userId,
         latex,

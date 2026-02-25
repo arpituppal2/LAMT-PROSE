@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String     @id @default(uuid())
+  email       String     @unique
+  password    String
+  firstName   String
+  lastName    String
+  initials    String
+  mathExp     String
+  isAdmin     Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  problems    Problem[]
+  feedbacks   Feedback[]
+}
+
+model Problem {
+  id          String     @id
+  authorId    String
+  latex       String     @db.Text
+  topics      String[]
+  quality     String
+  stage       String     @default("Idea")
+  solveCount  Int        @default(0)
+  unresolved  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  feedbacks   Feedback[]
+  tests       Test[]     @relation("ProblemToTest")
+  
+  @@index([authorId])
+  @@index([stage])
+  @@index([solveCount])
+}
+
+model Feedback {
+  id          String     @id @default(uuid())
+  problemId   String
+  userId      String
+  answer      String
+  feedback    String     @db.Text
+  resolved    Boolean    @default(false)
+  timeSpent   Int?
+  createdAt   DateTime   @default(now())
+  
+  problem     Problem    @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([problemId])
+  @@index([userId])
+}
+
+model Test {
+  id          String     @id @default(uuid())
+  competition String
+  name        String
+  description String?
+  version     String
+  createdAt   DateTime   @default(now())
+  
+  problems    Problem[]  @relation("ProblemToTest")
+}

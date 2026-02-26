@@ -59,10 +59,7 @@ const WriteProblem = () => {
     try {
       let finalLatex = latex;
       if (images.length > 0) {
-        finalLatex += '
-
-' + images.map((img, i) => `![Image ${i+1}](${img})`).join('
-');
+                  finalLatex += '\n' + images.map((img, i) => `![Image ${i+1}](${img})`).join('\n');
       }
       const response = await api.post('/problems', {
         latex: finalLatex,

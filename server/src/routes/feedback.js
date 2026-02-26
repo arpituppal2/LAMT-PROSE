@@ -46,17 +46,12 @@ router.get('/next', authenticate, async (req, res) => {
       });
     });
 
-    // Priority algorithm:
-    // 1) lowest solveCount
-    // 2) category scarcity (rarer topics higher)
-    // 3) oldest createdAt
+    // Priority algorithm
     const prioritized = unreviewed.map(p => {
       const scarcityScore = p.topics.reduce((sum, topic) => {
         return sum + (1 / (topicCounts[topic] || 1));
       }, 0);
-
       const ageScore = Date.now() - new Date(p.createdAt).getTime();
-
       return {
         problem: p,
         priority: (1000 - p.solveCount) * 1000 + scarcityScore * 100 + ageScore / 100000
@@ -65,7 +60,6 @@ router.get('/next', authenticate, async (req, res) => {
 
     prioritized.sort((a, b) => b.priority - a.priority);
 
-    // Return top problem without user-specific feedback list
     const { feedbacks, ...problem } = prioritized[0].problem;
     res.json(problem);
   } catch (error) {
@@ -74,41 +68,67 @@ router.get('/next', authenticate, async (req, res) => {
   }
 });
 
-// Submit feedback
+// Submit feedback / Endorsement
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { problemId, answer, feedback, timeSpent } = req.body;
+    const { problemId, answer, feedback, timeSpent, isEndorsement } = req.body;
 
-    // Prevent duplicates
+    const problem = await prisma.problem.findUnique({
+      where: { id: problemId }
+    });
+
+    if (!problem) return res.status(404).json({ error: 'Problem not found' });
+
+    // Task 8: Endorsements only allowed in "Review" stage
+    if (isEndorsement && problem.stage !== 'Review') {
+      return res.status(400).json({ error: 'Endorsements are only allowed when the problem is in the Review stage.' });
+    }
+
+    // Check for duplicates
     const existing = await prisma.feedback.findFirst({
       where: {
         problemId,
-        userId: req.userId
+        userId: req.userId,
+        isEndorsement: !!isEndorsement
       }
     });
 
     if (existing) {
-      return res.status(400).json({ error: 'Already submitted feedback for this problem' });
+      return res.status(400).json({ error: `Already submitted ${isEndorsement ? 'an endorsement' : 'feedback'} for this problem` });
     }
 
     const newFeedback = await prisma.feedback.create({
-       data : {
+      data: {
         problemId,
         userId: req.userId,
-        answer,
-        feedback,
+        answer: answer || '',
+        feedback: feedback || '',
         timeSpent,
+        isEndorsement: !!isEndorsement,
         resolved: false
       }
     });
 
-    // Update solve count
-    await prisma.problem.update({
+    // Update problem stats
+    const updateData = {};
+    if (isEndorsement) {
+      updateData.endorsements = { increment: 1 };
+    } else {
+      updateData.solveCount = { increment: 1 };
+    }
+
+    const updatedProblem = await prisma.problem.update({
       where: { id: problemId },
-      data: {
-        solveCount: { increment: 1 }
-      }
+      data: updateData
     });
+
+    // Task 9: Auto-promote to "Live/Ready for Review" after 3 endorsements
+    if (isEndorsement && updatedProblem.endorsements >= 3 && updatedProblem.stage === 'Review') {
+      await prisma.problem.update({
+        where: { id: problemId },
+        data: { stage: 'Live/Ready for Review' }
+      });
+    }
 
     res.json(newFeedback);
   } catch (error) {
@@ -133,14 +153,13 @@ router.get('/problem/:problemId', authenticate, async (req, res) => {
       },
       orderBy: { createdAt: 'desc' }
     });
-
     res.json(feedbacks);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch feedback' });
   }
 });
 
-// Mark feedback as resolved (only problem author)
+// Resolve feedback
 router.put('/:id/resolve', authenticate, async (req, res) => {
   try {
     const fb = await prisma.feedback.findUnique({
@@ -148,13 +167,8 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
       include: { problem: true }
     });
 
-    if (!fb) {
-      return res.status(404).json({ error: 'Feedback not found' });
-    }
-
-    if (fb.problem.authorId !== req.userId) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
+    if (!fb) return res.status(404).json({ error: 'Feedback not found' });
+    if (fb.problem.authorId !== req.userId) return res.status(403).json({ error: 'Not authorized' });
 
     const updated = await prisma.feedback.update({
       where: { id: req.params.id },

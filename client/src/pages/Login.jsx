@@ -27,7 +27,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F0F4FF]">
-    <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-4xl">
+    <div className="bg-white p-10 rounded-xl shadow-xl w-full max-w-3xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-ucla-blue">Los Angeles Math Tournament's PROSE System</h1>
           <p className="text-gray-600 mt-2">Problem Review and Online Submission Engine</p>

@@ -29,6 +29,7 @@ model Problem {
   topics       String[]
   quality      String
   stage        String   @default("Idea")
+  examType    String  @default("Numerical Answer")
   solveCount   Int      @default(0)
   unresolved   Int      @default(0)
   endorsements Int      @default(0)

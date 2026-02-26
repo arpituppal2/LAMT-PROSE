@@ -199,7 +199,7 @@ const ProblemDetail = () => {
           {isEditing ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Problem (LaTeX)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Problem</label>
                 <textarea
                   value={editedLatex}
                   onChange={(e) => setEditedLatex(e.target.value)}
@@ -208,7 +208,7 @@ const ProblemDetail = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Writer's Solution (LaTeX)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Writer's Solution</label>
                 <textarea
                   value={editedSolution}
                   onChange={(e) => setEditedSolution(e.target.value)}
@@ -255,7 +255,7 @@ const ProblemDetail = () => {
             </div>
           ) : (
             <div className="prose max-w-none">
-              <KatexRenderer latex={problem.latex} displayMode />
+              <KatexRenderer latex={problem.latex} />
               <div className="mt-6 flex gap-2">
                 {problem.topics.map(topic => (
                   <span key={topic} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded">
@@ -301,7 +301,7 @@ const ProblemDetail = () => {
               <h2 className="text-xl font-semibold mb-4">Writer's Solution</h2>
               {problem.solution ? (
                 <div className="prose max-w-none text-sm">
-                  <KatexRenderer latex={problem.solution} displayMode />
+                  <KatexRenderer latex={problem.solution} />
                 </div>
               ) : (
                 <p className="text-gray-500 italic">No solution provided</p>

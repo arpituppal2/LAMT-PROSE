@@ -10,10 +10,11 @@ import ProblemDetail from './pages/ProblemDetail';
 import Leaderboard from './pages/Leaderboard';
 import GiveFeedback from './pages/GiveFeedback';
 import ViewTests from './pages/ViewTests';
+import QuestionsToEndorse from './pages/QuestionsToEndorse';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -21,13 +22,13 @@ const PrivateRoute = ({ children }) => {
       </div>
     );
   }
-  
+
   return user ? children : <Navigate to="/login" />;
 };
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -35,7 +36,7 @@ const PublicRoute = ({ children }) => {
       </div>
     );
   }
-  
+
   return user ? <Navigate to="/home" /> : children;
 };
 
@@ -46,14 +47,17 @@ function App() {
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          
           <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/write" element={<PrivateRoute><WriteProblem /></PrivateRoute>} />
           <Route path="/inventory" element={<PrivateRoute><ProblemInventory /></PrivateRoute>} />
-          <Route path="/problems/:id" element={<PrivateRoute><ProblemDetail /></PrivateRoute>} />
+          <Route path="/problem/:id" element={<PrivateRoute><ProblemDetail /></PrivateRoute>} />
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/feedback" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/tests" element={<PrivateRoute><ViewTests /></PrivateRoute>} />
+          <Route path="/questions-to-endorse" element={<PrivateRoute><QuestionsToEndorse /></PrivateRoute>} />
+          
           <Route path="/" element={<Navigate to="/home" />} />
         </Routes>
       </BrowserRouter>

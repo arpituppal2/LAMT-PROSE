@@ -23,6 +23,7 @@ const WriteProblem = () => {
   const [notes, setNotes] = useState('');
   const [topics, setTopics] = useState([]);
   const [difficulty, setDifficulty] = useState(5);
+    const [examType, setExamType] = useState('Numerical Answer');
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -68,6 +69,7 @@ const WriteProblem = () => {
         notes,
         topics,
         quality: String(difficulty),
+                examType,
       });
       setMessage(`Problem ${response.data.id} created successfully!`);
       setTimeout(() => {
@@ -204,6 +206,28 @@ const WriteProblem = () => {
                   {DIFFICULTY_LABELS[difficulty]}
                 </div>
               </div>
+                        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Exam Type
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {['Numerical Answer', 'Proof Based', 'Puzzle/Other'].map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setExamType(type)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    examType === type
+                      ? 'text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  style={examType === type ? { backgroundColor: '#2774AE' } : {}}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
               {message && (
                 <div className={`px-4 py-3 rounded text-sm ${
                   message.includes('successfully')
@@ -251,6 +275,27 @@ const WriteProblem = () => {
                 )}
               </div>
             </div>
+                      <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">Round Guide</h2>
+            <div className="space-y-3 text-sm">
+              <div className="border-l-4 border-blue-400 pl-4 py-1">
+                <p className="font-semibold text-gray-800">Team Round</p>
+                <p className="text-gray-600 mt-0.5">Collaborative numerical-answer problems. Typically medium difficulty (Levels 4–7). Aim for clean, elegant setups where multiple approaches are possible.</p>
+              </div>
+              <div className="border-l-4 border-purple-400 pl-4 py-1">
+                <p className="font-semibold text-gray-800">Power Round</p>
+                <p className="text-gray-600 mt-0.5">Proof-based multi-part problem set on a single theme. Problems should build on each other and require rigorous justification. Aim for Levels 6–10.</p>
+              </div>
+              <div className="border-l-4 border-green-400 pl-4 py-1">
+                <p className="font-semibold text-gray-800">General / Topic-Specific Exam</p>
+                <p className="text-gray-600 mt-0.5">Individual numerical-answer problems organized by topic (Algebra, Geometry, Discrete, etc.). Aim to cover a range of difficulties (Levels 3–9) and clearly fit one topic area.</p>
+              </div>
+              <div className="border-l-4 border-yellow-400 pl-4 py-1">
+                <p className="font-semibold text-gray-800">Special Round <span className="text-xs font-normal text-gray-500">(TBD)</span></p>
+                <p className="text-gray-600 mt-0.5">Format to be determined. May include relay, guts, puzzle-style, or themed rounds. Creative and unconventional problems welcome — use Puzzle / Other exam type.</p>
+              </div>
+            </div>
+          </div>
             {answer && (
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-semibold mb-4">Answer Preview</h2>

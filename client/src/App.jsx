@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import WriteProblem from './pages/WriteProblem';
 import ProblemInventory from './pages/ProblemInventory';
+import ProblemDetail from './pages/ProblemDetail';
 import Leaderboard from './pages/Leaderboard';
 import GiveFeedback from './pages/GiveFeedback';
 import ViewTests from './pages/ViewTests';
@@ -49,6 +50,7 @@ function App() {
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/write" element={<PrivateRoute><WriteProblem /></PrivateRoute>} />
           <Route path="/inventory" element={<PrivateRoute><ProblemInventory /></PrivateRoute>} />
+          <Route path="/problems/:id" element={<PrivateRoute><ProblemDetail /></PrivateRoute>} />
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/feedback" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/tests" element={<PrivateRoute><ViewTests /></PrivateRoute>} />

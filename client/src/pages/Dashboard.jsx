@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Star } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
@@ -50,13 +50,21 @@ const Dashboard = () => {
     <Layout>
       <div>
         <h1 className="text-3xl font-bold text-ucla-blue mb-8">Dashboard</h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-sm font-medium text-gray-600 mb-2">Total Problems</h3>
             <p className="text-3xl font-bold text-ucla-blue">{stats?.totalProblems || 0}</p>
           </div>
 
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-400">
+            <h3 className="text-sm font-medium text-gray-600 mb-2">Endorsements</h3>
+            <div className="flex items-center gap-2">
+              <Star size={24} className="text-yellow-500 fill-yellow-400" />
+              <p className="text-3xl font-bold text-ucla-blue">{stats?.totalEndorsements || 0}</p>
+            </div>
+          </div>
+          
           {topics.map(topic => (
             <div key={topic} className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-sm font-medium text-gray-600 mb-2">{topic}</h3>
@@ -69,7 +77,7 @@ const Dashboard = () => {
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <div className="flex gap-2 flex-wrap">
-            {['all', 'Idea', 'Endorsed', 'On Test', 'Published', 'Needs Review'].map(stage => (
+            {['all', 'Idea', 'Review', 'Live/Ready for Review', 'On Test', 'Published', 'Needs Review'].map(stage => (
               <button
                 key={stage}
                 onClick={() => setFilter(stage)}
@@ -93,6 +101,7 @@ const Dashboard = () => {
                 <th className="px-4 py-3 text-left">Topics</th>
                 <th className="px-4 py-3 text-left">Quality</th>
                 <th className="px-4 py-3 text-left">Stage</th>
+                <th className="px-4 py-3 text-left">Endorsed</th>
                 <th className="px-4 py-3 text-left">Tests</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3"></th>
@@ -101,14 +110,14 @@ const Dashboard = () => {
             <tbody>
               {filteredProblems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                     No problems found
                   </td>
                 </tr>
               ) : (
                 filteredProblems.map(problem => (
                   <>
-                    <tr
+                    <tr 
                       key={problem.id}
                       className="border-b hover:bg-gray-50 cursor-pointer"
                       onClick={() => setExpandedId(expandedId === problem.id ? null : problem.id)}
@@ -117,7 +126,7 @@ const Dashboard = () => {
                       <td className="px-4 py-3">
                         <div className="flex gap-1 flex-wrap">
                           {problem.topics.map(topic => (
-                            <span
+                            <span 
                               key={topic}
                               className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
                             >
@@ -138,6 +147,16 @@ const Dashboard = () => {
                           {problem.stage}
                         </span>
                       </td>
+                      <td className="px-4 py-3">
+                        {problem.endorsements > 0 ? (
+                          <div className="flex items-center gap-1 text-yellow-600 font-bold">
+                            <Star size={14} fill="#FFD100" />
+                            {problem.endorsements}
+                          </div>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">{problem.tests?.length || 0}</td>
                       <td className="px-4 py-3">
                         {new Date(problem.createdAt).toLocaleDateString()}
@@ -148,7 +167,7 @@ const Dashboard = () => {
                     </tr>
                     {expandedId === problem.id && (
                       <tr key={`${problem.id}-expanded`}>
-                        <td colSpan={7} className="px-4 py-4 bg-gray-50">
+                        <td colSpan={8} className="px-4 py-4 bg-gray-50">
                           <div className="prose max-w-none">
                             <KatexRenderer latex={problem.latex} displayMode />
                           </div>

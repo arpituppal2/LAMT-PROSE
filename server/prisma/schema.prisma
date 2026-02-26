@@ -24,17 +24,19 @@ model User {
 }
 
 model Problem {
-  id         String   @id
-  authorId   String
-  latex      String   @db.Text
-  solution   String   @db.Text @default("")
-  topics     String[]
-  quality    String
-  stage      String   @default("Idea")
-  solveCount Int      @default(0)
-  unresolved Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id
+  authorId    String
+  latex       String   @db.Text
+  solution    String   @db.Text @default("")
+  writerNotes String   @db.Text @default("")
+  topics      String[]
+  quality     String
+  stage       String   @default("Idea")
+  solveCount  Int      @default(0)
+  unresolved  Int      @default(0)
+  endorsements Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   feedbacks Feedback[]
@@ -43,23 +45,27 @@ model Problem {
   @@index([authorId])
   @@index([stage])
   @@index([solveCount])
+  @@index([endorsements])
 }
 
 model Feedback {
-  id        String   @id @default(uuid())
-  problemId String
-  userId    String
-  answer    String
-  feedback  String   @db.Text
-  resolved  Boolean  @default(false)
-  timeSpent Int?
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  problemId    String
+  userId       String
+  answer       String
+  feedback     String   @db.Text
+  resolved     Boolean  @default(false)
+  needsReview  Boolean  @default(false)
+  isEndorsement Boolean @default(false)
+  timeSpent    Int?
+  createdAt    DateTime @default(now())
 
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([problemId])
   @@index([userId])
+  @@index([needsReview])
 }
 
 model Test {

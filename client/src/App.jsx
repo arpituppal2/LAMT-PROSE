@@ -11,6 +11,7 @@ import Leaderboard from './pages/Leaderboard';
 import GiveFeedback from './pages/GiveFeedback';
 import ViewTests from './pages/ViewTests';
 import QuestionsToEndorse from './pages/QuestionsToEndorse';
+import UserProfile from './pages/UserProfile';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -56,7 +57,8 @@ function App() {
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/feedback" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/tests" element={<PrivateRoute><ViewTests /></PrivateRoute>} />
-          <Route path="/questions-to-endorse" element={<PrivateRoute><QuestionsToEndorse /></PrivateRoute>} />
+          <Route path="/questions-to-endorse" element={<PrivateRoute><QuestionsToEndorse /></PrivateRoute>} />                 <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />" element={<PrivateRoute><QuestionsToEndorse /></PrivateRoute>} />
+                          <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           
           <Route path="/" element={<Navigate to="/home" />} />
         </Routes>

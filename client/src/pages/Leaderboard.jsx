@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Trophy } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Trophy, Search } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
 const Leaderboard = () => {
+  const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchLeaderboard();
@@ -32,6 +35,12 @@ const Leaderboard = () => {
     }
   };
 
+  const filtered = leaderboard.filter(entry =>
+    search === '' ||
+    entry.author.toLowerCase().includes(search.toLowerCase()) ||
+    entry.initials.toLowerCase().includes(search.toLowerCase())
+  );
+
   if (loading) {
     return (
       <Layout>
@@ -45,9 +54,21 @@ const Leaderboard = () => {
   return (
     <Layout>
       <div>
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-6">
           <Trophy className="text-ucla-gold" size={36} />
           <h1 className="text-3xl font-bold text-ucla-blue">Leaderboard</h1>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-6 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400"
+          />
         </div>
 
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -64,10 +85,11 @@ const Leaderboard = () => {
               </tr>
             </thead>
             <tbody>
-              {leaderboard.map((entry, index) => (
+              {filtered.map((entry, index) => (
                 <tr
                   key={entry.userId}
-                  className="border-b hover:bg-gray-50"
+                  className="border-b hover:bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/users/${entry.userId}`)}
                 >
                   <td className="px-4 py-3">
                     {index < 3 ? (
@@ -78,7 +100,10 @@ const Leaderboard = () => {
                       <span className="font-semibold text-gray-600">{index + 1}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-medium">{entry.author}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium">{entry.author}</div>
+                    <div className="text-xs text-gray-400">{entry.initials}</div>
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('onTest')}`}>
                       {entry.badges.onTest}
@@ -104,6 +129,13 @@ const Leaderboard = () => {
                   </td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-gray-500">
+                    No results found for "{search}"
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

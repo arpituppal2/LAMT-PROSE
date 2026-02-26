@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit, Clock, User, Trash2 } from 'lucide-react';
+import { Edit, Clock, User, Trash2, Star } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
+
 const ProblemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const ProblemDetail = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  
   const [editedLatex, setEditedLatex] = useState('');
   const [editedSolution, setEditedSolution] = useState('');
   const [editedAnswer, setEditedAnswer] = useState('');
@@ -19,9 +21,11 @@ const ProblemDetail = () => {
   const [editedQuality, setEditedQuality] = useState(5);
   const [editedStage, setEditedStage] = useState('');
   const [message, setMessage] = useState('');
+
   useEffect(() => {
     fetchProblem();
   }, [id]);
+
   const fetchProblem = async () => {
     try {
       const response = await api.get(`/problems/${id}`);
@@ -42,6 +46,7 @@ const ProblemDetail = () => {
       setLoading(false);
     }
   };
+
   const handleSave = async () => {
     try {
       await api.put(`/problems/${id}`, {
@@ -60,6 +65,7 @@ const ProblemDetail = () => {
       setMessage('Failed to update problem');
     }
   };
+
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this problem?')) return;
     try {
@@ -69,6 +75,21 @@ const ProblemDetail = () => {
       setMessage('Failed to delete problem');
     }
   };
+
+  const handleEndorse = async () => {
+    try {
+      await api.post('/feedbacks', {
+        problemId: id,
+        isEndorsement: true,
+        feedback: 'Problem endorsed.'
+      });
+      setMessage('Problem endorsed successfully!');
+      fetchProblem();
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Failed to endorse problem');
+    }
+  };
+
   const handleTopicToggle = (topic) => {
     setEditedTopics(prev =>
       prev.includes(topic)
@@ -76,8 +97,10 @@ const ProblemDetail = () => {
         : [...prev, topic]
     );
   };
+
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
-  const stageOptions = ['Idea', 'Endorsed', 'On Test', 'Published', 'Needs Review'];
+  const stageOptions = ['Idea', 'Review', 'Live/Ready for Review', 'On Test', 'Published', 'Needs Review'];
+
   if (loading) {
     return (
       <Layout>
@@ -87,6 +110,7 @@ const ProblemDetail = () => {
       </Layout>
     );
   }
+
   if (!problem) {
     return (
       <Layout>
@@ -102,7 +126,10 @@ const ProblemDetail = () => {
       </Layout>
     );
   }
+
   const canEdit = problem._isAuthor || problem._isAdmin;
+  const canEndorse = !problem._isAuthor && problem.stage === 'Review';
+
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
@@ -114,25 +141,37 @@ const ProblemDetail = () => {
               by {problem.author.firstName} {problem.author.lastName} ({problem.author.initials})
             </p>
           </div>
-          {canEdit && (
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            {canEndorse && (
               <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex items-center gap-2 px-4 py-2 bg-ucla-blue text-white rounded-lg hover:bg-ucla-dark-blue"
+                onClick={handleEndorse}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold shadow-sm"
               >
-                <Edit size={18} />
-                {isEditing ? 'Cancel Edit' : 'Edit'}
+                <Star size={18} fill="white" />
+                Endorse Problem
               </button>
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                <Trash2 size={18} />
-                Delete
-              </button>
-            </div>
-          )}
+            )}
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="flex items-center gap-2 px-4 py-2 bg-ucla-blue text-white rounded-lg hover:bg-ucla-dark-blue"
+                >
+                  <Edit size={18} />
+                  {isEditing ? 'Cancel Edit' : 'Edit'}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  <Trash2 size={18} />
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
+
         {message && (
           <div className={`mb-6 px-4 py-3 rounded ${
             message.includes('success') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
@@ -140,6 +179,7 @@ const ProblemDetail = () => {
             {message}
           </div>
         )}
+
         {/* Problem Content */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
@@ -155,6 +195,7 @@ const ProblemDetail = () => {
               </div>
             </div>
           </div>
+
           {isEditing ? (
             <div className="space-y-4">
               <div>
@@ -182,7 +223,6 @@ const ProblemDetail = () => {
                   value={editedAnswer}
                   onChange={(e) => setEditedAnswer(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Numerical answer or simple string..."
                 />
               </div>
               <div>
@@ -192,39 +232,6 @@ const ProblemDetail = () => {
                   onChange={(e) => setEditedNotes(e.target.value)}
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Notes, source, or comments..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Topics</label>
-                <div className="flex gap-2 flex-wrap">
-                  {topicOptions.map(topic => (
-                    <button
-                      key={topic}
-                      type="button"
-                      onClick={() => handleTopicToggle(topic)}
-                      className={`px-4 py-2 rounded-lg ${
-                        editedTopics.includes(topic)
-                          ? 'bg-ucla-blue text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {topic}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Difficulty: <span className="font-bold text-ucla-blue">{editedQuality}/10</span>
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={editedQuality}
-                  onChange={(e) => setEditedQuality(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-ucla-blue"
                 />
               </div>
               <div>
@@ -232,7 +239,7 @@ const ProblemDetail = () => {
                 <select
                   value={editedStage}
                   onChange={(e) => setEditedStage(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                  className="px-4 py-2 border border-gray-300 rounded-lg w-full"
                 >
                   {stageOptions.map(stage => (
                     <option key={stage} value={stage}>{stage}</option>
@@ -241,7 +248,7 @@ const ProblemDetail = () => {
               </div>
               <button
                 onClick={handleSave}
-                className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue"
+                className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue font-bold"
               >
                 Save Changes
               </button>
@@ -260,36 +267,34 @@ const ProblemDetail = () => {
                 <span>Quality: {problem.quality}/10</span>
                 <span className={`px-2 py-1 text-xs rounded ${
                   problem.stage === 'On Test' ? 'bg-blue-100 text-blue-800' :
-                  problem.stage === 'Endorsed' ? 'bg-yellow-100 text-yellow-800' :
-                  problem.stage === 'Published' ? 'bg-green-100 text-green-800' :
-                  problem.stage === 'Needs Review' ? 'bg-red-100 text-red-800' :
+                  problem.stage === 'Live/Ready for Review' ? 'bg-green-100 text-green-800' :
+                  problem.stage === 'Published' ? 'bg-green-600 text-white' :
+                  problem.stage === 'Review' ? 'bg-yellow-100 text-yellow-800' :
                   'bg-gray-100 text-gray-800'
                 }`}>
                   {problem.stage}
                 </span>
                 {problem.endorsements > 0 && (
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-bold">
-                    ★ {problem.endorsements} Endorsed
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-bold flex items-center gap-1">
+                    <Star size={12} fill="#CA8A04" /> {problem.endorsements} Endorsed
                   </span>
                 )}
               </div>
             </div>
           )}
         </div>
+
         {/* Answer and Solution Section */}
         {!isEditing && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Final Answer</h2>
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-ucla-blue">
+              <h2 className="text-xl font-semibold mb-4 text-ucla-blue">Final Answer</h2>
               {problem.answer ? (
                 <div className="text-2xl font-mono text-ucla-blue bg-blue-50 p-4 rounded-lg text-center">
                   {problem.answer}
                 </div>
               ) : (
                 <p className="text-gray-500 italic">No answer provided</p>
-              )}
-              {!problem._isAdmin && problem.answer === undefined && (
-                <p className="text-xs text-red-500 mt-2">Visible only to admins</p>
               )}
             </div>
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -304,7 +309,8 @@ const ProblemDetail = () => {
             </div>
           </div>
         )}
-        {/* Notes (Admin/Author only) */}
+
+        {/* Private Notes */}
         {!isEditing && (problem.notes || problem._isAdmin || problem._isAuthor) && (
           <div className="bg-white border-l-4 border-yellow-400 rounded-r-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-semibold mb-2">Private Notes</h2>
@@ -316,40 +322,31 @@ const ProblemDetail = () => {
             )}
           </div>
         )}
+
         {/* Feedback Section */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Feedback ({feedbacks.length} reviews)
-          </h2>
+          <h2 className="text-xl font-semibold mb-4">Feedback ({feedbacks.length})</h2>
           {feedbacks.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No feedback yet</p>
           ) : (
             <div className="space-y-6">
               {feedbacks.map((fb) => (
-                <div key={fb.id} className="border-l-4 border-ucla-blue pl-4 py-2">
-                  <div className="flex justify-between items-start mb-2">
+                <div key={fb.id} className={`border-l-4 pl-4 py-2 ${fb.isEndorsement ? 'border-yellow-400 bg-yellow-50/30' : 'border-ucla-blue'}`}>
+                  <div className="flex justify-between items-start">
                     <div>
                       <p className="font-semibold text-gray-800">
                         {fb.user.firstName} {fb.user.lastName}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {new Date(fb.createdAt).toLocaleDateString()} · 
-                        Answered: <span className="font-mono text-ucla-blue">{fb.answer}</span>
-                        {fb.timeSpent && <span> · {Math.floor(fb.timeSpent / 60)}:{(fb.timeSpent % 60).toString().padStart(2, '0')}</span>}
+                        {new Date(fb.createdAt).toLocaleDateString()}
+                        {fb.answer && <span> · Answered: <span className="font-mono">{fb.answer}</spanAdd Endorse button and update stage options (Tasks 7, 8, 9)></span>}
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      {fb.isEndorsement && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-bold">
-                          Endorsement
-                        </span>
-                      )}
-                      {fb.resolved && (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                          Resolved
-                        </span>
-                      )}
-                    </div>
+                    {fb.isEndorsement && (
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-bold flex items-center gap-1">
+                        <Star size={12} fill="#CA8A04" /> Endorsement
+                      </span>
+                    )}
                   </div>
                   <p className="text-gray-700 mt-2 whitespace-pre-wrap">{fb.feedback}</p>
                 </div>
@@ -361,4 +358,5 @@ const ProblemDetail = () => {
     </Layout>
   );
 };
+
 export default ProblemDetail;

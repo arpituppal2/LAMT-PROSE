@@ -28,7 +28,7 @@ const Leaderboard = () => {
   const getBadgeColor = (type) => {
     switch (type) {
       case 'onTest': return 'bg-ucla-blue text-white';
-      case 'endorsed': return 'bg-ucla-gold text-black';
+      case 'Endorsements': return 'bg-ucla-gold text-black';
       case 'idea': return 'bg-ucla-light-blue text-white';
       case 'needsReview': return 'bg-red-500 text-white';
       default: return 'bg-gray-200';
@@ -78,7 +78,7 @@ const Leaderboard = () => {
                 <th className="px-4 py-3 text-left">Rank</th>
                 <th className="px-4 py-3 text-left">Author</th>
                 <th className="px-4 py-3 text-center">On Test (6pts)</th>
-                <th className="px-4 py-3 text-center">Endorsed (5pts)</th>
+                <th className="px-4 py-3 text-center">Endorsements (5pts)</th>
                 <th className="px-4 py-3 text-center">Idea (3pts)</th>
                 <th className="px-4 py-3 text-center">Needs Review (-2pts)</th>
                 <th className="px-4 py-3 text-right">Total Score</th>

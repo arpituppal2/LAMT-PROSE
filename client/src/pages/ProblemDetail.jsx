@@ -329,29 +329,64 @@ const ProblemDetail = () => {
           {feedbacks.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No feedback yet</p>
           ) : (
-            <div className="space-y-6">
-              {feedbacks.map((fb) => (
-                <div key={fb.id} className={`border-l-4 pl-4 py-2 ${fb.isEndorsement ? 'border-yellow-400 bg-yellow-50/30' : 'border-ucla-blue'}`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-gray-800">
-                        {fb.user.firstName} {fb.user.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(fb.createdAt).toLocaleDateString()}
-                        {fb.answer && <span> · Answered: <span className="font-mono">{fb.answer}</span></span>}
-                      </p>
-                    </div>
-                    {fb.isEndorsement && (
-                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-bold flex items-center gap-1">
-                        <Star size={12} fill="#CA8A04" /> Endorsement
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-700 mt-2 whitespace-pre-wrap">{fb.feedback}</p>
-                </div>
-              ))}
-            </div>
+<div className="space-y-6">
+  {feedbacks.map((fb) => (
+    <div
+      key={fb.id}
+      className={`border-l-4 pl-4 py-2 ${
+        fb.isEndorsement ? 'border-yellow-400 bg-yellow-50/30' : 'border-ucla-blue'
+      }`}
+    >
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="font-semibold text-gray-800">
+            {fb.user.firstName} {fb.user.lastName}
+          </p>
+          <p className="text-sm text-gray-500">
+            {new Date(fb.createdAt).toLocaleDateString()}
+            {fb.answer && (
+              <span>
+                {' '}
+                · Answered:{' '}
+                <span className="font-mono">{fb.answer}</span>
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {fb.isEndorsement ? (
+            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-bold flex items-center gap-1">
+              <Star size={12} fill="#CA8A04" /> Endorsement
+            </span>
+          ) : (
+            <span className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded">
+              {fb.resolved ? 'Needs Review · Resolved' : 'Needs Review'}
+            </span>
+          )}
+
+          {(problem._isAuthor || problem._isAdmin) &&
+            !fb.isEndorsement &&
+            !fb.resolved && (
+              <button
+                onClick={async () => {
+                  await api.put(`/feedback/${fb.id}/resolve`);
+                  fetchProblem();
+                }}
+                className="text-xs text-ucla-blue underline"
+              >
+                Resolve
+              </button>
+            )}
+        </div>
+      </div>
+
+      <p className="text-gray-700 mt-2 whitespace-pre-wrap">
+        {fb.feedback}
+      </p>
+    </div>
+  ))}
+</div>
           )}
         </div>
       </div>

@@ -94,7 +94,7 @@ const QuestionsToEndorse = () => {
     <Layout>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 underline decoration-ucla-blue">Questions to Endorse</h1>
+          <h1 className="text-2xl font-bold text-gray-800 underline decoration-ucla-blue">Questions to Approve</h1>
           <button 
             onClick={fetchProblems}
             className="text-sm text-ucla-blue hover:text-ucla-dark-blue flex items-center"
@@ -107,7 +107,7 @@ const QuestionsToEndorse = () => {
           <div className="text-center py-10 text-gray-500 italic">Fetching problems...</div>
         ) : problems.length === 0 ? (
           <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-            <p className="text-blue-700">No questions currently pending final endorsement (requires 3 endorsements).</p>
+            <p className="text-blue-700">No questions currently pending approval (requires 3 endorsements).</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">

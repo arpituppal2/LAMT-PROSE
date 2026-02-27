@@ -20,7 +20,6 @@ const ProblemDetail = () => {
   const [editedTopics, setEditedTopics] = useState([]);
   const [editedQuality, setEditedQuality] = useState(5);
   const [editedStage, setEditedStage] = useState('');
-    const [editedExamType, setEditedExamType] = useState('');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -40,7 +39,6 @@ const ProblemDetail = () => {
       setEditedTopics(data.topics);
       setEditedQuality(parseInt(data.quality));
       setEditedStage(data.stage);
-            setEditedExamType(data.examType || 'Numerical Answer');
     } catch (error) {
       console.error('Failed to fetch problem:', error);
       setMessage('Failed to load problem');
@@ -59,7 +57,6 @@ const ProblemDetail = () => {
         topics: editedTopics,
         quality: String(editedQuality),
         stage: editedStage
-                examType: editedExamType
       });
       setMessage('Problem updated successfully!');
       setIsEditing(false);
@@ -266,11 +263,6 @@ const ProblemDetail = () => {
                   </span>
                 ))}
               </div>
-                          {problem.examType && (
-              <div className="mt-4 flex gap-4 text-sm text-gray-600 items-center">
-                <span>Exam Type: <span className="px-2 py-1 text-xs rounded bg-indigo-100 text-indigo-700 font-medium">{problem.examType}</span></span>
-              </div>
-            )}
               <div className="mt-4 flex gap-4 text-sm text-gray-600 items-center">
                 <span>Quality: {problem.quality}/10</span>
                 <span className={`px-2 py-1 text-xs rounded ${

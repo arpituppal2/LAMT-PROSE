@@ -69,3 +69,4 @@ model Test {
   createdAt   DateTime @default(now())
   problems    Problem[] @relation("ProblemToTest")
 }
+

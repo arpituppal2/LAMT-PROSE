@@ -36,7 +36,7 @@ const ProblemInventory = () => {
   };
 
   const totalProblems = problems.length;
-  const progressPercent = Math.min((totalProblems / 2000) * 100, 100);
+  const progressPercent = Math.min((totalProblems / 200) * 100, 100);
 
   const filtered = problems.filter(p => {
     const matchesSearch = 
@@ -62,13 +62,13 @@ const ProblemInventory = () => {
     <Layout>
       <div>
         <h1 className="text-3xl font-bold text-ucla-blue mb-2">Tournament Progress</h1>
-        <p className="text-gray-600 mb-6">Tracking progress toward 2000 problems</p>
+        <p className="text-gray-600 mb-6">Tracking progress toward 200 problems</p>
 
         {/* Progress Bar */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between mb-2">
             <span className="font-semibold text-gray-700">Total Problems</span>
-            <span className="font-bold text-ucla-blue text-xl">{totalProblems} / 2000</span>
+            <span className="font-bold text-ucla-blue text-xl">{totalProblems} / 200</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-6">
             <div 

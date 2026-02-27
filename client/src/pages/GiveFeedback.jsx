@@ -71,11 +71,19 @@ const GiveFeedback = () => {
 
       setMessage('Feedback submitted! Loading next problem...');
       setTimeout(loadNextProblem, 1000);
-    } catch (error) {
-      setMessage('Failed to submit feedback');
-    } finally {
-      setLoading(false);
-    }
+  } catch (error) {
+    console.error(
+      'Submit error',
+      error.response?.data || error.message || error
+    );
+
+    setMessage(
+      error.response?.data?.error || 'Failed to submit feedback'
+    );
+  } finally {
+    setLoading(false);
+  }
+
   };
 
   const minutes = Math.floor(elapsed / 60);

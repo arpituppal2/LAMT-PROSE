@@ -11,27 +11,65 @@ router.get('/leaderboard', authenticate, async (req, res) => {
     const users = await prisma.user.findMany({
       include: {
         problems: {
-          select: { stage: true }
-        }
-      }
+          include: {
+            feedbacks: true,   // we need needsReview + resolved
+          },
+        },
+      },
     });
 
-    const leaderboard = users.map(user => {
+    const classifyProblem = (problem) => {
+      const feedbacks = problem.feedbacks || [];
+
+      const pendingNeedsReview = feedbacks.some(
+        (fb) => fb.needsReview && !fb.resolved
+      );
+
+      // 1. On Test (10 pts)
+      if (problem.stage === 'On Test') {
+        return { category: 'On Test', points: 10 };
+      }
+
+      // 2. Approved for Exam (8 pts)
+      if (problem.stage === 'Approved for Exam') {
+        return { category: 'Approved for Exam', points: 8 };
+      }
+
+      // 5. Needs Review (-2 pts)
+      if (pendingNeedsReview) {
+        return { category: 'Needs Review', points: -2 };
+      }
+
+      // 3. Endorsed (5 pts): ≥1 endorsement and no pending needs review
+      if ((problem.endorsements || 0) >= 1) {
+        return { category: 'Endorsed', points: 5 };
+      }
+
+      // 4. Idea (3 pts)
+      return { category: 'Idea', points: 3 };
+    };
+
+    const leaderboard = users.map((user) => {
       const badges = {
         onTest: 0,
+        approved: 0,
         endorsed: 0,
         idea: 0,
-        needsReview: 0
+        needsReview: 0,
       };
 
-      user.problems.forEach(p => {
-        if (p.stage === 'On Test') badges.onTest++;
-        else if (p.stage === 'Endorsed') badges.endorsed++;
-        else if (p.stage === 'Idea') badges.idea++;
-        else if (p.stage === 'Needs Review') badges.needsReview++;
-      });
+      let score = 0;
 
-      const score = badges.onTest * 6 + badges.endorsed * 5 + badges.idea * 3 - badges.needsReview * 2;
+      user.problems.forEach((p) => {
+        const { category, points } = classifyProblem(p);
+        score += points;
+
+        if (category === 'On Test') badges.onTest++;
+        else if (category === 'Approved for Exam') badges.approved++;
+        else if (category === 'Endorsed') badges.endorsed++;
+        else if (category === 'Idea') badges.idea++;
+        else if (category === 'Needs Review') badges.needsReview++;
+      });
 
       return {
         userId: user.id,
@@ -39,7 +77,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         initials: user.initials,
         badges,
         score,
-        totalProblems: user.problems.length
+        totalProblems: user.problems.length,
       };
     });
 

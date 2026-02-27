@@ -377,6 +377,19 @@ const ProblemDetail = () => {
               >
                 Resolve
               </button>
+              {(problem._isAuthor || problem._isAdmin) && !fb.isEndorsement && (
+  <button
+    onClick={async () => {
+      await api.put(`/feedback/${fb.id}/resolve`); // keep this if you want it resolved
+      await api.put('/feedback/convert-to-endorsement', { id: fb.id });
+      fetchProblem();
+    }}
+    className="ml-2 text-xs text-green-600 underline"
+  >
+    Make Endorsement (temp)
+  </button>
+)}
+
             )}
         </div>
       </div>

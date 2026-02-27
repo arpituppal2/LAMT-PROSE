@@ -176,22 +176,4 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
   }
 });
 
-router.put('/convert-to-endorsement', authenticate, async (req, res) => {
-  const { id } = req.body;
-  try {
-    const fb = await prisma.feedback.update({
-      where: { id },
-      data: {
-        isEndorsement: true,
-        needsReview: false,
-        resolved: true,
-      },
-    });
-    res.json(fb);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to convert feedback' });
-  }
-});
-
-
 export default router;

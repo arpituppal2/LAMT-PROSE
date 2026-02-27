@@ -72,11 +72,6 @@ router.post('/', authenticate, async (req, res) => {
 
     if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
-    // Task 8: Endorsements only allowed in "Review" stage
-    if (isEndorsement && problem.stage !== 'Review') {
-      return res.status(400).json({ error: 'Endorsements are only allowed when the problem is in the Review stage.' });
-    }
-
     // Check for duplicates
     const existing = await prisma.feedback.findFirst({
       where: {

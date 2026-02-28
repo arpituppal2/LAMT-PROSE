@@ -37,25 +37,27 @@ const GiveFeedback = () => {
     return () => clearInterval(interval);
   }, [problem]);
 
-  const loadNextProblem = async () => {
-    try {
-      const response = await api.get('/feedback/next');
-      if (response.data) {
-        setProblem(response.data);
-        setAnswer('');
-        setFeedback('');
-        setIsEndorsement(false);
-        setMessage('');
-        setIsEditing(false);
-      } else {
-        setProblem(null);
-        setMessage('No more problems to review!');
-      }
-    } catch (error) {
-      console.error('Failed to fetch next problem:', error);
-      setMessage('Failed to load problem');
+const loadNextProblem = async () => {
+  try {
+    const response = await api.get('/feedback/next');
+    if (response.data) {
+      setProblem(response.data);
+      setAnswer('');
+      setFeedback('');
+      setIsEndorsement(false);
+      setIsEditing(false);
+      // clear any old message when a new problem actually loads
+      setMessage('');
+    } else {
+      setProblem(null);
+      setMessage('No more problems to review!');
     }
-  };
+  } catch (error) {
+    console.error('Failed to fetch next problem:', error);
+    setProblem(null);
+    setMessage('Failed to load problem');
+  }
+};
 
   const handleSkip = () => {
     if (loading) return;

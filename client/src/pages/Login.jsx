@@ -27,7 +27,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F0F4FF]">
-    <div className="bg-white p-10 rounded-xl shadow-xl w-full max-w-3xl">
+      <div className="bg-white p-10 rounded-xl shadow-xl w-full max-w-3xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-ucla-blue">Los Angeles Math Tournament's PROSE System</h1>
           <p className="text-gray-600 mt-2">Problem Review and Online Submission Engine</p>
@@ -40,7 +40,6 @@ const Login = () => {
               {error}
             </div>
           )}
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               UCLA Email
@@ -54,11 +53,15 @@ const Login = () => {
               required
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <Link to="/forgot-password" className="text-sm text-ucla-blue hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}
@@ -67,7 +70,6 @@ const Login = () => {
               required
             />
           </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -76,7 +78,6 @@ const Login = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Don't have an account?{' '}

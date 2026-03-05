@@ -68,7 +68,7 @@ const WriteProblem = () => {
         answer,
         notes,
         topics,
-        quality: String(Difficulty),
+        quality: String(difficulty),
                 examType,
       });
       setMessage(`Problem ${response.data.id} created successfully!`);

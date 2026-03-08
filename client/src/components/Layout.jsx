@@ -124,15 +124,18 @@ const Sidebar = ({ dark, toggleDark }) => {
 const Layout = ({ children }) => {
   const [dark, toggleDark] = useDarkMode();
 
+  // Force light theme globally for now
+  const effectiveDark = false;
+
   return (
-    <ThemeContext.Provider value={{ dark }}>
-      <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
-        <Sidebar dark={dark} toggleDark={toggleDark} />
+    <ThemeContext.Provider value={{ dark: effectiveDark }}>
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar dark={effectiveDark} toggleDark={toggleDark} />
         <main
           className="flex-1 overflow-y-auto transition-colors duration-300"
           style={{
-            backgroundColor: dark ? '#1a1f2e' : '#F0F4FF',
-            color: dark ? '#e2e8f0' : '#1a202c',
+            backgroundColor: '#F0F4FF',
+            color: '#1a202c',
           }}
         >
           <div className="container mx-auto p-8">
@@ -145,3 +148,4 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
+

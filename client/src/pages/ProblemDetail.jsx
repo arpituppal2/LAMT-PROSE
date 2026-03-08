@@ -12,7 +12,7 @@ const ProblemDetail = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const [editedLatex, setEditedLatex] = useState('');
   const [editedSolution, setEditedSolution] = useState('');
   const [editedAnswer, setEditedAnswer] = useState('');
@@ -20,6 +20,7 @@ const ProblemDetail = () => {
   const [editedTopics, setEditedTopics] = useState([]);
   const [editedQuality, setEditedQuality] = useState(5);
   const [editedStage, setEditedStage] = useState('');
+  const [editedDifficulty, setEditedDifficulty] = useState(5);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -39,6 +40,7 @@ const ProblemDetail = () => {
       setEditedTopics(data.topics);
       setEditedQuality(parseInt(data.quality));
       setEditedStage(data.stage);
+      setEditedDifficulty(parseInt(data.quality));
     } catch (error) {
       console.error('Failed to fetch problem:', error);
       setMessage('Failed to load problem');
@@ -55,7 +57,7 @@ const ProblemDetail = () => {
         answer: editedAnswer,
         notes: editedNotes,
         topics: editedTopics,
-        quality: String(editedQuality),
+        quality: String(editedDifficulty),
         stage: editedStage
       });
       setMessage('Problem updated successfully!');
@@ -91,9 +93,9 @@ const ProblemDetail = () => {
   };
 
   const handleTopicToggle = (topic) => {
-    setEditedTopics(prev =>
+    setEditedTopics((prev) =>
       prev.includes(topic)
-        ? prev.filter(t => t !== topic)
+        ? prev.filter((t) => t !== topic)
         : [...prev, topic]
     );
   };
@@ -173,9 +175,13 @@ const ProblemDetail = () => {
         </div>
 
         {message && (
-          <div className={`mb-6 px-4 py-3 rounded ${
-            message.includes('success') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-          }`}>
+          <div
+            className={`mb-6 px-4 py-3 rounded ${
+              message.includes('success')
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+          >
             {message}
           </div>
         )}
@@ -199,7 +205,9 @@ const ProblemDetail = () => {
           {isEditing ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Problem</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Problem
+                </label>
                 <textarea
                   value={editedLatex}
                   onChange={(e) => setEditedLatex(e.target.value)}
@@ -207,8 +215,26 @@ const ProblemDetail = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm"
                 />
               </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Problem Preview
+                </label>
+                <div className="prose max-w-none border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  {editedLatex ? (
+                    <KatexRenderer latex={editedLatex} />
+                  ) : (
+                    <p className="text-gray-400 text-sm italic">
+                      Start typing LaTeX above to see a preview.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Writer's Solution</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Writer's Solution
+                </label>
                 <textarea
                   value={editedSolution}
                   onChange={(e) => setEditedSolution(e.target.value)}
@@ -216,8 +242,26 @@ const ProblemDetail = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm"
                 />
               </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Solution Preview
+                </label>
+                <div className="prose max-w-none border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  {editedSolution ? (
+                    <KatexRenderer latex={editedSolution} />
+                  ) : (
+                    <p className="text-gray-400 text-sm italic">
+                      Start typing LaTeX above to see a preview.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Final Answer</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Final Answer
+                </label>
                 <input
                   type="text"
                   value={editedAnswer}
@@ -225,8 +269,26 @@ const ProblemDetail = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Answer Preview
+                </label>
+                <div className="prose max-w-none border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  {editedAnswer ? (
+                    <KatexRenderer latex={editedAnswer} />
+                  ) : (
+                    <p className="text-gray-400 text-sm italic">
+                      Start typing LaTeX above to see a preview.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Private)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes (Private)
+                </label>
                 <textarea
                   value={editedNotes}
                   onChange={(e) => setEditedNotes(e.target.value)}
@@ -234,18 +296,41 @@ const ProblemDetail = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Stage</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Difficulty (1–10)
+                </label>
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  value={editedDifficulty}
+                  onChange={(e) => setEditedDifficulty(Number(e.target.value))}
+                  className="w-full"
+                />
+                <div className="mt-1 text-sm text-gray-600">
+                  Current: {editedDifficulty}/10
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Stage
+                </label>
                 <select
                   value={editedStage}
                   onChange={(e) => setEditedStage(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg w-full"
                 >
-                  {stageOptions.map(stage => (
-                    <option key={stage} value={stage}>{stage}</option>
+                  {stageOptions.map((stage) => (
+                    <option key={stage} value={stage}>
+                      {stage}
+                    </option>
                   ))}
                 </select>
               </div>
+
               <button
                 onClick={handleSave}
                 className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue font-bold"
@@ -257,21 +342,30 @@ const ProblemDetail = () => {
             <div className="prose max-w-none">
               <KatexRenderer latex={problem.latex} />
               <div className="mt-6 flex gap-2">
-                {problem.topics.map(topic => (
-                  <span key={topic} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded">
+                {problem.topics.map((topic) => (
+                  <span
+                    key={topic}
+                    className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded"
+                  >
                     {topic}
                   </span>
                 ))}
               </div>
               <div className="mt-4 flex gap-4 text-sm text-gray-600 items-center">
-                <span>Difficulty:  {problem.quality}/10</span>
-                <span className={`px-2 py-1 text-xs rounded ${
-                  problem.stage === 'On Test' ? 'bg-blue-100 text-blue-800' :
-                  problem.stage === 'Live/Ready for Review' ? 'bg-green-100 text-green-800' :
-                  problem.stage === 'Published' ? 'bg-green-600 text-white' :
-                  problem.stage === 'Review' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span>Difficulty: {problem.quality}/10</span>
+                <span
+                  className={`px-2 py-1 text-xs rounded ${
+                    problem.stage === 'On Test'
+                      ? 'bg-blue-100 text-blue-800'
+                      : problem.stage === 'Live/Ready for Review'
+                      ? 'bg-green-100 text-green-800'
+                      : problem.stage === 'Published'
+                      ? 'bg-green-600 text-white'
+                      : problem.stage === 'Review'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
                   {problem.stage}
                 </span>
                 {problem.endorsements > 0 && (
@@ -288,13 +382,15 @@ const ProblemDetail = () => {
         {!isEditing && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-ucla-blue">
-              <h2 className="text-xl font-semibold mb-4 text-ucla-blue">Final Answer</h2>
-                {problem.answer ? (
-                   <div className="text-2xl text-ucla-blue bg-blue-50 p-4 rounded-lg text-center">
-                      <KatexRenderer latex={problem.answer} />
-                  </div>
-                ) : (
-                  <p className="text-gray-500 italic">No answer provided</p>
+              <h2 className="text-xl font-semibold mb-4 text-ucla-blue">
+                Final Answer
+              </h2>
+              {problem.answer ? (
+                <div className="text-2xl text-ucla-blue bg-blue-50 p-4 rounded-lg text-center">
+                  <KatexRenderer latex={problem.answer} />
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">No answer provided</p>
               )}
             </div>
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -314,7 +410,9 @@ const ProblemDetail = () => {
         {!isEditing && (problem.notes || problem._isAdmin || problem._isAuthor) && (
           <div className="bg-white border-l-4 border-yellow-400 rounded-r-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-semibold mb-2">Private Notes</h2>
-            <p className="text-xs text-yellow-700 mb-4 font-medium uppercase tracking-wider">Visible only to author and admins</p>
+            <p className="text-xs text-yellow-700 mb-4 font-medium uppercase tracking-wider">
+              Visible only to author and admins
+            </p>
             {problem.notes ? (
               <p className="text-gray-700 whitespace-pre-wrap">{problem.notes}</p>
             ) : (
@@ -325,7 +423,9 @@ const ProblemDetail = () => {
 
         {/* Feedback Section */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Feedback ({feedbacks.length})</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Feedback ({feedbacks.length})
+          </h2>
           {feedbacks.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No feedback yet</p>
           ) : (
@@ -372,7 +472,9 @@ const ProblemDetail = () => {
                         ) : (
                           <>
                             <span className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded">
-                              {fb.resolved ? 'Needs Review · Resolved' : 'Needs Review'}
+                              {fb.resolved
+                                ? 'Needs Review · Resolved'
+                                : 'Needs Review'}
                             </span>
                             {hasConflictingAnswer && (
                               <span className="px-2 py-1 bg-red-600 text-white text-xs rounded font-bold">

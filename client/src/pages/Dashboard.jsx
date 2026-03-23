@@ -164,7 +164,7 @@ const Dashboard = () => {
                     </span>
                   </div>
                   {fb.comment && <p className="text-xs text-gray-500 mt-1 truncate">"{fb.comment}"</p>}
-                  <p className="text-xs text-gray-400 mt-1">{new Date(fb.updatedAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-400 mt-1">{new Date(fb.createdAt).toLocaleDateString()}</p>
                   {fb.isEndorsement && <span className="text-xs text-yellow-600 font-medium">Endorsed</span>}
                 </div>
               ))}

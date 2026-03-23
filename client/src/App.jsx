@@ -46,16 +46,20 @@ function App() {
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+
           <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/write" element={<PrivateRoute><WriteProblem /></PrivateRoute>} />
+          <Route path="/write/:id" element={<PrivateRoute><WriteProblem /></PrivateRoute>} />
           <Route path="/inventory" element={<PrivateRoute><ProblemInventory /></PrivateRoute>} />
           <Route path="/problem/:id" element={<PrivateRoute><ProblemDetail /></PrivateRoute>} />
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/feedback" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
+          <Route path="/feedback/:problemId" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/tests" element={<PrivateRoute><ViewTests /></PrivateRoute>} />
-          <Route path="/questions-to-endorse" element={<PrivateRoute><QuestionsToEndorse /></PrivateRoute>} />
-          <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
+          <Route path="/endorsements" element={<PrivateRoute><QuestionsToEndorse /></PrivateRoute>} />
+          <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
+
           <Route path="/" element={<Navigate to="/home" />} />
         </Routes>
       </BrowserRouter>

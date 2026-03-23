@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer
 } from 'recharts';
 import { Check, X, Star } from 'lucide-react';
 import api from '../utils/api';
@@ -39,12 +39,12 @@ const ProblemInventory = () => {
   const progressPercent = Math.min((totalProblems / 200) * 100, 100);
 
   const filtered = problems.filter(p => {
-    const matchesSearch = 
-      search === '' || 
-      p.id.toLowerCase().includes(search.toLowerCase()) ||
-      p.latex.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch =
+      search === '' ||
+      (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.latex || '').toLowerCase().includes(search.toLowerCase());
     const matchesStage = stageFilter === 'all' || p.stage === stageFilter;
-    const matchesTopic = topicFilter === 'all' || p.topics.includes(topicFilter);
+    const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
     return matchesSearch && matchesStage && matchesTopic;
   });
 
@@ -71,7 +71,7 @@ const ProblemInventory = () => {
             <span className="font-bold text-ucla-blue text-xl">{totalProblems} / 200</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-6">
-            <div 
+            <div
               className="bg-ucla-blue h-6 rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
@@ -115,6 +115,7 @@ const ProblemInventory = () => {
               <option value="all">All Stages</option>
               <option value="Idea">Idea</option>
               <option value="Review">Review</option>
+              <option value="Endorsed">Endorsed</option>
               <option value="Live/Ready for Review">Live/Ready for Review</option>
               <option value="On Test">On Test</option>
               <option value="Published">Published</option>
@@ -150,8 +151,8 @@ const ProblemInventory = () => {
             </thead>
             <tbody>
               {filtered.map(problem => (
-                <tr 
-                  key={problem.id} 
+                <tr
+                  key={problem.id}
                   className="border-b hover:bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/problem/${problem.id}`)}
                 >
@@ -167,10 +168,10 @@ const ProblemInventory = () => {
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium text-ucla-blue">{problem.id}</td>
-                  <td className="px-4 py-3">{problem.author.initials}</td>
+                  <td className="px-4 py-3">{problem.author?.initials}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 flex-wrap">
-                      {problem.topics.map(t => (
+                      {(problem.topics || []).map(t => (
                         <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded">
                           {t}
                         </span>
@@ -183,6 +184,7 @@ const ProblemInventory = () => {
                       problem.stage === 'Live/Ready for Review' ? 'bg-green-100 text-green-800' :
                       problem.stage === 'Published' ? 'bg-green-600 text-white' :
                       problem.stage === 'Review' ? 'bg-yellow-100 text-yellow-800' :
+                      problem.stage === 'Endorsed' ? 'bg-purple-100 text-purple-800' :
                       problem.stage === 'Needs Review' ? 'bg-red-100 text-red-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>

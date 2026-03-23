@@ -104,7 +104,9 @@ const ProblemDetail = () => {
       return;
     }
     try {
-      await api.put(`/feedback/${fbId}/resolve`, { comment: resolveComment });
+      await api.put(`/feedback/${fbId}/resolve`, {
+        comment: resolveComment
+      });
       setMessage('Feedback marked as resolved.');
       setResolvingId(null);
       setResolveComment('');
@@ -116,7 +118,9 @@ const ProblemDetail = () => {
 
   const handleEditFeedback = async (fbId) => {
     try {
-      await api.patch(`/feedback/${fbId}`, { comment: editedFeedbackComment });
+      await api.patch(`/feedback/${fbId}`, {
+        comment: editedFeedbackComment
+      });
       setMessage('Feedback updated.');
       setEditingFeedbackId(null);
       fetchProblem();
@@ -125,13 +129,27 @@ const ProblemDetail = () => {
     }
   };
 
-  const stageOptions = ['Idea', 'Review', 'Live/Ready for Review', 'On Test', 'Published', 'Needs Review'];
+  const stageOptions = ['Idea', 'Review', 'Live/Ready for Review', 'On Test', 'Published', 'Needs Review', 'Endorsed'];
 
-  if (loading) return <Layout><div className="flex items-center justify-center h-64">Loading...</div></Layout>;
-  if (!problem) return <Layout><div className="text-center py-12"><h2>Problem Not Found</h2></div></Layout>;
+  if (loading) return (
+    <Layout>
+      <div className="flex justify-center items-center h-64">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    </Layout>
+  );
+
+  if (!problem) return (
+    <Layout>
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold text-gray-800">Problem Not Found</h2>
+      </div>
+    </Layout>
+  );
 
   const canEdit = problem._isAuthor || problem._isAdmin;
-  const canEndorse = !problem._isAuthor && problem.stage === 'Review';
+  // Fix canEndorse: should be available if not author AND not already endorsed
+  const canEndorse = !problem._isAuthor && problem._displayStatus !== 'endorsed';
 
   return (
     <Layout>
@@ -145,24 +163,25 @@ const ProblemDetail = () => {
                 problem._displayStatus === 'endorsed' ? 'bg-yellow-400 text-yellow-900' :
                 'bg-ucla-blue text-white'
               }`}>
-                {problem._displayStatus === 'needs_review' ? 'Needs Review' :
+                {problem._displayStatus === 'needs_review' ? 'Needs Review' : 
                  problem._displayStatus === 'endorsed' ? 'Endorsed' : problem.stage}
               </span>
             </div>
             <p className="text-gray-600 mt-2">by {problem.author.firstName} {problem.author.lastName}</p>
           </div>
+          
           <div className="flex gap-2">
             {canEndorse && (
-              <button onClick={handleEndorse} className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-bold shadow-sm">
+              <button onClick={handleEndorse} className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 shadow-sm font-bold transition-all">
                 <Star size={18} fill="white" /> Endorse
               </button>
             )}
             {canEdit && (
               <>
-                <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 px-4 py-2 bg-ucla-blue text-white rounded-lg hover:bg-ucla-dark-blue">
+                <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 px-4 py-2 bg-ucla-blue text-white rounded-lg hover:bg-ucla-dark-blue shadow-sm font-bold transition-all">
                   <Edit size={18} /> {isEditing ? 'Cancel' : 'Edit'}
                 </button>
-                <button onClick={handleDelete} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                <button onClick={handleDelete} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm font-bold transition-all">
                   <Trash2 size={18} /> Delete
                 </button>
               </>
@@ -171,70 +190,142 @@ const ProblemDetail = () => {
         </div>
 
         {message && (
-          <div className={`mb-6 px-4 py-3 rounded border ${message.includes('success') || message.includes('Feedback') ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+          <div className={`mb-6 p-4 rounded-lg border font-medium ${message.includes('Failed') ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'}`}>
             {message}
           </div>
         )}
 
-        {/* Problem card */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Problem Statement</h2>
+        <div className="bg-white rounded-lg shadow-md p-8 mb-6">
+          <h2 className="text-sm font-bold text-gray-500 uppercase mb-6 tracking-wider border-b pb-2">Problem Statement</h2>
           {isEditing ? (
-            <div className="space-y-4">
-              <textarea value={editedLatex} onChange={(e) => setEditedLatex(e.target.value)} rows={8} className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm" />
-              <div>                   <label className="block text-sm font-medium mb-1">Writer's Solution</label>                   <textarea value={editedSolution} onChange={(e) => setEditedSolution(e.target.value)} rows={6} className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm" />                 </div>                 <div>                   <label className="block text-sm font-medium mb-1">Final Answer</label>                   <input type="text" value={editedAnswer} onChange={(e) => setEditedAnswer(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />                 </div>                 <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">LaTeX Content</label>
+                <textarea 
+                  value={editedLatex} 
+                  onChange={(e) => setEditedLatex(e.target.value)}
+                  rows={8}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Writer's Solution</label>
+                <textarea 
+                  value={editedSolution} 
+                  onChange={(e) => setEditedSolution(e.target.value)}
+                  rows={6}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Final Answer</label>
+                <input 
+                  type="text" 
+                  value={editedAnswer}
+                  onChange={(e) => setEditedAnswer(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Difficulty (1-10)</label>
-                  <input type="number" min="1" max="10" value={editedDifficulty} onChange={(e) => setEditedDifficulty(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="10"
+                    value={editedDifficulty}
+                    onChange={(e) => setEditedDifficulty(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Stage</label>
-                  <select value={editedStage} onChange={(e) => setEditedStage(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <select 
+                    value={editedStage}
+                    onChange={(e) => setEditedStage(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
+                  >
                     {stageOptions.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
-              <button onClick={handleSave} className="w-full bg-ucla-blue text-white py-2 rounded-lg font-bold">Save Changes</button>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Notes (Private)</label>
+                <textarea 
+                  value={editedNotes} 
+                  onChange={(e) => setEditedNotes(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                />
+              </div>
+
+              <button 
+                onClick={handleSave}
+                className="w-full bg-ucla-blue text-white py-3 rounded-lg font-bold hover:bg-ucla-dark-blue transition-colors shadow-lg"
+              >
+                Save Changes
+              </button>
             </div>
           ) : (
             <div className="prose max-w-none">
-              <KatexRenderer latex={problem.latex} />
-              <div className="mt-4 flex gap-2 items-center">                   {problem.quality && <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">Difficulty: {problem.quality}/10</span>}
-                {problem.topics.map(t => <span key={t} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded">{t}</span>)}
-                <span className="ml-auto text-sm text-gray-500 flex items-center gap-1"><Clock size={16} /> {new Date(problem.createdAt).toLocaleDateString()}</span>
+              <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 min-h-[100px]">
+                <KatexRenderer latex={problem.latex} />
+              </div>
+              <div className="mt-6 flex flex-wrap gap-2 items-center">
+                {/* Fix Difficulty Visibility: problem.quality is the field */}
+                {problem.quality && (
+                  <span className="px-3 py-1 bg-blue-100 text-ucla-blue text-xs font-bold rounded-full border border-blue-200">
+                    Difficulty: {problem.quality}/10
+                  </span>
+                )}
+                {problem.topics.map(t => (
+                  <span key={t} className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full border border-gray-200">
+                    {t}
+                  </span>
+                ))}
+                <span className="ml-auto text-xs text-gray-400 flex items-center gap-1">
+                  <Clock size={14} /> {new Date(problem.createdAt).toLocaleDateString()}
+                </span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Creator Solution toggle */}
         {!isEditing && (problem.solution || problem._isAdmin || problem._isAuthor) && (
           <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-            <button
+            <button 
               onClick={() => setShowSolution(!showSolution)}
               className="w-full flex justify-between items-center px-6 py-4 bg-gray-50 hover:bg-gray-100 transition-colors"
             >
-              <div className="flex items-center gap-2 font-semibold text-ucla-blue">
+              <div className="flex items-center gap-2 font-bold text-ucla-blue">
                 <CheckCircle size={20} /> Show Creator Solution
               </div>
               {showSolution ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </button>
             {showSolution && (
-              <div className="p-6 border-t border-gray-100">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-4 tracking-wider">Solution</h3>
-                <div className="prose max-w-none">
-                  {problem.solution ? <KatexRenderer latex={problem.solution} /> : <p className="italic text-gray-400">No solution provided</p>}
+              <div className="p-8 border-t border-gray-100">
+                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Solution</h3>
+                <div className="prose max-w-none mb-6">
+                  {problem.solution ? (
+                    <KatexRenderer latex={problem.solution} />
+                  ) : (
+                    <p className="italic text-gray-400 text-sm">No solution provided by author.</p>
+                  )}
                 </div>
                 {problem.answer && (
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                    <span className="font-bold text-ucla-blue">Final Answer: </span>
+                  <div className="p-4 bg-ucla-blue/5 rounded-lg border border-ucla-blue/10">
+                    <span className="font-bold text-ucla-blue text-sm uppercase mr-2 tracking-tight">Final Answer:</span>
                     <KatexRenderer latex={problem.answer} />
                   </div>
                 )}
                 {(problem.notes && (problem._isAdmin || problem._isAuthor)) && (
-                  <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-                    <span className="font-bold text-yellow-800 uppercase text-xs">Notes (Private): </span>
-                    <p className="mt-2 text-gray-700 whitespace-pre-wrap">{problem.notes}</p>
+                  <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <span className="font-bold text-yellow-800 uppercase text-xs tracking-wider">Notes (Private):</span>
+                    <p className="mt-2 text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{problem.notes}</p>
                   </div>
                 )}
               </div>
@@ -242,52 +333,108 @@ const ProblemDetail = () => {
           </div>
         )}
 
-        {/* Feedback Section */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-6">Feedback ({feedbacks.length})</h2>
-          {feedbacks.length === 0 ? <p className="text-gray-500 text-center py-8">No feedback yet</p> : (
+        <div className="bg-white rounded-lg shadow-md p-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-8 flex items-center gap-2">
+            Feedback <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-sm">{feedbacks.length}</span>
+          </h2>
+          {feedbacks.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <p className="text-gray-400">No feedback yet. Authors can see reviews here.</p>
+            </div>
+          ) : (
             <div className="space-y-6">
               {feedbacks.map((fb) => (
-                <div key={fb.id} className={`border-l-4 pl-4 py-2 ${fb.isEndorsement ? 'border-yellow-400 bg-yellow-50/20' : !fb.resolved ? 'border-red-500 bg-red-50/30' : 'border-gray-200'}`}>
+                <div key={fb.id} className={`border-l-4 pl-6 py-4 rounded-r-lg transition-all ${
+                  fb.isEndorsement ? 'border-yellow-400 bg-yellow-50/20' : 
+                  !fb.resolved ? 'border-red-500 bg-red-50/30' : 
+                  'border-gray-200 bg-gray-50/30'
+                }`}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-semibold">{fb.user.firstName} {fb.user.lastName}</p>
-                      <p className="text-xs text-gray-500">{new Date(fb.createdAt).toLocaleDateString()} · {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved Review' : 'Active Review'}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-bold text-gray-900">{fb.user.firstName} {fb.user.lastName}</p>
+                        {fb.isEndorsement && <Star size={14} className="text-yellow-500 fill-yellow-500" />}
+                      </div>
+                      <p className="text-xs text-gray-500 font-medium">
+                        {new Date(fb.createdAt).toLocaleDateString()} · 
+                        <span className={`ml-1 ${fb.isEndorsement ? 'text-yellow-700' : fb.resolved ? 'text-green-700' : 'text-red-700'}`}>
+                          {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved Review' : 'Active Review'}
+                        </span>
+                      </p>
                     </div>
-                    <div className="flex gap-2">
-                      {/* Resolve button with comment prompt */}
+                    <div className="flex gap-3">
                       {!fb.resolved && !fb.isEndorsement && (problem._isAuthor || problem._isAdmin) && (
-                        <button onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)} className="text-xs text-ucla-blue underline">
-                          {resolvingId === fb.id ? 'Cancel Resolve' : 'Mark as Resolved'}
+                        <button 
+                          onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)}
+                          className="text-xs font-bold text-ucla-blue hover:underline"
+                        >
+                          {resolvingId === fb.id ? 'Cancel' : 'Mark as Resolved'}
                         </button>
                       )}
-                      {/* Edit button for creator/admin */}
                       {(fb.userId === problem._userId || problem._isAdmin) && (
-                        <button onClick={() => { setEditingFeedbackId(fb.id); setEditedFeedbackComment(fb.feedback); }} className="text-xs text-gray-500 underline">Edit</button>
+                        <button 
+                          onClick={() => {
+                            setEditingFeedbackId(fb.id);
+                            setEditedFeedbackComment(fb.feedback);
+                          }}
+                          className="text-xs font-bold text-gray-400 hover:text-gray-600 underline"
+                        >
+                          Edit
+                        </button>
                       )}
                     </div>
                   </div>
-
+                  
                   {editingFeedbackId === fb.id ? (
-                    <div className="mt-2 space-y-2">
-                      <textarea value={editedFeedbackComment} onChange={(e) => setEditedFeedbackComment(e.target.value)} className="w-full p-2 border border-gray-300 rounded text-sm" />
-                      <button onClick={() => handleEditFeedback(fb.id)} className="px-3 py-1 bg-ucla-blue text-white text-xs rounded">Update</button>
+                    <div className="mt-4 space-y-3">
+                      <textarea 
+                        value={editedFeedbackComment}
+                        onChange={(e) => setEditedFeedbackComment(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                        rows={3}
+                      />
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleEditFeedback(fb.id)}
+                          className="px-4 py-1.5 bg-ucla-blue text-white text-xs font-bold rounded-lg hover:bg-ucla-dark-blue transition-colors"
+                        >
+                          Update
+                        </button>
+                        <button 
+                          onClick={() => setEditingFeedbackId(null)}
+                          className="px-4 py-1.5 bg-gray-200 text-gray-600 text-xs font-bold rounded-lg"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-gray-700 mt-2 whitespace-pre-wrap">{fb.feedback}</p>
+                    <p className="text-gray-700 mt-3 text-sm whitespace-pre-wrap leading-relaxed">{fb.feedback}</p>
                   )}
 
                   {resolvingId === fb.id && (
-                    <div className="mt-4 p-4 bg-white border border-red-200 rounded-lg shadow-sm">
-                      <label className="block text-sm font-semibold mb-2">Resolution Comment <span className="text-red-500">*</span></label>
-                      <textarea value={resolveComment} onChange={(e) => setResolveComment(e.target.value)} placeholder="Explain how this was addressed..." className="w-full p-2 border border-gray-300 rounded-lg text-sm mb-2" required />
-                      <button onClick={() => handleResolveFeedback(fb.id)} className="w-full bg-red-600 text-white py-2 rounded-lg text-sm font-bold">Confirm Resolution</button>
+                    <div className="mt-6 p-5 bg-white border border-red-100 rounded-xl shadow-sm">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Resolution Comment <span className="text-red-500">*</span></label>
+                      <textarea 
+                        value={resolveComment}
+                        onChange={(e) => setResolveComment(e.target.value)}
+                        placeholder="Describe how the feedback was addressed..."
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-red-500 outline-none"
+                        rows={2}
+                        required
+                      />
+                      <button 
+                        onClick={() => handleResolveFeedback(fb.id)}
+                        className="w-full bg-red-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors"
+                      >
+                        Confirm Resolution
+                      </button>
                     </div>
                   )}
 
                   {fb.resolved && (
-                    <div className="mt-2 text-xs font-bold text-green-700 flex items-center gap-1">
-                      <CheckCircle size={12} /> Resolved
+                    <div className="mt-3 text-xs font-bold text-green-700 flex items-center gap-1.5 bg-green-50 w-fit px-2 py-1 rounded">
+                      <CheckCircle size={14} /> Resolved
                     </div>
                   )}
                 </div>

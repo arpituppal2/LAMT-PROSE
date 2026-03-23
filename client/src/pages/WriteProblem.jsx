@@ -4,6 +4,7 @@ import { Image as ImageIcon, X } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
+
 const DIFFICULTY_LABELS = {
   1: 'Problem 1',
   2: 'Problem 2',
@@ -16,6 +17,7 @@ const DIFFICULTY_LABELS = {
   9: 'Problem 9',
   10: 'Problem 10',
 };
+
 const WriteProblem = () => {
   const [latex, setLatex] = useState('');
   const [solution, setSolution] = useState('');
@@ -23,12 +25,14 @@ const WriteProblem = () => {
   const [notes, setNotes] = useState('');
   const [topics, setTopics] = useState([]);
   const [difficulty, setDifficulty] = useState(5);
-    const [examType, setExamType] = useState('Numerical Answer');
+  const [examType, setExamType] = useState('Numerical Answer');
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
+
   const handleTopicToggle = (topic) => {
     setTopics(prev =>
       prev.includes(topic)
@@ -36,6 +40,7 @@ const WriteProblem = () => {
         : [...prev, topic]
     );
   };
+
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     files.forEach(file => {
@@ -46,22 +51,29 @@ const WriteProblem = () => {
       reader.readAsDataURL(file);
     });
   };
+
   const removeImage = (index) => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (topics.length === 0) {
       setMessage('Please select at least one topic');
       return;
     }
+
     setLoading(true);
     setMessage('');
+
     try {
       let finalLatex = latex;
       if (images.length > 0) {
-                  finalLatex += '\n' + images.map((img, i) => `![Image ${i+1}](${img})`).join('\n');
+        finalLatex += '
+' + images.map((img, i) => `![Image ${i+1}](${img})`).join('
+');
       }
+
       const response = await api.post('/problems', {
         latex: finalLatex,
         solution,
@@ -69,8 +81,9 @@ const WriteProblem = () => {
         notes,
         topics,
         quality: String(difficulty),
-                examType,
+        examType,
       });
+
       setMessage(`Problem ${response.data.id} created successfully!`);
       setTimeout(() => {
         navigate('/inventory');
@@ -82,17 +95,19 @@ const WriteProblem = () => {
       setLoading(false);
     }
   };
+
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8" style={{ color: '#2774AE' }}>Write New Problem</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Write New Problem</h1>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Problem Editor</h2>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <h2 className="text-xl font-semibold mb-6">Problem Editor</h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Problem Statement
+                  Problem Statement <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={latex}
@@ -103,6 +118,7 @@ const WriteProblem = () => {
                   required
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Attachments / Images
@@ -111,7 +127,7 @@ const WriteProblem = () => {
                   {images.map((img, idx) => (
                     <div key={idx} className="relative w-20 h-20 border rounded-lg overflow-hidden group">
                       <img src={img} alt="upload preview" className="w-full h-full object-cover" />
-                      <button 
+                      <button
                         type="button"
                         onClick={() => removeImage(idx)}
                         className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"
@@ -123,10 +139,17 @@ const WriteProblem = () => {
                   <label className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
                     <ImageIcon size={24} className="text-gray-400" />
                     <span className="text-[10px] text-gray-400 mt-1">Upload</span>
-                    <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                    />
                   </label>
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Writer's Solution <span className="text-red-500">*</span>
@@ -140,6 +163,7 @@ const WriteProblem = () => {
                   required
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Final Answer
@@ -152,6 +176,7 @@ const WriteProblem = () => {
                   placeholder="Numerical answer or simple string..."
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Notes / Comments (Private)
@@ -164,6 +189,7 @@ const WriteProblem = () => {
                   placeholder="Add any notes, source info, or comments (visible only to you and admins)..."
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Topics
@@ -186,9 +212,10 @@ const WriteProblem = () => {
                   ))}
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                      Difficulty: <span className="font-bold" style={{ color: '#2774AE' }}>Where would you place this round on a 10 question exam?/10</span>
+                  Difficulty: <span className="font-bold" style={{ color: '#2774AE' }}>Where would you place this round on a 10 question exam?/10</span>
                 </label>
                 <input
                   type="range"
@@ -206,28 +233,30 @@ const WriteProblem = () => {
                   {DIFFICULTY_LABELS[difficulty]}
                 </div>
               </div>
-                        <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Exam Type
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {['Numerical Answer', 'Proof Based', 'Puzzle/Other'].map(type => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setExamType(type)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    examType === type
-                      ? 'text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  style={examType === type ? { backgroundColor: '#2774AE' } : {}}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Exam Type
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['Numerical Answer', 'Proof Based', 'Puzzle/Other'].map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setExamType(type)}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        examType === type
+                          ? 'text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                      style={examType === type ? { backgroundColor: '#2774AE' } : {}}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {message && (
                 <div className={`px-4 py-3 rounded text-sm ${
                   message.includes('successfully')
@@ -237,6 +266,7 @@ const WriteProblem = () => {
                   {message}
                 </div>
               )}
+
               <button
                 type="submit"
                 disabled={loading}
@@ -247,6 +277,7 @@ const WriteProblem = () => {
               </button>
             </form>
           </div>
+
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Problem Preview</h2>
@@ -265,6 +296,7 @@ const WriteProblem = () => {
                 )}
               </div>
             </div>
+
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Solution Preview</h2>
               <div className="border border-gray-200 rounded-lg p-4 min-h-[200px]">
@@ -275,27 +307,29 @@ const WriteProblem = () => {
                 )}
               </div>
             </div>
-                      <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Round Guide</h2>
-            <div className="space-y-3 text-sm">
-              <div className="border-l-4 border-blue-400 pl-4 py-1">
-                <p className="font-semibold text-gray-800">Team Round</p>
-                <p className="text-gray-600 mt-0.5">Collaborative numerical-answer problems. Typically medium difficulty (Levels 4–7). Aim for clean, elegant setups where multiple approaches are possible.</p>
-              </div>
-              <div className="border-l-4 border-purple-400 pl-4 py-1">
-                <p className="font-semibold text-gray-800">Power Round</p>
-                <p className="text-gray-600 mt-0.5">Proof-based multi-part problem set on a single theme. Problems should build on each other and require rigorous justification. Aim for Levels 6–10.</p>
-              </div>
-              <div className="border-l-4 border-green-400 pl-4 py-1">
-                <p className="font-semibold text-gray-800">General / Topic-Specific Exam</p>
-                <p className="text-gray-600 mt-0.5">Individual numerical-answer problems organized by topic (Algebra, Geometry, Discrete, etc.). Aim to cover a range of difficulties (Levels 3–9) and clearly fit one topic area.</p>
-              </div>
-              <div className="border-l-4 border-yellow-400 pl-4 py-1">
-                <p className="font-semibold text-gray-800">Special Round <span className="text-xs font-normal text-gray-500">(TBD)</span></p>
-                <p className="text-gray-600 mt-0.5">Format to be determined. May include relay, guts, puzzle-style, or themed rounds. Creative and unconventional problems welcome — use Puzzle / Other exam type.</p>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Round Guide</h2>
+              <div className="space-y-3 text-sm">
+                <div className="border-l-4 border-blue-400 pl-4 py-1">
+                  <p className="font-semibold text-gray-800">Team Round</p>
+                  <p className="text-gray-600 mt-0.5">Collaborative numerical-answer problems. Typically medium difficulty (Levels 4–7). Aim for clean, elegant setups where multiple approaches are possible.</p>
+                </div>
+                <div className="border-l-4 border-purple-400 pl-4 py-1">
+                  <p className="font-semibold text-gray-800">Power Round</p>
+                  <p className="text-gray-600 mt-0.5">Proof-based multi-part problem set on a single theme. Problems should build on each other and require rigorous justification. Aim for Levels 6–10.</p>
+                </div>
+                <div className="border-l-4 border-green-400 pl-4 py-1">
+                  <p className="font-semibold text-gray-800">General / Topic-Specific Exam</p>
+                  <p className="text-gray-600 mt-0.5">Individual numerical-answer problems organized by topic (Algebra, Geometry, Discrete, etc.). Aim to cover a range of difficulties (Levels 3–9) and clearly fit one topic area.</p>
+                </div>
+                <div className="border-l-4 border-yellow-400 pl-4 py-1">
+                  <p className="font-semibold text-gray-800">Special Round <span className=\"text-xs font-normal text-yellow-600\">(Shopping Round)</span></p>
+                  <p className="text-gray-600 mt-0.5">Contestants choose problems from a “shopping list” of available questions, then solve the ones they pick. Write self-contained numerical-answer problems that work well as standalone choices. Any topic, Levels 3–9.</p>
+                </div>
               </div>
             </div>
-          </div>
+
             {answer && (
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-semibold mb-4">Answer Preview</h2>
@@ -304,6 +338,7 @@ const WriteProblem = () => {
                 </div>
               </div>
             )}
+
             {notes && (
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-semibold mb-4">Notes Preview</h2>
@@ -318,4 +353,5 @@ const WriteProblem = () => {
     </Layout>
   );
 };
+
 export default WriteProblem;

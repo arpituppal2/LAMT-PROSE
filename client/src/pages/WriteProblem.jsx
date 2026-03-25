@@ -69,9 +69,8 @@ const WriteProblem = () => {
     try {
       let finalLatex = latex;
       if (images.length > 0) {
-        finalLatex += '
-' + images.map((img, i) => `![Image ${i+1}](${img})`).join('
-');
+        // Fix: Use \n for newlines instead of physical line breaks inside single quotes
+        finalLatex += '\n' + images.map((img, i) => `![Image ${i+1}](${img})`).join('\n');
       }
 
       const response = await api.post('/problems', {
@@ -324,7 +323,8 @@ const WriteProblem = () => {
                   <p className="text-gray-600 mt-0.5">Individual numerical-answer problems organized by topic (Algebra, Geometry, Discrete, etc.). Aim to cover a range of difficulties (Levels 3–9) and clearly fit one topic area.</p>
                 </div>
                 <div className="border-l-4 border-yellow-400 pl-4 py-1">
-                  <p className="font-semibold text-gray-800">Special Round <span className=\"text-xs font-normal text-yellow-600\">(Shopping Round)</span></p>
+                  {/* Fix: Cleaned up the escaped quotes in className */}
+                  <p className="font-semibold text-gray-800">Special Round <span className="text-xs font-normal text-yellow-600">(Shopping Round)</span></p>
                   <p className="text-gray-600 mt-0.5">Contestants choose problems from a “shopping list” of available questions, then solve the ones they pick. Write self-contained numerical-answer problems that work well as standalone choices. Any topic, Levels 3–9.</p>
                 </div>
               </div>

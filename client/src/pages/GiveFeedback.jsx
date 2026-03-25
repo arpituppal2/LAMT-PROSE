@@ -196,7 +196,8 @@ const GiveFeedback = () => {
                 setMode('targeted');
                 setProblem(null);
                 setMessage('');
-                loadReviewableProblems();
+                // Note: Removed loadReviewableProblems() from here. 
+                // The useEffect will handle this automatically when mode changes to 'targeted'.
               }}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 mode === 'targeted'
@@ -260,7 +261,8 @@ const GiveFeedback = () => {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-bold text-ucla-blue">{p.id}</span>
-                      <span className="text-sm text-gray-500">Difficulty: {problem.quality}/10</span>
+                      {/* FIXED: Changed {problem.quality} to {p.quality} here */}
+                      <span className="text-sm text-gray-500">Difficulty: {p.quality}/10</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {p.topics.map((t) => (

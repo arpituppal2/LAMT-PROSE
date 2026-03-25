@@ -260,7 +260,7 @@ const GiveFeedback = () => {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-bold text-ucla-blue">{p.id}</span>
-                      <span className="text-sm text-gray-500">Difficulty: {p.difficulty}/10</span>
+                      <span className="text-sm text-gray-500">Difficulty: {problem.quality}/10</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {p.topics.map((t) => (

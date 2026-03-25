@@ -300,14 +300,9 @@ router.get('/:id', authenticate, async (req, res) => {
 
     const result = { ...problem };
 
-    if (!isAdmin) delete result.answer;
 
     if (!isAdmin && !isAuthor) {
-
       delete result.notes;
-
-      delete result.solution;
-
     }
 
     result._isAuthor = isAuthor;

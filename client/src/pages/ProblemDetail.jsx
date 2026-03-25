@@ -148,7 +148,6 @@ const ProblemDetail = () => {
   );
 
   const canEdit = problem._isAuthor || problem._isAdmin;
-  // Fix canEndorse: should be available if not author AND not already endorsed
   const canEndorse = !problem._isAuthor && problem._displayStatus !== 'endorsed';
 
   return (
@@ -276,8 +275,8 @@ const ProblemDetail = () => {
                 <KatexRenderer latex={problem.latex} />
               </div>
               <div className="mt-6 flex flex-wrap gap-2 items-center">
-                {/* Fix Difficulty Visibility: problem.quality is the field */}
-                {problem.quality && (
+                {/* Fix: Safely checking quality to ensure '0' or string versions of '0' render correctly */}
+                {(problem.quality !== undefined && problem.quality !== null) && (
                   <span className="px-3 py-1 bg-blue-100 text-ucla-blue text-xs font-bold rounded-full border border-blue-200">
                     Difficulty: {problem.quality}/10
                   </span>
@@ -409,14 +408,23 @@ const ProblemDetail = () => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-700 mt-3 text-sm whitespace-pre-wrap leading-relaxed">{fb.feedback}</p>
+                    <div className="mt-3">
+                      <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{fb.feedback}</p>
+                      {/* Fix: Extracted reviewer answer from the resolving condition so it is always visible */}
+                      {fb.answer && (
+                        <p className="text-sm font-semibold text-gray-800 mt-3 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
+                          <span className="text-gray-600 font-medium">Reviewer's answer:</span> {fb.answer}
+                        </p>
+                      )}
+                    </div>
                   )}
 
+                  {/* Fix: Cleaned up the structural nesting for the resolution form */}
                   {resolvingId === fb.id && (
-                    <>
-                                      {fb.answer && <p className="text-sm font-semibold text-gray-800 mt-3 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100"><span className="text-gray-600 font-medium">Reviewer's answer:</span> {fb.answer}</p>}
-<div className="mt-6 p-5 bg-white border border-red-100 rounded-xl shadow-sm">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Resolution Comment <span className="text-red-500">*</span></label>
+                    <div className="mt-6 p-5 bg-white border border-red-100 rounded-xl shadow-sm">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
+                        Resolution Comment <span className="text-red-500">*</span>
+                      </label>
                       <textarea 
                         value={resolveComment}
                         onChange={(e) => setResolveComment(e.target.value)}
@@ -432,8 +440,7 @@ const ProblemDetail = () => {
                         Confirm Resolution
                       </button>
                     </div>
-  </>
-                      )}
+                  )}
 
                   {fb.resolved && (
                     <div className="mt-3 text-xs font-bold text-green-700 flex items-center gap-1.5 bg-green-50 w-fit px-2 py-1 rounded">

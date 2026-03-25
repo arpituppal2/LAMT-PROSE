@@ -208,8 +208,6 @@ const ProblemDetail = () => {
   );
 
   const canEdit = problem._isAuthor || problem._isAdmin;
-  const canEndorse = !problem._isAuthor && problem._displayStatus !== 'endorsed';
-
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
@@ -239,12 +237,6 @@ const ProblemDetail = () => {
                   <Trash2 size={18} /> Delete
                 </button>
               </>
-            )}
-            {/* Added Endorse button rendering if permitted */}
-            {canEndorse && !isEditing && (
-              <button onClick={handleEndorse} className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 shadow-sm font-bold transition-all">
-                <Star size={18} /> Endorse
-              </button>
             )}
           </div>
         </div>

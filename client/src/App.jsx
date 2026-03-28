@@ -9,8 +9,6 @@ import ProblemInventory from './pages/ProblemInventory';
 import ProblemDetail from './pages/ProblemDetail';
 import Leaderboard from './pages/Leaderboard';
 import GiveFeedback from './pages/GiveFeedback';
-import ViewTests from './pages/ViewTests';
-import QuestionsToEndorse from './pages/QuestionsToEndorse';
 import UserProfile from './pages/UserProfile';
 
 const PrivateRoute = ({ children }) => {
@@ -57,8 +55,6 @@ function App() {
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/feedback" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/feedback/:problemId" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
-          <Route path="/tests" element={<PrivateRoute><ViewTests /></PrivateRoute>} />
-          <Route path="/endorsements" element={<PrivateRoute><QuestionsToEndorse /></PrivateRoute>} />
           <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
 

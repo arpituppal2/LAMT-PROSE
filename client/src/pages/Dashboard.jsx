@@ -103,7 +103,7 @@ const handleDeleteFeedback = async (e, feedbackId) => {
           <div className="flex-1">
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-4 border-b flex gap-2 flex-wrap">
-                {['all', 'needs_review', 'Idea', 'Review', 'Live/Ready for Review', 'Published'].map((s) => (
+                {['all', 'needs_review', 'Idea', 'Published', 'endorsed'].map((s) => (
                   <button
                     key={s}
                     onClick={() => setFilter(s)}

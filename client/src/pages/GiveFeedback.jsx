@@ -159,9 +159,9 @@ const GiveFeedback = () => {
       .substring(0, 50) + (text.length > 50 ? '...' : ''); // Reduced to 50 chars
   };
 
-  const filteredProblems = reviewableProblems.filter((p) => {
-    // Check difficulty match
-    if (filterDifficulty && p.quality !== parseInt(filterDifficulty)) return false;
+const filteredProblems = reviewableProblems.filter((p) => {
+    // Check quality (difficulty) match
+    if (filterDifficulty && parseInt(p.quality) !== parseInt(filterDifficulty)) return false;
     
     // Check search query match
     if (!searchQuery) return true;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
+import { Lock } from 'lucide-react'; // Adding an icon for extra polish
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -18,60 +19,65 @@ const Login = () => {
 
     try {
       await login(email, password);
-      // Redirect to the intended page or dashboard
       const from = location.state?.from?.pathname || '/inventory';
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F0F4FF]">
-      <div className="bg-white p-10 rounded-xl shadow-xl w-full max-w-3xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F0F4FF] to-[#E0E9FF] p-4">
+      <div className="bg-white p-8 md:p-10 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-ucla-blue">Los Angeles Math Tournament's PROSE System</h1>
-          <p className="text-gray-600 mt-2">Problem Review and Online Submission Engine</p>
-          <p className="text-gray-600 mt-2 font-medium">Sign in to your account here!</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-ucla-blue/10 rounded-full mb-4">
+            <Lock className="text-ucla-blue" size={32} />
+          </div>
+          <h1 className="text-2xl font-black text-ucla-blue leading-tight uppercase tracking-tight">
+            PROSE <span className="text-ucla-gold text-lg block font-bold mt-1">System</span>
+          </h1>
+          <p className="text-gray-500 text-sm mt-3 font-medium">
+            Problem Review & Online Submission Engine
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-md text-sm font-semibold animate-pulse">
               {error}
             </div>
           )}
           
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">
+            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
               UCLA Email
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent outline-none transition-all"
-              placeholder="yourname@ucla.edu"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ucla-blue focus:bg-white outline-none transition-all placeholder:text-gray-300"
+              placeholder="bruin@ucla.edu"
               required
             />
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-bold text-gray-700">
+            <div className="flex justify-between items-center mb-1.5 ml-1">
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">
                 Password
               </label>
-              <Link to="/forgot-password" size="sm" className="text-sm text-ucla-blue hover:underline font-medium">
-                Forgot password?
+              <Link to="/forgot-password" size="sm" className="text-xs text-ucla-blue hover:text-ucla-dark-blue font-bold">
+                Forgot?
               </Link>
             </div>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ucla-blue focus:bg-white outline-none transition-all placeholder:text-gray-300"
               placeholder="••••••••"
               required
             />
@@ -80,18 +86,18 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-ucla-blue hover:bg-ucla-dark-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ucla-blue transition-all ${
-              loading ? 'opacity-70 cursor-not-allowed' : ''
+            className={`w-full py-4 px-4 rounded-xl shadow-lg text-sm font-black text-white bg-ucla-blue hover:bg-ucla-dark-blue hover:shadow-ucla-blue/30 transform active:scale-95 transition-all ${
+              loading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'AUTHENTICATING...' : 'SIGN IN'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-ucla-blue hover:underline font-bold">
+        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+          <p className="text-sm text-gray-500 font-medium">
+            New to the team?{' '}
+            <Link to="/register" className="text-ucla-blue hover:underline font-black">
               Register here
             </Link>
           </p>

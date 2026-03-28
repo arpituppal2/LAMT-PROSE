@@ -12,8 +12,13 @@ const QuestionsToEndorse = () => {
   const navigate = useNavigate();
 
   const ADMIN_CODE = 'LAMTADMIN839fhy38fynx389hm09h';
-  const ADMIN_EMAILS = ['arpituppal@ucla.edu'];
-
+const ADMIN_EMAILS = [
+  'arpituppal@ucla.edu',
+  'kennethren271@ucla.edu',
+  'brookswang@ucla.edu',
+  'zhangv29@ucla.edu',
+  'tomwu@g.ucla.edu',
+];
   useEffect(() => {
     // Fetch current user email
     const fetchUser = async () => {

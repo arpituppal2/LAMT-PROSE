@@ -347,37 +347,6 @@ const WriteProblem = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Round Guide</h2>
-              <div className="space-y-3 text-sm">
-                <div className="border-l-4 border-blue-400 pl-4 py-1">
-                  <p className="font-semibold text-gray-800">Team Round</p>
-                  <p className="text-gray-600 mt-0.5">Collaborative numerical-answer problems. Typically medium difficulty (Levels 4–7). Aim for clean, elegant setups where multiple approaches are possible.</p>
-                </div>
-                <div className="border-l-4 border-purple-400 pl-4 py-1">
-                  <p className="font-semibold text-gray-800">Power Round</p>
-                  <p className="text-gray-600 mt-0.5">Proof-based multi-part problem set on a single theme. Problems should build on each other and require rigorous justification. Aim for Levels 6–10.</p>
-                </div>
-                <div className="border-l-4 border-green-400 pl-4 py-1">
-                  <p className="font-semibold text-gray-800">General / Topic-Specific Exam</p>
-                  <p className="text-gray-600 mt-0.5">Individual numerical-answer problems organized by topic (Algebra, Geometry, Discrete, etc.). Aim to cover a range of difficulties (Levels 3–9) and clearly fit one topic area.</p>
-                </div>
-                <div className="border-l-4 border-yellow-400 pl-4 py-1">
-                  <p className="font-semibold text-gray-800">Special Round <span className="text-xs font-normal text-yellow-600">(Shopping Round)</span></p>
-                  <p className="text-gray-600 mt-0.5">Contestants choose problems from a “shopping list” of available questions, then solve the ones they pick. Write self-contained numerical-answer problems that work well as standalone choices. Any topic, Levels 3–9.</p>
-                </div>
-              </div>
-            </div>
-
-            {answer && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-semibold mb-4">Answer Preview</h2>
-                <div className="text-2xl font-mono text-ucla-blue bg-blue-50 p-4 rounded-lg text-center">
-                  {answer}
-                </div>
-              </div>
-            )}
-
             {notes && (
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-semibold mb-4">Notes Preview</h2>

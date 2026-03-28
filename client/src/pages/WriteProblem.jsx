@@ -125,12 +125,9 @@ const WriteProblem = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           
           {/* LEFT: FORM SIDE */}
-          <div className="lg:col-span-7 space-y-8">
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 p-8 space-y-8">
-              
+          <div className="lg:col-span-7 space-y-8">              
               {/* Problem Text */}
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-ucla-blue dark:text-ucla-gold">
                   <Sparkles size={14} /> Problem Statement
                 </label>
                 <textarea

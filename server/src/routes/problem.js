@@ -1,7 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
-
 const router = express.Router();
 const prisma = new PrismaClient();
 
@@ -13,8 +12,10 @@ const ADMIN_EMAILS = [
   'tomwu@g.ucla.edu',
 ];
 
-// Valid stages for the simplified system
-const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed'];
+// All valid stages
+const VALID_STAGES = ['Idea', 'Review', 'Live/Ready for Review', 'On Test', 'Published', 'Needs Review', 'Endorsed'];
+// Stages only admins can set (protect production-level stages)
+const ADMIN_ONLY_STAGES = ['On Test', 'Published'];
 
 // Compute display status: unresolved feedback > endorsed > stage
 function computeDisplayStatus(problem) {
@@ -59,7 +60,6 @@ router.post('/', authenticate, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const problemId = await assignProblemId(user.initials);
-
     const problem = await prisma.problem.create({
       data: {
         id: problemId,
@@ -92,6 +92,7 @@ router.get('/', authenticate, async (req, res) => {
       select: { isAdmin: true, email: true },
     });
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
+
     const where = {};
     if (reviewable === 'true') {
       where.authorId = { not: req.userId };
@@ -106,6 +107,7 @@ router.get('/', authenticate, async (req, res) => {
         { latex: { contains: search, mode: 'insensitive' } },
       ];
     }
+
     const problems = await prisma.problem.findMany({
       where,
       include: {
@@ -114,6 +116,7 @@ router.get('/', authenticate, async (req, res) => {
       },
       orderBy: { createdAt: 'desc' },
     });
+
     const result = problems.map((p) => {
       const pData = { ...p };
       const isAuthor = p.authorId === req.userId;
@@ -174,7 +177,7 @@ router.get('/:id', authenticate, async (req, res) => {
     const isAuthor = problem.authorId === req.userId;
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
     const result = { ...problem };
-    if (!isAdmin) delete result.answer;
+    if (!isAdmin && !isAuthor) delete result.answer;
     result._isAuthor = isAuthor;
     result._isAdmin = isAdmin;
     result._displayStatus = computeDisplayStatus(problem);
@@ -201,11 +204,12 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
     // Validate stage if provided
-    if (stage !== undefined && !VALID_STAGES.includes(stage) && !isAdmin) {
+    if (stage !== undefined && !VALID_STAGES.includes(stage)) {
       return res.status(400).json({ error: `Invalid stage. Must be one of: ${VALID_STAGES.join(', ')}` });
     }
-    if (!isAdmin && stage !== undefined && stage !== existing.stage) {
-      return res.status(403).json({ error: 'Only admins can change the stage' });
+    // Only admins can set admin-only stages
+    if (stage !== undefined && ADMIN_ONLY_STAGES.includes(stage) && !isAdmin) {
+      return res.status(403).json({ error: 'Only admins can set this stage' });
     }
     const updateData = {};
     if (latex !== undefined) updateData.latex = latex;

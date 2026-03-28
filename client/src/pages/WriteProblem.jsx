@@ -6,16 +6,16 @@ import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
 const DIFFICULTY_LABELS = {
-  1: 'Concept Check (Entry Level)',
-  2: 'Standard Fair',
-  3: 'Intermediate',
-  4: 'Competition Prep',
-  5: 'The Bruin Standard',
-  6: 'Challenger Grade',
-  7: 'Advanced Tier',
-  8: 'Elite Bracket',
-  9: 'Tournament Finalist',
-  10: 'Legendary Difficulty',
+    1: 'Concept Check (1/10)',
+  2: 'Standard Fair (2/10)',
+  3: 'Intermediate (3/10)',
+  4: 'Competition Prep (4/10)',
+  5: 'Standard (5/10)',
+  6: 'Challenging (6/10)',
+  7: 'Advanced Tier (7/10)',
+  8: 'Elite (8/10)',
+  9: 'Tournament Finalist (9/10)',
+  10: 'Legendary (10/10)',
 };
 
 const WriteProblem = () => {

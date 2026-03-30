@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, Cell
@@ -167,7 +168,7 @@ const ProblemInventory = () => {
               <option value="Combinatorics">Combinatorics</option>
               <option value="Number Theory">Number Theory</option>
             </select>
-style: fix ProblemInventory chart theming + reduce problem box height        </div>
+</div>
 
         {/* Content Table */}
         <div className="bg-white dark:bg-[#0f172a] rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl">

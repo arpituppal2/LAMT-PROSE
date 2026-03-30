@@ -42,7 +42,6 @@ const Sidebar = ({ dark, toggleDark }) => {
     navigate('/login');
   };
 
-  // Removed: Home (/home), View Tests (/tests)
   const links = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/write', icon: PenTool, label: 'Write New Problem' },
@@ -55,7 +54,7 @@ const Sidebar = ({ dark, toggleDark }) => {
     <div
       className={`h-screen text-white transition-all duration-300 flex flex-col ${
         collapsed ? 'w-16' : 'w-64'
-      } bg-ucla-blue`}
+      } bg-ucla-blue dark:bg-slate-900`}
     >
       {/* Header */}
       <div className={`p-4 flex items-center flex-shrink-0 ${
@@ -68,7 +67,7 @@ const Sidebar = ({ dark, toggleDark }) => {
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded transition-colors hover:bg-ucla-dark-blue flex-shrink-0"
+          className="p-2 rounded transition-colors hover:bg-white/10 flex-shrink-0"
         >
           {collapsed ? <Menu size={20} /> : <X size={20} />}
         </button>
@@ -86,8 +85,8 @@ const Sidebar = ({ dark, toggleDark }) => {
               to={link.to}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-ucla-dark-blue text-white font-semibold'
-                  : 'text-white/80 hover:bg-ucla-dark-blue hover:text-white'
+                  ? 'bg-white/15 text-white font-semibold'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
               <Icon size={20} className="flex-shrink-0" />
@@ -101,14 +100,14 @@ const Sidebar = ({ dark, toggleDark }) => {
       <div className="p-2 space-y-1 border-t border-white/10">
         <button
           onClick={toggleDark}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-white/80 hover:bg-ucla-dark-blue hover:text-white transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
         >
           {dark ? <Sun size={20} className="flex-shrink-0" /> : <Moon size={20} className="flex-shrink-0" />}
           {!collapsed && <span className="text-sm">{dark ? 'Light Mode' : 'Dark Mode'}</span>}
         </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-white/80 hover:bg-red-600 hover:text-white transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-white/70 hover:bg-red-600 hover:text-white transition-colors"
         >
           <LogOut size={20} className="flex-shrink-0" />
           {!collapsed && <span className="text-sm">Sign Out</span>}
@@ -124,7 +123,8 @@ const Layout = ({ children }) => {
     <ThemeContext.Provider value={{ dark }}>
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        {/* Light: very light blue tint. Dark: near-black slate, not neon */}
+        <main className="flex-1 overflow-y-auto bg-sky-50 dark:bg-slate-950">
           <div className="p-6 max-w-7xl mx-auto">
             {children}
           </div>

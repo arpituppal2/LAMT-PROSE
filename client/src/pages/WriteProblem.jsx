@@ -130,14 +130,14 @@ const WriteProblem = () => {
 
               {/* Problem Text */}
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   <Sparkles size={14} className="text-ucla-blue" /> Problem Statement
                 </label>
                 <textarea
                   value={latex}
                   onChange={(e) => setLatex(e.target.value)}
                   rows={8}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-3xl font-mono text-sm focus:ring-4 focus:ring-ucla-blue/10 focus:border-ucla-blue outline-none transition-all dark:text-slate-100"
+                  className="w-full px-5 py-4 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-3xl font-mono text-sm focus:ring-4 focus:ring-ucla-blue/10 focus:border-ucla-blue outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
                   placeholder="Enter problem text. Use $...$ for inline math."
                   required
                 />
@@ -145,7 +145,7 @@ const WriteProblem = () => {
 
               {/* Image Gallery */}
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Attachments</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Visual Attachments</label>
                 <div className="flex flex-wrap gap-4">
                   {images.map((img, idx) => (
                     <div key={idx} className="relative w-28 h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden group border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -183,7 +183,7 @@ const WriteProblem = () => {
                   value={solution}
                   onChange={(e) => setSolution(e.target.value)}
                   rows={6}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-3xl font-mono text-sm focus:ring-4 focus:ring-ucla-blue/10 outline-none transition-all dark:text-slate-100"
+                  className="w-full px-5 py-4 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-3xl font-mono text-sm focus:ring-4 focus:ring-ucla-blue/10 outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
                   placeholder="Explain the logic..."
                   required
                 />
@@ -191,13 +191,13 @@ const WriteProblem = () => {
 
               {/* Answer */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Final Numerical Answer</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Final Numerical Answer</label>
                 <input
                   type="text"
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
                   placeholder="e.g. 42 or 1/2"
-                  className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black focus:ring-4 focus:ring-ucla-blue/10 outline-none dark:text-white"
+                  className="w-full px-5 py-3 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black focus:ring-4 focus:ring-ucla-blue/10 outline-none text-slate-900 dark:text-white shadow-sm"
                   required
                 />
               </div>
@@ -205,22 +205,22 @@ const WriteProblem = () => {
               {/* Difficulty & Topics */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Difficulty Calibration</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Difficulty Calibration</label>
                   <input
                     type="range" min="1" max="10" step="1"
                     value={difficulty}
                     onChange={(e) => setDifficulty(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-ucla-blue"
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-ucla-blue"
                   />
-                  <div className="px-4 py-3 bg-slate-100 rounded-2xl border border-slate-200">
-                    <p className="text-slate-700 font-black text-[10px] uppercase italic tracking-tighter">
+                  <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <p className="text-slate-700 dark:text-slate-300 font-black text-[10px] uppercase italic tracking-tighter">
                       {DIFFICULTY_LABELS[difficulty]}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Topic Tags</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Topic Tags</label>
                   <div className="flex flex-wrap gap-2">
                     {topicOptions.map(topic => (
                       <button
@@ -229,7 +229,7 @@ const WriteProblem = () => {
                         className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all border ${
                           topics.includes(topic)
                             ? 'bg-ucla-blue border-ucla-blue text-white shadow-md shadow-ucla-blue/20'
-                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-ucla-blue'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-ucla-blue'
                         }`}
                       >
                         {topic}
@@ -260,19 +260,20 @@ const WriteProblem = () => {
 
           {/* RIGHT: LIVE PREVIEW */}
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
-            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden">
+            {/* Preview shell — white in light, dark slate in dark */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-xl dark:shadow-none overflow-hidden">
               <div className="p-8 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto">
 
                 {/* Problem preview */}
                 <div className="space-y-3">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Problem Statement</h3>
-                  <div className="text-slate-800 leading-relaxed text-sm bg-slate-50 p-6 rounded-2xl border border-slate-200 min-h-[120px]">
+                  <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Problem Statement</h3>
+                  <div className="text-slate-800 dark:text-slate-200 leading-relaxed text-sm bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 min-h-[120px]">
                     {latex
                       ? <KatexRenderer latex={latex} />
-                      : <span className="text-slate-400 italic">Waiting for input...</span>}
+                      : <span className="text-slate-400 dark:text-slate-600 italic">Waiting for input...</span>}
                     <div className="grid grid-cols-2 gap-4 mt-4">
                       {images.filter(img => img.destination === 'problem').map((img, i) => (
-                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-200" alt="preview" />
+                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-200 dark:border-slate-700" alt="preview" />
                       ))}
                     </div>
                   </div>
@@ -280,14 +281,14 @@ const WriteProblem = () => {
 
                 {/* Solution preview */}
                 <div className="space-y-3">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Solution Flow</h3>
-                  <div className="text-slate-800 leading-relaxed text-sm bg-slate-50 p-6 rounded-2xl border border-slate-200 min-h-[120px]">
+                  <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Solution Flow</h3>
+                  <div className="text-slate-800 dark:text-slate-200 leading-relaxed text-sm bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 min-h-[120px]">
                     {solution
                       ? <KatexRenderer latex={solution} />
-                      : <span className="text-slate-400 italic">No solution yet...</span>}
+                      : <span className="text-slate-400 dark:text-slate-600 italic">No solution yet...</span>}
                     <div className="grid grid-cols-2 gap-4 mt-4">
                       {images.filter(img => img.destination === 'solution').map((img, i) => (
-                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-200" alt="preview" />
+                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-200 dark:border-slate-700" alt="preview" />
                       ))}
                     </div>
                   </div>

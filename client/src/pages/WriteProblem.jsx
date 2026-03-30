@@ -55,8 +55,8 @@ const WriteProblem = () => {
   };
 
   const toggleImageDestination = (index) => {
-    setImages(prev => prev.map((img, i) => 
-      i === index 
+    setImages(prev => prev.map((img, i) =>
+      i === index
         ? { ...img, destination: img.destination === 'problem' ? 'solution' : 'problem' }
         : img
     ));
@@ -82,7 +82,6 @@ const WriteProblem = () => {
       if (problemImages.length > 0) {
         finalLatex += '\n\n' + problemImages.map((img, i) => `![Problem Image ${i + 1}](${img.dataUrl})`).join('\n');
       }
-      
       if (solutionImages.length > 0) {
         finalSolution += '\n\n' + solutionImages.map((img, i) => `![Solution Image ${i + 1}](${img.dataUrl})`).join('\n');
       }
@@ -110,7 +109,8 @@ const WriteProblem = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* Header Section */}
+
+        {/* Header */}
         <div className="mb-10 flex items-center gap-4">
           <div className="p-3 bg-ucla-blue rounded-2xl shadow-lg shadow-ucla-blue/20">
             <Beaker className="text-ucla-gold" size={28} />
@@ -123,10 +123,11 @@ const WriteProblem = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          
-          {/* LEFT: FORM SIDE */}
+
+          {/* LEFT: FORM */}
           <div className="lg:col-span-7">
             <form onSubmit={handleSubmit} className="space-y-8">
+
               {/* Problem Text */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -175,7 +176,7 @@ const WriteProblem = () => {
                 </div>
               </div>
 
-              {/* Writer Solution */}
+              {/* Solution */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-ucla-blue dark:text-ucla-gold">Official Solution</label>
                 <textarea
@@ -188,10 +189,10 @@ const WriteProblem = () => {
                 />
               </div>
 
-              {/* Answer Key Input */}
+              {/* Answer */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Final Numerical Answer</label>
-                <input 
+                <input
                   type="text"
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
@@ -201,18 +202,18 @@ const WriteProblem = () => {
                 />
               </div>
 
-              {/* Difficulty & Type Grid */}
+              {/* Difficulty & Topics */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Difficulty Calibration</label>
                   <input
                     type="range" min="1" max="10" step="1"
                     value={difficulty}
                     onChange={(e) => setDifficulty(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-ucla-gold"
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-ucla-blue"
                   />
-                  <div className="px-4 py-3 bg-ucla-blue/5 dark:bg-ucla-blue/20 rounded-2xl border border-ucla-blue/10">
-                    <p className="text-ucla-blue dark:text-ucla-darker-gold dark:text-ucla-gold font-black text-[10px] uppercase italic tracking-tighter">
+                  <div className="px-4 py-3 bg-slate-100 rounded-2xl border border-slate-200">
+                    <p className="text-slate-700 font-black text-[10px] uppercase italic tracking-tighter">
                       {DIFFICULTY_LABELS[difficulty]}
                     </p>
                   </div>
@@ -238,10 +239,12 @@ const WriteProblem = () => {
                 </div>
               </div>
 
-              {/* Submit Section */}
+              {/* Submit */}
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
                 {message && (
-                  <div className={`mb-6 p-4 rounded-2xl text-[10px] font-black uppercase ${message.includes('Success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <div className={`mb-6 p-4 rounded-2xl text-[10px] font-black uppercase ${
+                    message.includes('Success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
                     {message}
                   </div>
                 )}
@@ -249,45 +252,51 @@ const WriteProblem = () => {
                   type="submit" disabled={loading}
                   className="w-full bg-ucla-blue hover:bg-[#1a5a8a] text-white py-4 rounded-2xl transition-all disabled:opacity-50 font-black uppercase tracking-[0.2em] shadow-xl shadow-ucla-blue/20 flex items-center justify-center gap-3"
                 >
-                  {loading ? 'Processing...' : (
-                    <>Submit Problem <Send size={18} /></>
-                  )}
+                  {loading ? 'Processing...' : (<>Submit Problem <Send size={18} /></>)}
                 </button>
               </div>
             </form>
           </div>
 
-          {/* RIGHT: LIVE PREVIEW SIDE (Sticky) */}
+          {/* RIGHT: LIVE PREVIEW */}
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
-            <div className="bg-slate-900 rounded-[2.5rem] p-1 shadow-2xl overflow-hidden border border-slate-800">
-              <div className="p-8 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
-                <div className="space-y-4">
-                  <h3 className="text-ucla-blue dark:text-ucla-lighter-blue font-black text-[10px] uppercase tracking-widest">Problem Statement</h3>
-                  <div className="text-slate-200 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
-                    {latex ? <KatexRenderer latex={latex} /> : <span className="text-slate-600 italic">Waiting for input...</span>}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden">
+              <div className="p-8 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto">
+
+                {/* Problem preview */}
+                <div className="space-y-3">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Problem Statement</h3>
+                  <div className="text-slate-800 leading-relaxed text-sm bg-slate-50 p-6 rounded-2xl border border-slate-200 min-h-[120px]">
+                    {latex
+                      ? <KatexRenderer latex={latex} />
+                      : <span className="text-slate-400 italic">Waiting for input...</span>}
                     <div className="grid grid-cols-2 gap-4 mt-4">
                       {images.filter(img => img.destination === 'problem').map((img, i) => (
-                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-700" alt="preview" />
+                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-200" alt="preview" />
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-ucla-darker-gold dark:text-ucla-gold font-black text-[10px] uppercase tracking-widest">Solution Flow</h3>
-                  <div className="text-gray-900 dark:text-slate-300 leading-relaxed text-sm bg-gray-50 dark:bg-[#003558]/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
-                    {solution ? <KatexRenderer latex={solution} /> : <span className="text-slate-600 italic">No solution yet...</span>}
+                {/* Solution preview */}
+                <div className="space-y-3">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Solution Flow</h3>
+                  <div className="text-slate-800 leading-relaxed text-sm bg-slate-50 p-6 rounded-2xl border border-slate-200 min-h-[120px]">
+                    {solution
+                      ? <KatexRenderer latex={solution} />
+                      : <span className="text-slate-400 italic">No solution yet...</span>}
                     <div className="grid grid-cols-2 gap-4 mt-4">
                       {images.filter(img => img.destination === 'solution').map((img, i) => (
-                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-700" alt="preview" />
+                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-200" alt="preview" />
                       ))}
                     </div>
                   </div>
                 </div>
+
               </div>
             </div>
 
-            {/* Final Answer Quick Card */}
+            {/* Answer Card */}
             {answer && (
               <div className="bg-gradient-to-r from-ucla-blue to-blue-800 rounded-3xl p-6 text-white shadow-xl shadow-ucla-blue/20">
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Final Answer Key</p>
@@ -295,6 +304,7 @@ const WriteProblem = () => {
               </div>
             )}
           </div>
+
         </div>
       </div>
     </Layout>

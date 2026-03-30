@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Edit, Clock, User, Trash2, Star, ChevronDown, ChevronUp, 
@@ -6,12 +6,14 @@ import {
   AlertCircle, Save, ArrowLeft 
 } from 'lucide-react';
 import api from '../utils/api';
+import { AuthContext } from '../utils/AuthContext';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
 const ProblemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
   const [problem, setProblem] = useState(null);
   const [feedbacks, setFeedbacks] = useState([]);
@@ -156,6 +158,22 @@ const ProblemDetail = () => {
       fetchProblem();
     } catch (error) {
       setMessage('Failed to resolve feedback');
+    }
+  };
+
+  const handleEditFeedback = async (fbId) => {
+    if (!editedFeedbackComment.trim()) {
+      setMessage('Feedback cannot be empty.');
+      return;
+    }
+    try {
+      await api.put(`/feedback/${fbId}`, { comment: editedFeedbackComment });
+      setMessage('Feedback updated.');
+      setEditingFeedbackId(null);
+      setEditedFeedbackComment('');
+      fetchProblem();
+    } catch (error) {
+      setMessage('Failed to update feedback');
     }
   };
 
@@ -375,49 +393,96 @@ const ProblemDetail = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {feedbacks.map((fb) => (
-                    <div key={fb.id} className={`bg-white border rounded-2xl p-6 shadow-sm transition-all ${
-                      fb.isEndorsement ? 'border-yellow-200' : fb.resolved ? 'border-gray-100 opacity-75' : 'border-red-100'
-                    }`}>
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${fb.isEndorsement ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600'}`}>
-                            {fb.user.firstName[0]}{fb.user.lastName[0]}
+                  {feedbacks.map((fb) => {
+                    const isMyFeedback = user && fb.user.id === user.id;
+                    const isEditingThis = editingFeedbackId === fb.id;
+
+                    return (
+                      <div key={fb.id} className={`bg-white border rounded-2xl p-6 shadow-sm transition-all ${
+                        fb.isEndorsement ? 'border-yellow-200' : fb.resolved ? 'border-gray-100 opacity-75' : 'border-red-100'
+                      }`}>
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${fb.isEndorsement ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600'}`}>
+                              {fb.user.firstName[0]}{fb.user.lastName[0]}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 leading-none mb-1">{fb.user.firstName} {fb.user.lastName}</p>
+                              <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">
+                                {new Date(fb.createdAt).toLocaleDateString()} •
+                                <span className={`ml-1 ${fb.isEndorsement ? 'text-yellow-600' : fb.resolved ? 'text-green-600' : 'text-red-600'}`}>
+                                  {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved' : 'Review'}
+                                </span>
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-gray-900 leading-none mb-1">{fb.user.firstName} {fb.user.lastName}</p>
-                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">
-                              {new Date(fb.createdAt).toLocaleDateString()} • 
-                              <span className={`ml-1 ${fb.isEndorsement ? 'text-yellow-600' : fb.resolved ? 'text-green-600' : 'text-red-600'}`}>
-                                {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved' : 'Review'}
-                              </span>
-                            </p>
+
+                          {/* Actions Container */}
+                          <div className="flex gap-3">
+                            {/* Edit Feedback Button (only if it's the user's own unresolved feedback) */}
+                            {isMyFeedback && !fb.resolved && (
+                              <button
+                                onClick={() => {
+                                  if (isEditingThis) {
+                                    setEditingFeedbackId(null);
+                                  } else {
+                                    setEditingFeedbackId(fb.id);
+                                    setEditedFeedbackComment(fb.feedback);
+                                  }
+                                }}
+                                className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-ucla-blue"
+                              >
+                                {isEditingThis ? 'Cancel Edit' : 'Edit'}
+                              </button>
+                            )}
+
+                            {/* Resolve Button (if author/admin) */}
+                            {!fb.resolved && !fb.isEndorsement && (problem._isAuthor || problem._isAdmin) && (
+                              <button onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)} className="text-[10px] font-black uppercase tracking-widest text-ucla-blue hover:underline">
+                                {resolvingId === fb.id ? 'Cancel Resolve' : 'Resolve'}
+                              </button>
+                            )}
                           </div>
                         </div>
-                        {!fb.resolved && !fb.isEndorsement && (problem._isAuthor || problem._isAdmin) && (
-                          <button onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)} className="text-[10px] font-black uppercase tracking-widest text-ucla-blue hover:underline">
-                            {resolvingId === fb.id ? 'Cancel' : 'Resolve'}
-                          </button>
+
+                        {/* Show Edit Input OR Standard Text */}
+                        {isEditingThis ? (
+                          <div className="mt-2 animate-in fade-in">
+                            <textarea
+                              value={editedFeedbackComment}
+                              onChange={(e) => setEditedFeedbackComment(e.target.value)}
+                              className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue outline-none mb-2"
+                              rows={3}
+                            />
+                            <button
+                              onClick={() => handleEditFeedback(fb.id)}
+                              className="bg-ucla-blue text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-ucla-dark-blue"
+                            >
+                              Save Edit
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{fb.feedback}</p>
+                        )}
+
+                        {/* Existing Resolve Comment Box */}
+                        {resolvingId === fb.id && (
+                          <div className="mt-6 p-5 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in zoom-in-95">
+                            <textarea 
+                              value={resolveComment} 
+                              onChange={(e) => setResolveComment(e.target.value)}
+                              placeholder="How did you address this?" 
+                              className="w-full p-3 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-ucla-blue outline-none"
+                              rows={2}
+                            />
+                            <button onClick={() => handleResolveFeedback(fb.id)} className="w-full bg-ucla-blue text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-ucla-dark-blue transition-colors">
+                              Confirm Resolution
+                            </button>
+                          </div>
                         )}
                       </div>
-                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{fb.feedback}</p>
-                      
-                      {resolvingId === fb.id && (
-                        <div className="mt-6 p-5 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in zoom-in-95">
-                          <textarea 
-                            value={resolveComment} 
-                            onChange={(e) => setResolveComment(e.target.value)}
-                            placeholder="How did you address this?" 
-                            className="w-full p-3 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-ucla-blue outline-none"
-                            rows={2}
-                          />
-                          <button onClick={() => handleResolveFeedback(fb.id)} className="w-full bg-ucla-blue text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-ucla-dark-blue transition-colors">
-                            Confirm Resolution
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

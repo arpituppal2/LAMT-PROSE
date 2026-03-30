@@ -12,48 +12,62 @@
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Converted your hardcoded hex to a Tailwind apply so dark mode can override it */
-    @apply bg-[#f4f0ff] text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+    /* Light mode: warm UCLA-branded off-white background */
+    @apply bg-[#EEF4FB] text-gray-900 dark:bg-[#001B2E] dark:text-gray-100;
   }
+}
 
-  /* --- THE GLOBAL DARK MODE FIX --- */
-  
-  /* 1. Force white cards to become dark gray */
-  .dark .bg-white {
-    @apply bg-gray-800 border-gray-700 !important;
-  }
+/* ---- LIGHT MODE: UCLA-branded surfaces ---- */
 
-  /* 2. Force light gray backgrounds (like table headers or secondary cards) to go darker */
-  .dark .bg-gray-50,
-  .dark .bg-gray-100,
-  .dark .bg-slate-50 {
-    @apply bg-gray-900 border-gray-700 !important;
-  }
+/* Cards/panels in light mode get a soft blue-white tint */
+.bg-white {
+  @apply bg-[#F5F9FF];
+}
 
-  /* 3. Force dark text to become light gray so you can actually read it */
-  .dark .text-gray-500,
-  .dark .text-gray-600,
-  .dark .text-gray-700,
-  .dark .text-gray-800,
-  .dark .text-gray-900,
-  .dark .text-black {
-    @apply text-gray-200 !important;
-  }
+/* ---- DARK MODE: Rich UCLA navy ---- */
 
-  /* 4. Soften bright borders */
-  .dark .border-gray-100,
-  .dark .border-gray-200,
-  .dark .border-gray-300 {
-    @apply border-gray-700 !important;
-  }
+/* 1. White cards -> deep navy blue (not pitch black) */
+.dark .bg-white {
+  @apply bg-[#002B4E] border-[#003B5C] !important;
+}
 
-  /* 5. Fix table headers specifically, as they often have weird default backgrounds */
-  .dark th {
-    @apply bg-gray-900 text-gray-300 border-gray-700 !important;
-  }
-  .dark td {
-    @apply border-gray-700 !important;
-  }
+/* 2. Light gray backgrounds -> slightly lighter navy */
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-slate-50 {
+  @apply bg-[#003558] border-[#004A7A] !important;
+}
+
+/* 3. Slate backgrounds -> mid-range navy */
+.dark .bg-slate-100,
+.dark .bg-slate-200 {
+  @apply bg-[#003558] !important;
+}
+
+/* 4. Force dark text to become light gray */
+.dark .text-gray-500,
+.dark .text-gray-600,
+.dark .text-gray-700,
+.dark .text-gray-800,
+.dark .text-gray-900,
+.dark .text-black {
+  @apply text-gray-200 !important;
+}
+
+/* 5. Soften bright borders */
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  @apply border-[#004A7A] !important;
+}
+
+/* 6. Fix table headers */
+.dark th {
+  @apply bg-[#003558] text-gray-300 border-[#004A7A] !important;
+}
+.dark td {
+  @apply border-[#004A7A] !important;
+}
 }
 
 code {
@@ -64,4 +78,16 @@ code {
 .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+/* Custom scrollbar for the preview panel */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2774AE;
+  border-radius: 4px;
 }

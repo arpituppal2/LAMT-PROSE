@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
-import { Lock } from 'lucide-react'; // Adding an icon for extra polish
+import { Lock } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');

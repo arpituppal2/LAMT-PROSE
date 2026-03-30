@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-fiproblem.feedbacksx: ProblemInventory review comments now showing (feedbacks not comments)import { 
+import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, Cell
 } from 'recharts';

@@ -23,7 +23,6 @@ const DIFFICULTY_LABELS = {
   10: 'Legendary',
 };
 
-// Parse the resolution note that the backend appends as "\n\n[Resolution] ..."
 const parseResolutionNote = (feedbackText) => {
   if (!feedbackText) return { body: feedbackText, resolveComment: null };
   const marker = '\n\n[Resolution] ';
@@ -46,7 +45,6 @@ const ProblemDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Editing form state
   const [editedLatex, setEditedLatex] = useState('');
   const [editedSolution, setEditedSolution] = useState('');
   const [editedAnswer, setEditedAnswer] = useState('');
@@ -56,7 +54,6 @@ const ProblemDetail = () => {
   const [editedStage, setEditedStage] = useState('');
   const [editedImages, setEditedImages] = useState([]);
 
-  // UI toggles
   const [showSolution, setShowSolution] = useState(false);
   const [resolvingId, setResolvingId] = useState(null);
   const [resolveComment, setResolveComment] = useState('');
@@ -224,12 +221,15 @@ const ProblemDetail = () => {
     </Layout>
   );
 
-  // Fallback: if server flags are missing, compare authorId against local user id
+  // _userId is the server-echoed req.userId — most reliable for authorId comparison
+  // fallback: compare problem.authorId against both user.id and problem._userId
   const myId = user?.id;
+  const serverUserId = problem._userId; // server echoes req.userId back
   const canEdit =
     problem._isAuthor ||
     problem._isAdmin ||
-    (myId && problem.authorId && String(myId) === String(problem.authorId));
+    (myId && problem.authorId && String(myId) === String(problem.authorId)) ||
+    (serverUserId && problem.authorId && String(serverUserId) === String(problem.authorId));
 
   const currentDifficulty = isEditing ? editedDifficulty : (parseInt(problem.quality) || 5);
 
@@ -352,7 +352,7 @@ const ProblemDetail = () => {
             </div>
 
             {/* Solution Section (view mode only) */}
-            {!isEditing && (problem.solution || problem._isAdmin || problem._isAuthor) && (
+            {!isEditing && (problem.solution || problem._isAdmin || problem._isAuthor || canEdit) && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <button
                   onClick={() => setShowSolution(!showSolution)}
@@ -386,7 +386,6 @@ const ProblemDetail = () => {
               <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
                 <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b pb-4">Metadata & Solution</h3>
 
-                {/* Solution LaTeX */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Solution LaTeX</label>
                   <textarea
@@ -397,7 +396,6 @@ const ProblemDetail = () => {
                   />
                 </div>
 
-                {/* Notes */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Author Notes</label>
                   <textarea
@@ -409,7 +407,6 @@ const ProblemDetail = () => {
                   />
                 </div>
 
-                {/* Answer + Stage */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Answer</label>
@@ -432,7 +429,6 @@ const ProblemDetail = () => {
                   </div>
                 </div>
 
-                {/* Difficulty Slider */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-3 ml-1">Difficulty Calibration</label>
                   <input
@@ -449,7 +445,6 @@ const ProblemDetail = () => {
                   </div>
                 </div>
 
-                {/* Topic Tags */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-3 ml-1">Topic Tags</label>
                   <div className="flex flex-wrap gap-2">
@@ -555,6 +550,16 @@ const ProblemDetail = () => {
                           </div>
                         </div>
 
+                        {/* Testsolver answer — visible to author/admin only */}
+                        {canEdit && fb.answer && (
+                          <div className="mb-3 flex items-center gap-3">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Their Answer</span>
+                            <span className="px-3 py-1 bg-slate-100 rounded-lg text-sm font-bold text-slate-700 font-mono">
+                              <KatexRenderer latex={fb.answer} />
+                            </span>
+                          </div>
+                        )}
+
                         {isEditingThis ? (
                           <div className="space-y-3">
                             <textarea
@@ -641,11 +646,13 @@ const ProblemDetail = () => {
                 </div>
               </div>
 
-              {/* Author Notes Card — visible in view mode to all users when notes exist */}
+              {/* Author Notes Card — KaTeX rendered */}
               {!isEditing && problem.notes && (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Author Notes</p>
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{problem.notes}</p>
+                  <div className="text-sm text-gray-700 leading-relaxed prose-math">
+                    <KatexRenderer latex={problem.notes} />
+                  </div>
                 </div>
               )}
 

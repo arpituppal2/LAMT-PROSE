@@ -550,7 +550,7 @@ const ProblemDetail = () => {
                                 {isEditingThis ? 'Cancel' : 'Edit'}
                               </button>
                             )}
-                            {!fb.resolved && !fb.isEndorsement && canEdit && (
+                            {!fb.resolved && canEdit && (
                               <button
                                 onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)}
                                 className="text-[10px] font-black uppercase tracking-widest text-ucla-blue hover:underline"

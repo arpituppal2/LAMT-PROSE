@@ -12,11 +12,12 @@ const ADMIN_EMAILS = [
   'tomwu@g.ucla.edu',
 ];
 
-// Consolidated 3-stage system
-const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed'];
+// Consolidated 3-stage system (Archived is a soft-delete stage)
+const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed', 'Archived'];
 
 // Compute display status: unresolved feedback > endorsed > stage
 function computeDisplayStatus(problem) {
+  if (problem.stage === 'Archived') return 'Archived';
   const hasUnresolvedFeedback = problem.feedbacks?.some(
     (f) => !f.resolved && !f.isEndorsement
   );
@@ -26,15 +27,11 @@ function computeDisplayStatus(problem) {
 }
 
 // Atomically assign the next problem ID using a GLOBAL counter.
-// The 4-digit number is the next integer after the highest number
-// across ALL problems in the system (not just this user's problems),
-// so IDs are globally monotonic: XX0001, YY0002, XX0003, ZZ0004...
 async function assignProblemId(userInitials) {
   return await prisma.$transaction(async (tx) => {
     const allProblems = await tx.problem.findMany({ select: { id: true } });
     const nums = allProblems
       .map((p) => {
-        // ID format is 2-letter initials + 4-digit number
         const match = p.id.match(/^[A-Z]+?(\d+)$/);
         return match ? parseInt(match[1]) : NaN;
       })
@@ -54,7 +51,6 @@ router.post('/', authenticate, async (req, res) => {
     }
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-
     const problemId = await assignProblemId(user.initials);
     const problem = await prisma.problem.create({
       data: {
@@ -91,8 +87,10 @@ router.get('/', authenticate, async (req, res) => {
     const where = {};
     if (reviewable === 'true') {
       where.authorId = { not: req.userId };
+      where.stage = { not: 'Archived' };
     } else {
       if (stage && stage !== 'all') where.stage = stage;
+      else if (!stage) where.stage = { not: 'Archived' };
       if (author) where.authorId = author;
     }
     if (topic) where.topics = { has: topic };
@@ -208,8 +206,7 @@ router.put('/:id', authenticate, async (req, res) => {
     if (notes !== undefined) updateData.notes = notes;
     if (answer !== undefined) updateData.answer = answer;
     if (examType !== undefined) updateData.examType = examType;
-    const isContentEdit =
-      (latex !== undefined && latex !== existing.latex) ||
+    const isContentEdit = (latex !== undefined && latex !== existing.latex) ||
       (solution !== undefined && solution !== existing.solution) ||
       (answer !== undefined && answer !== existing.answer) ||
       (topics !== undefined && JSON.stringify(topics) !== JSON.stringify(existing.topics));
@@ -225,7 +222,53 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Delete problem
+// Archive problem (soft delete)
+router.put('/:id/archive', authenticate, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { isAdmin: true, email: true },
+    });
+    const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Problem not found' });
+    const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
+    if (String(existing.authorId) !== String(req.userId) && !isAdmin) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    const problem = await prisma.problem.update({
+      where: { id: req.params.id },
+      data: { stage: 'Archived' },
+    });
+    res.json({ message: 'Problem archived', problem });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to archive problem', details: error.message });
+  }
+});
+
+// Unarchive problem
+router.put('/:id/unarchive', authenticate, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { isAdmin: true, email: true },
+    });
+    const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Problem not found' });
+    const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
+    if (String(existing.authorId) !== String(req.userId) && !isAdmin) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    const problem = await prisma.problem.update({
+      where: { id: req.params.id },
+      data: { stage: 'Idea' },
+    });
+    res.json({ message: 'Problem unarchived', problem });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to unarchive problem', details: error.message });
+  }
+});
+
+// Delete problem (hard delete - admin only)
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({

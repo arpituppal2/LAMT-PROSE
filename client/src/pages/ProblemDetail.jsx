@@ -10,19 +10,6 @@ import { useAuth } from '../utils/AuthContext';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-const DIFFICULTY_LABELS = {
-  1: 'Concept Check',
-  2: 'Standard Fair',
-  3: 'Intermediate',
-  4: 'Competition Prep',
-  5: 'Standard',
-  6: 'Challenging',
-  7: 'Advanced Tier',
-  8: 'Elite',
-  9: 'Tournament Finalist',
-  10: 'Legendary',
-};
-
 const parseResolutionNote = (feedbackText) => {
   if (!feedbackText) return { body: feedbackText, resolveComment: null };
   const marker = '\n\n[Resolution] ';
@@ -61,7 +48,6 @@ const ProblemDetail = () => {
   const [editedFeedbackComment, setEditedFeedbackComment] = useState('');
   const [editedFeedbackIsEndorsement, setEditedFeedbackIsEndorsement] = useState(false);
 
-  // Reply state
   const [replyingId, setReplyingId] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [savingReply, setSavingReply] = useState(false);
@@ -153,7 +139,7 @@ const ProblemDetail = () => {
         quality: String(editedDifficulty),
         stage: editedStage
       });
-      setMessage('Problem updated successfully!');
+      setMessage('Problem updated.');
       setIsEditing(false);
       fetchProblem();
     } catch (error) {
@@ -229,8 +215,8 @@ const ProblemDetail = () => {
   if (loading) return (
     <Layout>
       <div className="flex flex-col justify-center items-center h-96 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ucla-blue"></div>
-        <p className="text-gray-400 font-medium italic">Fetching problem data...</p>
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-ucla-blue border-t-transparent"></div>
+        <p className="text-slate-400 text-sm">Loading problem...</p>
       </div>
     </Layout>
   );
@@ -238,10 +224,10 @@ const ProblemDetail = () => {
   if (!problem) return (
     <Layout>
       <div className="text-center py-20">
-        <AlertCircle className="mx-auto text-gray-300 mb-4" size={64} />
-        <h2 className="text-2xl font-bold text-gray-800">Problem Not Found</h2>
-        <button onClick={() => navigate('/inventory')} className="mt-4 text-ucla-blue hover:underline flex items-center gap-2 mx-auto">
-          <ArrowLeft size={16} /> Back to Inventory
+        <AlertCircle className="mx-auto text-slate-300 mb-4" size={48} />
+        <h2 className="text-xl font-semibold text-slate-800">Problem Not Found</h2>
+        <button onClick={() => navigate('/inventory')} className="mt-4 text-ucla-blue hover:underline flex items-center gap-2 mx-auto text-sm">
+          <ArrowLeft size={15} /> Back to Inventory
         </button>
       </div>
     </Layout>
@@ -260,49 +246,47 @@ const ProblemDetail = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto pb-20">
+      <div className="max-w-6xl mx-auto px-6 pb-20">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 pt-2">
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-4xl font-black text-ucla-blue tracking-tight">Problem {problem.id}</h1>
-              <span className={`px-4 py-1 text-xs uppercase tracking-widest rounded-full font-black shadow-sm flex items-center gap-1.5 ${
-                problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review' ? 'bg-red-500 text-white' :
-                problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed' ? 'bg-[#FFD100] text-ucla-blue' :
-                'bg-ucla-blue text-white'
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Problem {problem.id}</h1>
+              <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1.5 ${
+                problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
               }`}>
-                {(problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review') && <AlertCircle size={14} />}
-                {(problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed') && <Star size={14} className="fill-current" />}
+                {(problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review') && <AlertCircle size={12} />}
+                {(problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed') && <Star size={12} className="fill-current" />}
                 {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review' ? 'Needs Review' :
                  problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed' ? 'Endorsed' : problem.stage}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-3 text-gray-500 font-medium">
-              <div className="w-8 h-8 rounded-full bg-ucla-blue/10 flex items-center justify-center text-ucla-blue">
-                <User size={16} />
-              </div>
+            <div className="flex items-center gap-2 mt-2 text-slate-500 text-sm">
+              <User size={14} />
               <span>{problem.author.firstName} {problem.author.lastName}</span>
             </div>
           </div>
 
-          <div className="flex gap-3 w-full md:w-auto">
+          <div className="flex gap-2">
             {canEdit && (
               <>
                 <button
                   onClick={() => setIsEditing(!isEditing)}
-                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-md ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                     isEditing
-                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600'
-                      : 'bg-ucla-blue text-white hover:bg-ucla-dark-blue'
+                      ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                      : 'bg-ucla-blue text-white hover:bg-[#1a5a8a]'
                   }`}
                 >
-                  {isEditing ? <X size={18} /> : <Edit size={18} />}
-                  {isEditing ? 'Cancel' : 'Edit Problem'}
+                  {isEditing ? <X size={16} /> : <Edit size={16} />}
+                  {isEditing ? 'Cancel' : 'Edit'}
                 </button>
                 {!isEditing && (
-                  <button onClick={handleDelete} className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100">
-                    <Trash2 size={22} />
+                  <button onClick={handleDelete} className="p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                    <Trash2 size={18} />
                   </button>
                 )}
               </>
@@ -311,69 +295,69 @@ const ProblemDetail = () => {
         </div>
 
         {message && (
-          <div className={`mb-8 p-4 rounded-xl border-l-4 font-bold text-sm ${
+          <div className={`mb-6 px-4 py-3 rounded-lg text-sm font-medium ${
             message.includes('Failed') || message.includes('Cannot')
-              ? 'bg-red-50 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-400'
-              : 'bg-green-50 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-400'
+              ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+              : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
           }`}>
             {message}
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
           {/* Main Column */}
-          <div className="lg:col-span-8 space-y-8">
+          <div className="lg:col-span-8 space-y-6">
 
             {/* Problem Statement Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-8 py-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
-                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest">Problem Statement</h2>
-                {isEditing && <span className="text-[10px] font-bold text-ucla-blue bg-ucla-blue/10 px-2 py-0.5 rounded uppercase">Editing Mode</span>}
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Problem Statement</h2>
+                {isEditing && <span className="text-[10px] font-semibold text-ucla-blue bg-ucla-blue/10 px-2 py-0.5 rounded uppercase">Editing</span>}
               </div>
-              <div className="p-8">
+              <div className="p-6">
                 {isEditing ? (
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <textarea
                       value={editedLatex}
                       onChange={(e) => setEditedLatex(e.target.value)}
                       rows={10}
                       placeholder="Type LaTeX here..."
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue focus:bg-white outline-none transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all"
                     />
-                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                      <p className="text-xs font-bold text-slate-500 uppercase mb-4 ml-1">Attached Visuals</p>
-                      <div className="flex flex-wrap gap-4">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
+                      <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Images</p>
+                      <div className="flex flex-wrap gap-3">
                         {editedImages.map((img, idx) => (
-                          <div key={idx} className="relative w-28 h-32 border border-white bg-white rounded-xl overflow-hidden group shadow-sm">
-                            <img src={img.dataUrl} alt="preview" className="w-full h-20 object-cover" />
+                          <div key={idx} className="relative w-24 h-28 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg overflow-hidden group">
+                            <img src={img.dataUrl} alt="preview" className="w-full h-16 object-cover" />
                             <button
                               type="button"
                               onClick={() => toggleImageDestination(idx)}
-                              className={`w-full h-12 flex items-center justify-center text-[9px] font-black uppercase transition-colors px-2 text-center leading-tight ${
-                                img.destination === 'problem' ? 'bg-blue-50 text-ucla-blue' : 'bg-purple-50 text-purple-700'
+                              className={`w-full h-12 flex items-center justify-center text-[9px] font-semibold uppercase transition-colors ${
+                                img.destination === 'problem' ? 'bg-slate-100 dark:bg-slate-700 text-ucla-blue' : 'bg-purple-50 dark:bg-purple-900/20 text-purple-700'
                               }`}
                             >
-                              To {img.destination}
+                              → {img.destination}
                             </button>
                             <button
                               onClick={() => removeImage(idx)}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                             >
-                              <X size={12} />
+                              <X size={10} />
                             </button>
                           </div>
                         ))}
-                        <label className="w-28 h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-white hover:border-ucla-blue transition-all group">
-                          <ImageIcon size={24} className="text-slate-300 group-hover:text-ucla-blue" />
-                          <span className="text-[10px] text-slate-400 mt-2 font-bold uppercase">Add Image</span>
+                        <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-white hover:border-ucla-blue transition-all group">
+                          <ImageIcon size={20} className="text-slate-300 group-hover:text-ucla-blue" />
+                          <span className="text-[10px] text-slate-400 mt-1.5 font-semibold uppercase">Add</span>
                           <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
                         </label>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="prose-math min-h-[120px]">
+                  <div className="prose-math min-h-[100px]">
                     <KatexRenderer latex={problem.latex} />
                   </div>
                 )}
@@ -382,27 +366,27 @@ const ProblemDetail = () => {
 
             {/* Solution Section */}
             {!isEditing && (problem.solution || canEdit) && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
                 <button
                   onClick={() => setShowSolution(!showSolution)}
-                  className="w-full flex justify-between items-center px-8 py-5 bg-gray-50/50 hover:bg-gray-50 transition-colors"
+                  className="w-full flex justify-between items-center px-6 py-4 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <div className="flex items-center gap-3 font-black text-ucla-blue uppercase text-xs tracking-widest">
-                    <CheckCircle size={18} /> {showSolution ? 'Hide' : 'View'} Creator Solution
+                  <div className="flex items-center gap-2 font-semibold text-ucla-blue dark:text-ucla-gold text-sm">
+                    <CheckCircle size={16} /> {showSolution ? 'Hide' : 'View'} Solution
                   </div>
-                  {showSolution ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+                  {showSolution ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
                 </button>
                 {showSolution && (
-                  <div className="p-8 border-t border-gray-100 bg-white">
-                    <div className="prose-math mb-8">
+                  <div className="p-6 border-t border-slate-100 dark:border-slate-800">
+                    <div className="prose-math mb-6">
                       {problem.solution
                         ? <KatexRenderer latex={problem.solution} />
-                        : <p className="italic text-gray-400 text-sm">No detailed solution provided.</p>}
+                        : <p className="italic text-slate-400 text-sm">No detailed solution provided.</p>}
                     </div>
                     {problem.answer && (
-                      <div className="p-5 bg-ucla-blue/[0.03] rounded-2xl border border-ucla-blue/10 flex items-center gap-4">
-                        <span className="font-black text-ucla-blue text-[10px] uppercase tracking-widest bg-ucla-blue/10 px-2 py-1 rounded">Final Answer</span>
-                        <div className="text-lg font-bold"><KatexRenderer latex={problem.answer} /></div>
+                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                        <span className="font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Answer</span>
+                        <div className="text-base font-bold text-slate-800 dark:text-slate-100 font-mono"><KatexRenderer latex={problem.answer} /></div>
                       </div>
                     )}
                   </div>
@@ -412,46 +396,46 @@ const ProblemDetail = () => {
 
             {/* Edit Metadata Panel */}
             {isEditing && (
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b pb-4">Metadata & Solution</h3>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-5">
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3">Edit Metadata</h3>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Solution LaTeX</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Solution</label>
                   <textarea
                     value={editedSolution}
                     onChange={(e) => setEditedSolution(e.target.value)}
                     rows={6}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Author Notes</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Author Notes</label>
                   <textarea
                     value={editedNotes}
                     onChange={(e) => setEditedNotes(e.target.value)}
                     rows={3}
-                    placeholder="Private notes for reviewers (sources, related problems, etc.)..."
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                    placeholder="Private notes for reviewers..."
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Answer</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Answer</label>
                     <input
                       type="text"
                       value={editedAnswer}
                       onChange={(e) => setEditedAnswer(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-ucla-blue outline-none"
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Stage</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Stage</label>
                     <select
                       value={editedStage}
                       onChange={(e) => setEditedStage(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-ucla-blue outline-none font-bold"
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none font-medium"
                     >
                       {stageOptions.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -459,23 +443,21 @@ const ProblemDetail = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-3 ml-1">Difficulty Calibration</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Difficulty</label>
                   <input
                     type="range" min="1" max="10" step="1"
                     value={editedDifficulty}
                     onChange={(e) => setEditedDifficulty(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-ucla-blue"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-ucla-blue"
                   />
-                  <div className="mt-3 px-4 py-2.5 bg-ucla-blue/5 rounded-xl border border-ucla-blue/10 flex items-center justify-between">
-                    <p className="text-ucla-blue font-black text-[11px] uppercase tracking-tight">
-                      {DIFFICULTY_LABELS[editedDifficulty]}
-                    </p>
-                    <span className="text-2xl font-black text-ucla-blue">{editedDifficulty}<span className="text-sm font-bold text-gray-300">/10</span></span>
+                  <div className="mt-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Level</span>
+                    <span className="text-sm font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">{editedDifficulty}/10</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-3 ml-1">Topic Tags</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Topics</label>
                   <div className="flex flex-wrap gap-2">
                     {topicOptions.map(topic => (
                       <button
@@ -484,10 +466,10 @@ const ProblemDetail = () => {
                         onClick={() => setEditedTopics(prev =>
                           prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
                         )}
-                        className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all border ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                           editedTopics.includes(topic)
-                            ? 'bg-ucla-blue border-ucla-blue text-white shadow-md'
-                            : 'bg-white border-slate-200 text-slate-500 hover:border-ucla-blue'
+                            ? 'bg-ucla-blue border-ucla-blue text-white'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-ucla-blue'
                         }`}
                       >
                         {topic}
@@ -498,24 +480,25 @@ const ProblemDetail = () => {
 
                 <button
                   onClick={handleSave}
-                  className="w-full flex items-center justify-center gap-2 bg-ucla-blue text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-ucla-dark-blue transition-all shadow-xl shadow-ucla-blue/20"
+                  className="w-full flex items-center justify-center gap-2 bg-ucla-blue text-white py-3 rounded-lg font-semibold text-sm hover:bg-[#1a5a8a] transition-all"
                 >
-                  <Save size={18} /> Update Problem Record
+                  <Save size={16} /> Save Changes
                 </button>
               </div>
             )}
 
             {/* Feedback Section */}
-            <div className="space-y-6">
-              <h2 className="text-xl font-black text-ucla-blue flex items-center gap-3">
-                Feedback <span className="bg-ucla-blue/10 text-ucla-blue px-3 py-0.5 rounded-full text-sm">{feedbacks.length}</span>
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                Reviews
+                <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2.5 py-0.5 rounded-full text-sm font-medium">{feedbacks.length}</span>
               </h2>
               {feedbacks.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
-                  <p className="text-gray-400 font-medium">No reviews submitted yet.</p>
+                <div className="text-center py-14 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <p className="text-slate-400 text-sm">No reviews yet.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {feedbacks.map((fb) => {
                     const fbUserId = fb.user?.id || fb.userId;
                     const isMyFeedback =
@@ -528,26 +511,26 @@ const ProblemDetail = () => {
                     const { body: fbBody, resolveComment: fbResolveNote } = parseResolutionNote(fb.feedback);
 
                     return (
-                      <div key={fb.id} className={`bg-white border rounded-2xl p-6 shadow-sm transition-all ${
-                        fb.isEndorsement ? 'border-yellow-200' :
-                        fb.resolved ? 'border-green-100' :
-                        'border-red-100'
+                      <div key={fb.id} className={`bg-white dark:bg-slate-900 border rounded-xl p-5 shadow-sm ${
+                        fb.isEndorsement ? 'border-amber-200 dark:border-amber-900/50' :
+                        fb.resolved ? 'border-green-200 dark:border-green-900/50' :
+                        'border-slate-200 dark:border-slate-800'
                       }`}>
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${
-                              fb.isEndorsement ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600'
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs ${
+                              fb.isEndorsement ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             }`}>
                               {fb.user.firstName[0]}{fb.user.lastName[0]}
                             </div>
                             <div>
-                              <p className="font-bold text-gray-900 leading-none mb-1">{fb.user.firstName} {fb.user.lastName}</p>
-                              <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">
+                              <p className="font-semibold text-slate-900 dark:text-white text-sm leading-none mb-0.5">{fb.user.firstName} {fb.user.lastName}</p>
+                              <p className="text-xs text-slate-400">
                                 {new Date(fb.createdAt).toLocaleDateString()} &bull;
                                 <span className={`ml-1 ${
-                                  fb.isEndorsement ? 'text-yellow-600' :
-                                  fb.resolved ? 'text-green-600' :
-                                  'text-red-600'
+                                  fb.isEndorsement ? 'text-amber-600 dark:text-amber-500' :
+                                  fb.resolved ? 'text-green-600 dark:text-green-500' :
+                                  'text-slate-500'
                                 }`}>
                                   {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved' : 'Review'}
                                 </span>
@@ -568,7 +551,7 @@ const ProblemDetail = () => {
                                     setReplyingId(null);
                                   }
                                 }}
-                                className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-ucla-blue transition-colors"
+                                className="text-xs font-medium text-slate-400 hover:text-ucla-blue transition-colors"
                               >
                                 {isEditingThis ? 'Cancel' : 'Edit'}
                               </button>
@@ -586,9 +569,9 @@ const ProblemDetail = () => {
                                     setEditingFeedbackId(null);
                                   }
                                 }}
-                                className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-ucla-blue hover:underline transition-colors"
+                                className="flex items-center gap-1 text-xs font-medium text-ucla-blue hover:underline transition-colors"
                               >
-                                <MessageSquare size={12} />
+                                <MessageSquare size={11} />
                                 {isReplyingThis ? 'Cancel' : fb.authorReply ? 'Edit Reply' : 'Reply'}
                               </button>
                             )}
@@ -598,7 +581,7 @@ const ProblemDetail = () => {
                                   setResolvingId(fb.id === resolvingId ? null : fb.id);
                                   setReplyingId(null);
                                 }}
-                                className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-ucla-blue hover:underline transition-colors"
+                                className="text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                               >
                                 {resolvingId === fb.id ? 'Cancel' : 'Resolve'}
                               </button>
@@ -606,11 +589,10 @@ const ProblemDetail = () => {
                           </div>
                         </div>
 
-                        {/* Testsolver answer — visible to canEdit users only */}
                         {canEdit && fb.answer && (
-                          <div className="mb-3 flex items-center gap-3">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Their Answer</span>
-                            <span className="px-3 py-1 bg-slate-100 rounded-lg text-sm font-bold text-slate-700 font-mono">
+                          <div className="mb-3 flex items-center gap-2">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Their answer:</span>
+                            <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-mono text-slate-700 dark:text-slate-300">
                               <KatexRenderer latex={fb.answer} />
                             </span>
                           </div>
@@ -621,19 +603,19 @@ const ProblemDetail = () => {
                             <textarea
                               value={editedFeedbackComment}
                               onChange={(e) => setEditedFeedbackComment(e.target.value)}
-                              className="w-full p-3 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                              className="w-full p-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all"
                               rows={3}
                             />
                             {isMyFeedback && (
-                              <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Type</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-slate-400 uppercase">Type:</span>
                                 <button
                                   type="button"
                                   onClick={() => setEditedFeedbackIsEndorsement(false)}
-                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                                     !editedFeedbackIsEndorsement
                                       ? 'bg-red-500 border-red-500 text-white'
-                                      : 'bg-white border-slate-200 text-slate-400 hover:border-red-300'
+                                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-red-300'
                                   }`}
                                 >
                                   Review
@@ -641,10 +623,10 @@ const ProblemDetail = () => {
                                 <button
                                   type="button"
                                   onClick={() => setEditedFeedbackIsEndorsement(true)}
-                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                                     editedFeedbackIsEndorsement
-                                      ? 'bg-yellow-400 border-yellow-400 text-white'
-                                      : 'bg-white border-slate-200 text-slate-400 hover:border-yellow-300'
+                                      ? 'bg-amber-400 border-amber-400 text-white'
+                                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-amber-300'
                                   }`}
                                 >
                                   Endorsement
@@ -653,43 +635,41 @@ const ProblemDetail = () => {
                             )}
                             <button
                               onClick={() => handleEditFeedback(fb.id)}
-                              className="bg-ucla-blue text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-ucla-dark-blue transition-colors"
+                              className="bg-ucla-blue text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] transition-colors"
                             >
-                              Save Edit
+                              Save
                             </button>
                           </div>
                         ) : (
-                          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{fbBody}</p>
+                          <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{fbBody}</p>
                         )}
 
-                        {/* Existing author reply display */}
                         {!isReplyingThis && fb.authorReply && (
-                          <div className="mt-4 ml-4 pl-4 border-l-2 border-ucla-blue/20">
-                            <p className="text-[10px] font-black text-ucla-blue uppercase tracking-widest mb-1 flex items-center gap-1">
+                          <div className="mt-3 ml-4 pl-3 border-l-2 border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-semibold text-ucla-blue dark:text-ucla-gold mb-1 flex items-center gap-1">
                               <MessageSquare size={10} /> Author Reply
                             </p>
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{fb.authorReply}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{fb.authorReply}</p>
                           </div>
                         )}
 
-                        {/* Reply input */}
                         {isReplyingThis && (
-                          <div className="mt-4 ml-4 pl-4 border-l-2 border-ucla-blue/30">
-                            <p className="text-[10px] font-black text-ucla-blue uppercase tracking-widest mb-2 flex items-center gap-1">
-                              <MessageSquare size={10} /> {fb.authorReply ? 'Edit Your Reply' : 'Write a Reply'}
+                          <div className="mt-3 ml-4 pl-3 border-l-2 border-ucla-blue/30">
+                            <p className="text-xs font-semibold text-ucla-blue dark:text-ucla-gold mb-2 flex items-center gap-1">
+                              <MessageSquare size={10} /> {fb.authorReply ? 'Edit Reply' : 'Reply'}
                             </p>
                             <textarea
                               value={replyText}
                               onChange={(e) => setReplyText(e.target.value)}
-                              placeholder="Write your reply to this feedback..."
-                              className="w-full p-3 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:ring-2 focus:ring-ucla-blue outline-none bg-white"
+                              placeholder="Write your reply..."
+                              className="w-full p-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 outline-none transition-all"
                               rows={3}
                               autoFocus
                             />
                             <button
                               onClick={() => handleSaveReply(fb.id)}
                               disabled={savingReply}
-                              className="mt-2 bg-ucla-blue text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-ucla-dark-blue transition-colors disabled:opacity-50"
+                              className="mt-2 bg-ucla-blue text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] transition-colors disabled:opacity-50"
                             >
                               {savingReply ? 'Saving...' : 'Save Reply'}
                             </button>
@@ -697,24 +677,24 @@ const ProblemDetail = () => {
                         )}
 
                         {fb.resolved && fbResolveNote && (
-                          <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-100">
-                            <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">Resolution Note</p>
-                            <p className="text-sm text-green-800 leading-relaxed">{fbResolveNote}</p>
+                          <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <p className="text-xs font-semibold text-green-600 dark:text-green-500 uppercase mb-1">Resolution Note</p>
+                            <p className="text-sm text-green-800 dark:text-green-300 leading-relaxed">{fbResolveNote}</p>
                           </div>
                         )}
 
                         {resolvingId === fb.id && (
-                          <div className="mt-5 p-5 bg-slate-50 rounded-xl border border-slate-200">
+                          <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                             <textarea
                               value={resolveComment}
                               onChange={(e) => setResolveComment(e.target.value)}
                               placeholder="How did you address this?"
-                              className="w-full p-3 border border-gray-200 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-ucla-blue outline-none bg-white"
+                              className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-ucla-blue/20 outline-none bg-white dark:bg-slate-900 transition-all"
                               rows={2}
                             />
                             <button
                               onClick={() => handleResolveFeedback(fb.id)}
-                              className="w-full bg-ucla-blue text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-ucla-dark-blue transition-colors"
+                              className="w-full bg-ucla-blue text-white py-2 rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] transition-colors"
                             >
                               Confirm Resolution
                             </button>
@@ -729,60 +709,55 @@ const ProblemDetail = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="sticky top-6 space-y-6">
+          <div className="lg:col-span-4 space-y-4">
+            <div className="sticky top-6 space-y-4">
 
               {/* Difficulty Card */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Problem Difficulty</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-5xl font-black text-ucla-blue leading-none">{currentDifficulty}</span>
-                  <span className="text-xl font-bold text-gray-300 mb-1">/10</span>
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Difficulty</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-ucla-blue dark:text-ucla-gold leading-none tabular-nums">{currentDifficulty}</span>
+                  <span className="text-base font-medium text-slate-300 dark:text-slate-600">/10</span>
                 </div>
-                <p className="mt-1 text-xs font-bold text-gray-400 italic">{DIFFICULTY_LABELS[currentDifficulty]}</p>
-                <div className="mt-3 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                <div className="mt-3 w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-ucla-blue h-full transition-all duration-500"
+                    className="bg-ucla-blue dark:bg-ucla-gold h-full transition-all duration-500"
                     style={{ width: `${currentDifficulty * 10}%` }}
                   />
                 </div>
               </div>
 
               {/* Topics Card */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Topic Tags</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Topics</p>
+                <div className="flex flex-wrap gap-1.5">
                   {(isEditing ? editedTopics : problem.topics).length > 0
                     ? (isEditing ? editedTopics : problem.topics).map(t => (
-                        <span key={t} className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-tight rounded-md border border-slate-200">
+                        <span key={t} className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">
                           {t}
                         </span>
                       ))
-                    : <span className="text-gray-400 italic text-xs">No topics tagged.</span>
+                    : <span className="text-slate-400 italic text-xs">No topics tagged.</span>
                   }
                 </div>
               </div>
 
               {/* Author Notes Card */}
               {!isEditing && problem.notes && (
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Author Notes</p>
-                  <div className="text-sm text-gray-700 leading-relaxed prose-math">
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Author Notes</p>
+                  <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed prose-math">
                     <KatexRenderer latex={problem.notes} />
                   </div>
                 </div>
               )}
 
-              {/* Live Render (edit mode) */}
               {isEditing && (
-                <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Live Render</p>
-                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl overflow-x-auto min-h-[100px] text-gray-900">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Live Render</p>
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-lg overflow-x-auto min-h-[80px] text-slate-900 dark:text-slate-100 text-sm">
                     <KatexRenderer latex={editedLatex} />
                   </div>
-                  <p className="text-[9px] mt-3 font-bold text-gray-300 leading-tight italic">
-                    Images hidden in preview for performance.
-                  </p>
                 </div>
               )}
             </div>

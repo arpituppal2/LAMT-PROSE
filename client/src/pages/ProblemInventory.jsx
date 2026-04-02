@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { Check, Star, Search, Filter, BookOpen, MessageSquare, Info } from 'lucide-react';
+import { Check, Star, Search, Filter, MessageSquare } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
@@ -107,8 +107,11 @@ const ProblemInventory = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="h-screen flex items-center justify-center text-ucla-blue dark:text-ucla-gold font-black italic">
-          SYNCING INVENTORY...
+        <div className="h-screen flex items-center justify-center">
+          <div className="flex items-center gap-3 text-slate-400">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-ucla-blue border-t-transparent" />
+            <span className="text-sm">Loading inventory...</span>
+          </div>
         </div>
       </Layout>
     );
@@ -116,21 +119,21 @@ const ProblemInventory = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 pb-12 pt-10">
+      <div className="max-w-7xl mx-auto px-6 pb-12 pt-8">
 
         {/* Header Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-ucla-blue rounded-[2.5rem] p-10 text-white shadow-xl relative overflow-hidden">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Problem Count</p>
-            <h2 className="text-7xl font-black italic mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+          <div className="bg-ucla-blue rounded-2xl p-7 text-white relative overflow-hidden">
+            <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">Total Problems</p>
+            <h2 className="text-5xl font-bold tabular-nums mb-5">
               {problems.length}
-              <span className="text-ucla-gold text-3xl not-italic opacity-40">/200</span>
+              <span className="text-xl font-medium opacity-40 ml-1">/200</span>
             </h2>
-            <div className="flex flex-wrap gap-2 relative z-10">
+            <div className="flex flex-wrap gap-2">
               {Object.entries(stats).map(([label, val]) => (
                 <div
                   key={label}
-                  className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-bold uppercase border border-white/5"
+                  className="bg-white/10 px-3 py-1 rounded-full text-xs font-medium"
                 >
                   {label}: {val}
                 </div>
@@ -139,31 +142,15 @@ const ProblemInventory = () => {
           </div>
 
           <div
-            className="lg:col-span-2 rounded-[2.5rem] p-8 shadow-md border"
+            className="lg:col-span-2 rounded-2xl p-6 border"
             style={{ backgroundColor: chartBg, borderColor: chartBorder }}
           >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <BookOpen size={18} style={{ color: dark ? '#94a3b8' : UCLA_BLUE }} />
-                <h3 style={{ color: dark ? '#94a3b8' : '#64748b' }} className="text-[11px] font-black uppercase tracking-widest">
-                  Inventory Growth
-                </h3>
-              </div>
-              <div className="group relative cursor-pointer">
-                <Info size={16} style={{ color: dark ? '#475569' : '#94a3b8' }} />
-                <div
-                  className="absolute right-0 top-6 w-48 p-3 rounded-xl text-[10px] hidden group-hover:block z-50 shadow-xl border"
-                  style={{
-                    backgroundColor: dark ? '#1e293b' : '#ffffff',
-                    borderColor: dark ? '#334155' : '#e2e8f0',
-                    color: dark ? '#cbd5e1' : '#475569',
-                  }}
-                >
-                  Cumulative totals across all workflow stages.
-                </div>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 style={{ color: dark ? '#94a3b8' : '#64748b' }} className="text-xs font-semibold uppercase tracking-wider">
+                Inventory Growth
+              </h3>
             </div>
-            <div className="h-44">
+            <div className="h-40">
               <ResponsiveContainer width="100%" height="100%" key={String(dark)}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGrid} opacity={0.5} />
@@ -173,7 +160,7 @@ const ProblemInventory = () => {
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
-                    dy={10}
+                    dy={8}
                   />
                   <YAxis
                     stroke={chartAxis}
@@ -185,9 +172,9 @@ const ProblemInventory = () => {
                     contentStyle={{
                       backgroundColor: chartTooltipBg,
                       border: `1px solid ${chartTooltipBorder}`,
-                      borderRadius: '12px',
+                      borderRadius: '8px',
                       fontSize: '11px',
-                      fontWeight: 'bold',
+                      fontWeight: '600',
                       color: dark ? '#e2e8f0' : '#1e293b',
                     }}
                   />
@@ -196,16 +183,16 @@ const ProblemInventory = () => {
                     align="right"
                     iconType="circle"
                     wrapperStyle={{
-                      paddingBottom: '20px',
+                      paddingBottom: '16px',
                       fontSize: '10px',
                       textTransform: 'uppercase',
-                      fontWeight: '800',
+                      fontWeight: '700',
                       color: dark ? '#94a3b8' : '#64748b',
                     }}
                   />
-                  <Line type="monotone" dataKey="Idea" stroke={dark ? '#94a3b8' : '#cbd5e1'} strokeWidth={3} dot={false} />
-                  <Line type="monotone" dataKey="Review" stroke={UCLA_BLUE} strokeWidth={3} dot={false} />
-                  <Line type="monotone" dataKey="Endorsed" stroke={UCLA_GOLD} strokeWidth={4} dot={false} />
+                  <Line type="monotone" dataKey="Idea" stroke={dark ? '#94a3b8' : '#cbd5e1'} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Review" stroke={UCLA_BLUE} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Endorsed" stroke={UCLA_GOLD} strokeWidth={3} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -213,27 +200,27 @@ const ProblemInventory = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-md border border-slate-100 dark:border-slate-800 mb-8 flex flex-wrap gap-4 items-center">
-          <div className="relative flex-1 min-w-[300px]">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-5 flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Search Inventory..."
+              placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-ucla-blue transition-all font-medium text-sm text-slate-800 dark:text-slate-200"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg outline-none focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue transition-all text-sm text-slate-800 dark:text-slate-200 border border-transparent focus:border-ucla-blue"
             />
           </div>
-          <div className="flex gap-3 flex-wrap">
-            {[{ val: sortBy, fn: setSortBy, opts: [['newest','Sort: Newest'],['oldest','Sort: Oldest'],['diff','Sort: High Diff']] },
-              { val: stageFilter, fn: setStageFilter, opts: [['all','Stages: All'],['Idea','Idea'],['Endorsed','Endorsed']] },
-              { val: topicFilter, fn: setTopicFilter, opts: [['all','Topics: All'],['Algebra','Algebra'],['Geometry','Geometry'],['Combinatorics','Combinatorics'],['Number Theory','Number Theory']] }
+          <div className="flex gap-2 flex-wrap">
+            {[{ val: sortBy, fn: setSortBy, opts: [['newest','Newest'],['oldest','Oldest'],['diff','Hardest']] },
+              { val: stageFilter, fn: setStageFilter, opts: [['all','All Stages'],['Idea','Idea'],['Endorsed','Endorsed']] },
+              { val: topicFilter, fn: setTopicFilter, opts: [['all','All Topics'],['Algebra','Algebra'],['Geometry','Geometry'],['Combinatorics','Combinatorics'],['Number Theory','Number Theory']] }
             ].map((sel, i) => (
               <select
                 key={i}
                 value={sel.val}
                 onChange={(e) => sel.fn(e.target.value)}
-                className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-5 py-3 rounded-2xl text-[10px] font-black uppercase outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700"
+                className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-2.5 rounded-lg text-xs font-medium outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
               >
                 {sel.opts.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
               </select>
@@ -242,38 +229,38 @@ const ProblemInventory = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-md">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
-                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Problem & Meta</th>
-                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Latest Feedback</th>
-                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Stage</th>
+              <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Problem</th>
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Latest Review</th>
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Stage</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.map(problem => (
                 <tr
                   key={problem.id}
                   onClick={() => navigate(`/problem/${problem.id}`)}
-                  className="hover:bg-ucla-blue/[0.03] dark:hover:bg-slate-800/50 transition-all cursor-pointer"
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                 >
-                  <td className="px-10 py-3">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-ucla-blue dark:text-ucla-gold font-black italic tracking-tight text-lg">
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-ucla-blue dark:text-ucla-gold font-semibold text-sm">
                         {problem.id}
                       </span>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1 max-w-xl font-medium">
-                        {problem.latex?.replace(/[$#\\\\]/g, '') || 'Click to view problem content...'}
+                      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1 max-w-xl">
+                        {problem.latex?.replace(/[$#\\\\]/g, '') || 'Click to view...'}
                       </p>
-                      <div className="flex gap-2 mt-2">
-                        <span className="text-[9px] font-black px-2.5 py-1 bg-ucla-gold/10 text-amber-600 dark:text-ucla-gold rounded-lg border border-ucla-gold/20 uppercase">
-                          Lvl {problem.quality || '?'}
+                      <div className="flex gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-700">
+                          {problem.quality ? `${problem.quality}/10` : '?'}
                         </span>
                         {(problem.topics || []).map(t => (
                           <span
                             key={t}
-                            className="text-[9px] font-black px-2.5 py-1 bg-ucla-blue/5 text-ucla-blue dark:text-blue-300 rounded-lg border border-ucla-blue/10 uppercase tracking-tighter"
+                            className="text-[10px] font-medium px-2 py-0.5 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-700"
                           >
                             {t}
                           </span>
@@ -281,36 +268,35 @@ const ProblemInventory = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-10 py-3">
-                    <div className="flex items-start gap-3 text-slate-400 italic text-xs max-w-sm">
-                      <MessageSquare size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                      {/* FIX: was problem.comments?.[0]?.content — field is feedbacks[].feedback */}
-                      <p className="line-clamp-2 leading-relaxed">
+                  <td className="px-6 py-4">
+                    <div className="flex items-start gap-2 text-slate-400 text-xs max-w-sm">
+                      <MessageSquare size={13} className="mt-0.5 shrink-0" />
+                      <p className="line-clamp-2 leading-relaxed italic">
                         {problem.feedbacks?.length > 0
-                          ? `${problem.feedbacks[0].isEndorsement ? '⭐ ' : ''}${problem.feedbacks[0].feedback || '(no comment)'}`
-                          : 'No reviews submitted yet.'}
+                          ? `${problem.feedbacks[0].isEndorsement ? '★ ' : ''}${problem.feedbacks[0].feedback || '(no comment)'}`
+                          : 'No reviews yet.'}
                       </p>
                     </div>
                   </td>
-                  <td className="px-10 py-3 text-right">
-                    <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${
+                  <td className="px-6 py-4 text-right">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
                       problem.stage === 'Endorsed'
-                        ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     }`}>
-                      {problem.stage === 'Endorsed' ? <Check size={12} strokeWidth={3} /> : <Star size={12} />}
+                      {problem.stage === 'Endorsed' ? <Check size={11} strokeWidth={2.5} /> : <Star size={11} />}
                       {problem.stage}
-                    </div>
+                    </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <div className="py-24 text-center">
-              <Filter className="mx-auto mb-4 text-slate-300 dark:text-slate-700" size={48} />
-              <p className="text-slate-400 dark:text-slate-500 font-bold italic tracking-tight text-lg">
-                No matching problems in the pack.
+            <div className="py-20 text-center">
+              <Filter className="mx-auto mb-3 text-slate-300 dark:text-slate-700" size={36} />
+              <p className="text-slate-400 dark:text-slate-500 text-sm">
+                No matching problems.
               </p>
             </div>
           )}

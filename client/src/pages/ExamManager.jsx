@@ -940,14 +940,17 @@ const ExamManager = () => {
                             <td className="px-5 py-3"><div className="flex flex-wrap gap-1">{(p.topics || []).map(t => <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium">{t}</span>)}</div></td>
                             <td className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{p.quality ? `${p.quality}/10` : '—'}</td>
                             <td className="px-5 py-3"><StageBadge stage={p.stage} /></td>
-                            {canEditExam(selectedExam) && (
-                              <td className="px-5 py-3 text-right">
-                                <button onClick={() => handleArchiveProblem(p.id)}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 text-[11px] font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition">
-                                  <Archive size={12} /> Archive
+                            <td className="px-3 py-3 w-8">
+                              {canEditExam(selectedExam) && (
+                                <button
+                                  onClick={() => handleRemoveProblem(p.id)}
+                                  className="opacity-0 group-hover/row:opacity-100 p-1.5 rounded-lg text-slate-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 transition"
+                                  title="Remove from exam"
+                                >
+                                  <X size={13} />
                                 </button>
-                              </td>
-                            )}
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

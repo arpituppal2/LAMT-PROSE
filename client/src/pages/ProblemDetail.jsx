@@ -52,6 +52,9 @@ const ProblemDetail = () => {
   const [replyText, setReplyText] = useState('');
   const [savingReply, setSavingReply] = useState(false);
 
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [archiveReason, setArchiveReason] = useState('');
+
   const extractImages = (text, destination) => {
     if (!text) return { cleanText: '', extractedImages: [] };
     const images = [];
@@ -148,10 +151,25 @@ const ProblemDetail = () => {
   };
 
   const handleArchive = async () => {
-    if (!window.confirm('Archive this problem? You can restore it from the Archive page.')) return;
     try {
+      // Prepend archive reason to notes if provided
+      if (archiveReason.trim()) {
+        const timestamp = new Date().toLocaleDateString();
+        const reasonNote = `[Archived ${timestamp}] ${archiveReason.trim()}`;
+        const currentNotes = problem.notes || '';
+        const updatedNotes = currentNotes ? `${reasonNote}\n\n${currentNotes}` : reasonNote;
+        await api.put(`/problems/${id}`, {
+          latex: problem.latex,
+          solution: problem.solution,
+          answer: problem.answer,
+          notes: updatedNotes,
+          topics: problem.topics,
+          quality: problem.quality,
+          stage: problem.stage
+        });
+      }
       await api.put(`/problems/${id}/archive`);
-      navigate('/archive');
+      navigate('/dashboard');
     } catch (error) {
       setMessage('Failed to archive problem');
     }
@@ -286,7 +304,7 @@ const ProblemDetail = () => {
                 </button>
                 {!isEditing && problem.stage !== 'Archived' && (
                   <button
-                    onClick={handleArchive}
+                    onClick={() => { setShowArchiveModal(true); setArchiveReason(''); }}
                     className="flex items-center gap-1.5 px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors text-sm font-medium"
                     title="Archive this problem"
                   >
@@ -323,13 +341,20 @@ const ProblemDetail = () => {
               <div className="p-6">
                 {isEditing ? (
                   <div className="space-y-4">
-                    <textarea
-                      value={editedLatex}
-                      onChange={(e) => setEditedLatex(e.target.value)}
-                      rows={10}
-                      placeholder="Type LaTeX here..."
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all"
-                    />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <textarea
+                        value={editedLatex}
+                        onChange={(e) => setEditedLatex(e.target.value)}
+                        rows={18}
+                        placeholder="Type LaTeX here..."
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all resize-y"
+                      />
+                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg min-h-[200px] overflow-auto prose-math text-sm">
+                        {editedLatex.trim()
+                          ? <KatexRenderer latex={editedLatex} />
+                          : <p className="text-slate-400 italic text-xs">Preview will appear here…</p>}
+                      </div>
+                    </div>
                     <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
                       <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Images</p>
                       <div className="flex flex-wrap gap-3">
@@ -405,13 +430,23 @@ const ProblemDetail = () => {
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3">Edit Metadata</h3>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Solution</label>
-                  <textarea
-                    value={editedSolution}
-                    onChange={(e) => setEditedSolution(e.target.value)}
-                    rows={6}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all"
-                  />
+                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">
+                    Solution <span className="font-normal normal-case text-slate-400 ml-1">— live preview on the right</span>
+                  </label>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <textarea
+                      value={editedSolution}
+                      onChange={(e) => setEditedSolution(e.target.value)}
+                      rows={12}
+                      placeholder="Write solution in LaTeX..."
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all resize-y"
+                    />
+                    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg min-h-[200px] overflow-auto prose-math text-sm">
+                      {editedSolution.trim()
+                        ? <KatexRenderer latex={editedSolution} />
+                        : <p className="text-slate-400 italic text-xs">Preview will appear here…</p>}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -771,6 +806,50 @@ const ProblemDetail = () => {
         </div>
       </div>
     </Layout>
+
+    {/* Archive Confirmation Modal */}
+    {showArchiveModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+              <Archive size={18} className="text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900 dark:text-white text-base">Archive Problem {problem.id}?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">You can restore it later from the Archive page.</p>
+            </div>
+          </div>
+          <div className="mb-5">
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              Reason <span className="font-normal normal-case text-slate-400">(optional — saved to notes)</span>
+            </label>
+            <textarea
+              value={archiveReason}
+              onChange={(e) => setArchiveReason(e.target.value)}
+              rows={3}
+              placeholder="e.g. Duplicate of MS0042, answer unclear, needs rework..."
+              autoFocus
+              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 outline-none transition-all resize-none"
+            />
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowArchiveModal(false)}
+              className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { setShowArchiveModal(false); handleArchive(); }}
+              className="flex-1 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <Archive size={15} /> Archive
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 };
 

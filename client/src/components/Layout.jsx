@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import {
   LayoutDashboard, PenTool, List, Trophy,
-  MessageSquare, LogOut, Menu, X, Moon, Sun
+  MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList
 } from 'lucide-react';
 
 // Theme context so children can react to dark mode
@@ -32,7 +32,7 @@ export const useDarkMode = () => {
 };
 
 const Sidebar = ({ dark, toggleDark }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -42,10 +42,17 @@ const Sidebar = ({ dark, toggleDark }) => {
     navigate('/login');
   };
 
+  const handleToggleCollapse = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem('sidebarCollapsed', String(next));
+  };
+
   const links = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/write', icon: PenTool, label: 'Write New Problem' },
     { to: '/inventory', icon: List, label: 'Problem Inventory' },
+    { to: '/exams', icon: ClipboardList, label: 'Exams' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { to: '/feedback', icon: MessageSquare, label: 'Give Feedback' },
   ];
@@ -66,7 +73,7 @@ const Sidebar = ({ dark, toggleDark }) => {
           </h1>
         )}
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={handleToggleCollapse}
           className="p-2 rounded transition-colors hover:bg-white/10 flex-shrink-0"
         >
           {collapsed ? <Menu size={20} /> : <X size={20} />}

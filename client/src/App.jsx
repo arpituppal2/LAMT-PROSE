@@ -10,6 +10,7 @@ import ProblemDetail from './pages/ProblemDetail';
 import Leaderboard from './pages/Leaderboard';
 import GiveFeedback from './pages/GiveFeedback';
 import UserProfile from './pages/UserProfile';
+import ExamManager from './pages/ExamManager';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -32,7 +33,6 @@ const PublicRoute = ({ children }) => {
       </div>
     );
   }
-  // Changed redirect from /home to /dashboard
   return user ? <Navigate to="/dashboard" /> : children;
 };
 
@@ -52,13 +52,14 @@ function App() {
           <Route path="/write/:id" element={<PrivateRoute><WriteProblem /></PrivateRoute>} />
           <Route path="/inventory" element={<PrivateRoute><ProblemInventory /></PrivateRoute>} />
           <Route path="/problem/:id" element={<PrivateRoute><ProblemDetail /></PrivateRoute>} />
+          <Route path="/exams" element={<PrivateRoute><ExamManager /></PrivateRoute>} />
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/feedback" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/feedback/:problemId" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
 
-          {/* Fallback Route: Redirect root to dashboard */}
+          {/* Fallback Route */}
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </BrowserRouter>

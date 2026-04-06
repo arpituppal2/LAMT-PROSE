@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ClipboardList, Plus, Trash2, Check, Search, X,
-  ChevronRight, AlertCircle, Loader2, FileText,
+  ChevronRight, AlertCircle, Loader2, FileText, Archive,
   MessageSquare, Send, Lock, Download, AlertTriangle
 } from 'lucide-react';
 import api from '../utils/api';
@@ -919,7 +919,7 @@ const ExamManager = () => {
                           <th className="px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Topics</th>
                           <th className="px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Quality</th>
                           <th className="px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Stage</th>
-                          {canEditExam(selectedExam) && <th className="px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-right">Archive</th>}
+                          
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

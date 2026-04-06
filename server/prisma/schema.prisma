@@ -64,17 +64,18 @@ model Feedback {
   @@index([needsReview])
 }
 model Test {
-  id          String   @id @default(uuid())
-  competition String
-  name        String
-  description String?
-  version     String
-  authorId    String?
+  id           String   @id @default(uuid())
+  competition  String
+  name         String
+  description  String?
+  version      String
+  authorId     String?
   templateType String?
-  createdAt   DateTime @default(now())
-  author      User?         @relation("TestAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  problems    Problem[]     @relation("ProblemToTest")
-  comments    TestComment[]
+  slots        Json?
+  createdAt    DateTime @default(now())
+  author       User?         @relation("TestAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  problems     Problem[]     @relation("ProblemToTest")
+  comments     TestComment[]
   @@index([authorId])
 }
 model TestComment {

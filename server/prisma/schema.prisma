@@ -16,8 +16,10 @@ model User {
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  problems  Problem[]
-  feedbacks Feedback[]
+  problems      Problem[]
+  feedbacks     Feedback[]
+  testsAuthored Test[]        @relation("TestAuthor")
+  testComments  TestComment[]
 }
 model Problem {
   id           String   @id
@@ -67,6 +69,22 @@ model Test {
   name        String
   description String?
   version     String
+  authorId    String?
+  templateType String?
   createdAt   DateTime @default(now())
-  problems    Problem[] @relation("ProblemToTest")
+  author      User?         @relation("TestAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  problems    Problem[]     @relation("ProblemToTest")
+  comments    TestComment[]
+  @@index([authorId])
+}
+model TestComment {
+  id        String   @id @default(uuid())
+  testId    String
+  userId    String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([testId])
+  @@index([userId])
 }

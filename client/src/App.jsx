@@ -11,6 +11,7 @@ import Leaderboard from './pages/Leaderboard';
 import GiveFeedback from './pages/GiveFeedback';
 import UserProfile from './pages/UserProfile';
 import ExamManager from './pages/ExamManager';
+import ArchivePage from './pages/ArchivePage';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -58,6 +59,7 @@ function App() {
           <Route path="/feedback/:problemId" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
+          <Route path="/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
 
           {/* Fallback Route */}
           <Route path="/" element={<Navigate to="/dashboard" />} />

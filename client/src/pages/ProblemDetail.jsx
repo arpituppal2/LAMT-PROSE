@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Edit, User, Trash2, Star, ChevronDown, ChevronUp, 
+  Edit, User, Archive, Star, ChevronDown, ChevronUp, 
   CheckCircle, Image as ImageIcon, X,
   AlertCircle, Save, ArrowLeft, MessageSquare 
 } from 'lucide-react';
@@ -147,13 +147,13 @@ const ProblemDetail = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this problem?')) return;
+  const handleArchive = async () => {
+    if (!window.confirm('Archive this problem? You can restore it from the Archive page.')) return;
     try {
-      await api.delete(`/problems/${id}`);
-      navigate('/inventory');
+      await api.put(`/problems/${id}/archive`);
+      navigate('/archive');
     } catch (error) {
-      setMessage('Failed to delete problem');
+      setMessage('Failed to archive problem');
     }
   };
 
@@ -284,9 +284,14 @@ const ProblemDetail = () => {
                   {isEditing ? <X size={16} /> : <Edit size={16} />}
                   {isEditing ? 'Cancel' : 'Edit'}
                 </button>
-                {!isEditing && (
-                  <button onClick={handleDelete} className="p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                    <Trash2 size={18} />
+                {!isEditing && problem.stage !== 'Archived' && (
+                  <button
+                    onClick={handleArchive}
+                    className="flex items-center gap-1.5 px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors text-sm font-medium"
+                    title="Archive this problem"
+                  >
+                    <Archive size={16} />
+                    <span className="hidden sm:inline">Archive</span>
                   </button>
                 )}
               </>

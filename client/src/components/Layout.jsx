@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import {
   LayoutDashboard, PenTool, List, Trophy,
-  MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList
+  MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList, Archive
 } from 'lucide-react';
 
 // Theme context so children can react to dark mode
@@ -55,6 +55,7 @@ const Sidebar = ({ dark, toggleDark }) => {
     { to: '/exams', icon: ClipboardList, label: 'Exams' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { to: '/feedback', icon: MessageSquare, label: 'Give Feedback' },
+    { to: '/archive', icon: Archive, label: 'Archive' },
   ];
 
   return (

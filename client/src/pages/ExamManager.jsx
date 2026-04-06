@@ -924,9 +924,19 @@ const ExamManager = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {selectedExam.problems.map((p, i) => (
-                          <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                          <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition group/row">
                             <td className="px-5 py-3 text-xs text-slate-400 tabular-nums">{i + 1}</td>
-                            <td className="px-5 py-3 font-mono text-sm font-bold text-ucla-blue dark:text-[#FFD100]">{p.id}</td>
+                            <td className="px-5 py-3">
+                              <div className="group relative inline-block">
+                                <span className="font-mono text-sm font-bold text-ucla-blue dark:text-[#FFD100] cursor-default">{p.id}</span>
+                                {p.latex && (
+                                  <div className="absolute left-0 top-full z-50 hidden group-hover:block w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 mt-1 max-h-48 overflow-y-auto">
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase mb-1">Preview</p>
+                                    <p className="text-xs leading-relaxed whitespace-pre-wrap break-words text-slate-700 dark:text-slate-300">{(p.latex || '').slice(0, 400)}{p.latex?.length > 400 ? '…' : ''}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
                             <td className="px-5 py-3"><div className="flex flex-wrap gap-1">{(p.topics || []).map(t => <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium">{t}</span>)}</div></td>
                             <td className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{p.quality ? `${p.quality}/10` : '—'}</td>
                             <td className="px-5 py-3"><StageBadge stage={p.stage} /></td>
@@ -989,7 +999,17 @@ const ExamManager = () => {
                                 const alreadyIn = examProblemIds.has(p.id);
                                 return (
                                   <tr key={p.id} className={`transition ${alreadyIn ? 'opacity-50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}>
-                                    <td className="px-5 py-3 font-mono text-sm font-bold text-ucla-blue dark:text-[#FFD100]">{p.id}</td>
+                                    <td className="px-5 py-3">
+                                      <div className="group relative inline-block">
+                                        <span className="font-mono text-sm font-bold text-ucla-blue dark:text-[#FFD100] cursor-default">{p.id}</span>
+                                        {p.latex && (
+                                          <div className="absolute left-0 top-full z-50 hidden group-hover:block w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 mt-1 max-h-40 overflow-y-auto">
+                                            <p className="text-[10px] font-semibold text-slate-400 uppercase mb-1">Preview</p>
+                                            <p className="text-xs leading-relaxed whitespace-pre-wrap break-words text-slate-700 dark:text-slate-300">{(p.latex || '').slice(0, 300)}{p.latex?.length > 300 ? '…' : ''}</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
                                     <td className="px-5 py-3"><div className="flex flex-wrap gap-1">{(p.topics || []).map(t => <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium">{t}</span>)}</div></td>
                                     <td className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{p.quality ? `${p.quality}/10` : '—'}</td>
                                     <td className="px-5 py-3"><StageBadge stage={p.stage} /></td>

@@ -11,6 +11,7 @@ import Leaderboard from './pages/Leaderboard';
 import GiveFeedback from './pages/GiveFeedback';
 import UserProfile from './pages/UserProfile';
 import ExamManager from './pages/ExamManager';
+import ExamDetail from './pages/ExamDetail';
 import ArchivePage from './pages/ArchivePage';
 
 const PrivateRoute = ({ children }) => {
@@ -54,6 +55,7 @@ function App() {
           <Route path="/inventory" element={<PrivateRoute><ProblemInventory /></PrivateRoute>} />
           <Route path="/problem/:id" element={<PrivateRoute><ProblemDetail /></PrivateRoute>} />
           <Route path="/exams" element={<PrivateRoute><ExamManager /></PrivateRoute>} />
+          <Route path="/exams/:id" element={<PrivateRoute><ExamDetail /></PrivateRoute>} />
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/feedback" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/feedback/:problemId" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />

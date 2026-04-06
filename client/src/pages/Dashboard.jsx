@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Star, LayoutDashboard, MessageSquare, Trash2, User, Info } from 'lucide-react';
 import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
@@ -8,16 +8,37 @@ import KatexRenderer from '../components/KatexRenderer';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, checkAuth } = useAuth();
   
-  // --- UI State ---
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'profile'
+  // --- UI State (synced to URL) ---
+  // ?view=profile  → profile tab; default = overview
+  // ?filter=Needs+Review etc. → filter state
+  const activeTab = searchParams.get('view') || 'overview';
+  const filter = searchParams.get('filter') || 'all';
+
+  const setActiveTab = (tab) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'overview') next.delete('view');
+      else next.set('view', tab);
+      return next;
+    }, { replace: false });
+  };
+
+  const setFilter = (value) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (value === 'all') next.delete('filter');
+      else next.set('filter', value);
+      return next;
+    }, { replace: false });
+  };
 
   // --- Dashboard States ---
   const [stats, setStats] = useState(null);
   const [problems, setProblems] = useState([]);
   const [myFeedback, setMyFeedback] = useState([]);
-  const [filter, setFilter] = useState('all');
   const [dashboardLoading, setDashboardLoading] = useState(true);
 
   // --- Profile States ---
@@ -100,8 +121,6 @@ const Dashboard = () => {
   };
 
   // --- Derived Data ---
-  // FIX: _displayStatus values from server are title-cased ('Endorsed', 'Needs Review').
-  // Filter button values must match exactly. Map button value -> predicate.
   const filteredProblems = problems.filter((p) => {
     if (filter === 'all') return true;
     if (filter === 'needs_review') return p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review';
@@ -191,7 +210,6 @@ const Dashboard = () => {
               <div className="flex-1">
                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-gray-100 dark:border-slate-700/50 transition-colors">
                   <div className="p-4 border-b border-gray-100 dark:border-slate-700 flex gap-2 flex-wrap">
-                    {/* FIX: use 'Endorsed' (title-case) to match _displayStatus from server */}
                     {[
                       { value: 'all',          label: 'All' },
                       { value: 'needs_review', label: 'Needs Review' },

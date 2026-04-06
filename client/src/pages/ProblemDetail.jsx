@@ -265,7 +265,7 @@ const ProblemDetail = () => {
   return (
     <>
       <Layout>
-      <div className="max-w-6xl mx-auto px-6 pb-20">
+        <div className="max-w-6xl mx-auto px-6 pb-20">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 pt-2">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ClipboardList, Plus, Trash2, Check, Search, X,
-  ChevronRight, AlertCircle, Loader2, FileText, Archive,
+  ChevronRight, AlertCircle, Loader2, FileText,
   MessageSquare, Send, Lock, Download, AlertTriangle
 } from 'lucide-react';
 import api from '../utils/api';
@@ -80,6 +80,18 @@ const SHOPPING_TABLE = [
 // ─── LaTeX generators ─────────────────────────────────────────────────────────
 const escLaTeX = s => (s || '').replace(/[&%$#_{}~^\\]/g, c => `\\${c}`);
 
+// Fix double-escaped backslashes that occur when copying from PROSE DB
+const fixLatex = (s) => {
+  if (!s) return '';
+  // If the string has \\( or \\\ patterns (double-escaped), unescape them
+  // Only unescape if there are NO single backslashes (i.e. it's fully double-escaped)
+  const hasSingleBackslash = /(?<!\\)\\(?!\\)/.test(s);
+  if (!hasSingleBackslash && s.includes('\\\\')) {
+    return s.replace(/\\\\/g, '\\');
+  }
+  return s;
+};
+
 const generateIndividualLatex = (exam, templateKey, problems) => {
   const titles = {
     'indiv-alg-nt': 'Individual Round 1: Algebra \\& Number Theory',
@@ -93,10 +105,12 @@ const generateIndividualLatex = (exam, templateKey, problems) => {
   const estimation = problems[10];
 
   const problemLines = nonEstimation.map((p, i) =>
-    `\\item ${p ? escLaTeX(p.latex || p.id) : `[Slot ${i+1} — empty]`}`
+    p
+      ? `\\item[${i+1}.] [${p.id}]\n${fixLatex(p.latex || '')}`
+      : `\\item[${i+1}.] [Slot ${i+1} — empty]`
   ).join('\n\n');
   const estimationLine = estimation
-    ? `\\item[Tiebreak.] ${escLaTeX(estimation.latex || estimation.id)}`
+    ? `\\item[Tiebreak.] [${estimation.id}]\n${fixLatex(estimation.latex || '')}`
     : `\\item[Tiebreak.] [Estimation slot — empty]`;
 
   const scoringNote = `Problems with fewer solves are worth more points: $\\text{Score} = \\lceil N / \\text{solves} \\rceil$ where $N$ is the number of competitors.`;
@@ -196,11 +210,11 @@ ${estimationLine}
 const generateShoppingLatex = (exam, problems) => {
   const rows = SHOPPING_TABLE.map((row, i) => {
     const p = problems[i];
-    const latex = p ? escLaTeX(p.latex || p.id) : `[Slot Q${row.q} — empty]`;
+    const latex = p ? `[${p.id}]\n${fixLatex(p.latex || '')}` : `[Slot Q${row.q} — empty]`;
     return `% Q${row.q}: \\$${row.cost} → ${row.pts} pts\n\\item[Q${row.q}.] ${latex}`;
   }).join('\n\n');
   const estP = problems[24];
-  const estLatex = estP ? escLaTeX(estP.latex || estP.id) : '[Estimation slot — empty]';
+  const estLatex = estP ? `[${estP.id}]\n${fixLatex(estP.latex || '')}` : '[Estimation slot — empty]';
 
   return `\\documentclass[11pt]{article}
 \\usepackage[margin=1in]{geometry}
@@ -331,12 +345,12 @@ const generateGutsLatex = (exam, problems) => {
 
   const setBlocks = sets.map(({ set, problems: ps, estimation }) => {
     const pLines = ps.map((p, i) =>
-      `\\item[${i + 1}.] ${p ? escLaTeX(p.latex || p.id) : `[Slot — empty]`}
+      `\\item[${i + 1}.] ${p ? `[${p.id}]\n${fixLatex(p.latex || '')}` : `[Slot — empty]`}
 
 \\vspace{1.5in}`
     ).join('\n');
     const estLine = estimation
-      ? `\\item[Est.] ${escLaTeX(estimation.latex || estimation.id)}\n
+      ? `\\item[Est.] [${estimation.id}]\n${fixLatex(estimation.latex || '')}\n
 \\vspace{1.5in}`
       : estimation === null && set === 8 ? `\\item[Est.] [Estimation slot — empty]\n
 \\vspace{1.5in}` : '';
@@ -675,6 +689,22 @@ const ExamManager = () => {
   const canEditExam = (exam) => isAdmin || !exam.authorId || exam.author?.id === currentUser?.id || exam.authorId === currentUser?.id;
 
   const handleCreated = (newExam) => { setExams(prev => [newExam, ...prev]); setSelectedExam(newExam); };
+
+  const handleRemoveProblem = async (problemId) => {
+    setActionError('');
+    const updated = selectedExam.problems.filter(p => p.id !== problemId);
+    setSelectedExam(e => ({ ...e, problems: updated }));
+    setExams(es => es.map(e => e.id === selectedExam.id ? { ...e, problems: updated } : e));
+    try {
+      await api.put(`/tests/${selectedExam.id}`, {
+        problemIds: updated.map(p => p.id),
+      });
+    } catch {
+      setActionError('Failed to remove problem. Please try again.');
+      // Revert
+      setSelectedExam(e => ({ ...e, problems: selectedExam.problems }));
+    }
+  };
 
   const handleArchiveProblem = async (problemId) => {
     setActionError('');

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ClipboardList, Plus, Trash2, Check, Search, X,
   ChevronRight, AlertCircle, Loader2, FileText, Archive,
-  MessageSquare, Send, Lock, Download, TriangleAlert
+  MessageSquare, Send, Lock, Download, AlertTriangle
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -866,7 +866,7 @@ const ExamManager = () => {
                 {/* Topic diversity warning */}
                 {topicWarnFor && tplMeta?.topicWarn && (
                   <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 text-sm">
-                    <TriangleAlert size={16} className="flex-shrink-0 mt-0.5" />
+                    <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
                     <span><strong>Topic imbalance:</strong> More than 40% of problems are {topicWarnFor}. Consider adding variety.</span>
                   </div>
                 )}

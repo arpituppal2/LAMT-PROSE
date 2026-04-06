@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ClipboardList, Plus, Trash2, Check, Search, X,
   ChevronRight, AlertCircle, Loader2, FileText, Archive,
@@ -647,6 +648,7 @@ const CommentsPanel = ({ examId, currentUserId, isAdmin }) => {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const ExamManager = () => {
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [exams, setExams] = useState([]);
   const [examsLoading, setExamsLoading] = useState(true);

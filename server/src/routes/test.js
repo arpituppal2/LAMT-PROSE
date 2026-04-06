@@ -84,16 +84,37 @@ router.put('/:id', authenticate, async (req, res) => {
     if (!(await canEdit(req.params.id, req.userId))) {
       return res.status(403).json({ error: 'Only the exam author or an admin can edit this exam.' });
     }
-    const { competition, name, description, version } = req.body;
+    const { competition, name, description, version, templateType } = req.body;
+    const updateData = { competition, name, description, version };
+    if (templateType !== undefined) updateData.templateType = templateType || null;
     const test = await prisma.test.update({
       where: { id: req.params.id },
-      data: { competition, name, description, version },
+      data: updateData,
       include: problemInclude
     });
     res.json(test);
   } catch (error) {
     console.error('Update test error:', error);
     res.status(500).json({ error: 'Failed to update test' });
+  }
+});
+
+// Update slots (admin or author only)
+router.put('/:id/slots', authenticate, async (req, res) => {
+  try {
+    if (!(await canEdit(req.params.id, req.userId))) {
+      return res.status(403).json({ error: 'Only the exam author or an admin can edit slots.' });
+    }
+    const { slots } = req.body;
+    const test = await prisma.test.update({
+      where: { id: req.params.id },
+      data: { slots },
+      include: problemInclude
+    });
+    res.json(test);
+  } catch (error) {
+    console.error('Update slots error:', error);
+    res.status(500).json({ error: 'Failed to update slots' });
   }
 });
 

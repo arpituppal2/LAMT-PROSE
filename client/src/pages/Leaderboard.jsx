@@ -46,7 +46,7 @@ const Leaderboard = () => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -76,23 +76,27 @@ const Leaderboard = () => {
         {/* Table */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
           {/* Column Headers */}
-          <div className="grid grid-cols-12 gap-2 px-5 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
-            <div className="col-span-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <div className="grid grid-cols-14 gap-2 px-5 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800"
+               style={{ gridTemplateColumns: '2rem 1fr 7rem 7rem 7rem 7rem 6rem' }}>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               #
             </div>
-            <div className="col-span-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Contributor
             </div>
-            <div className="col-span-2 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
               Endorsed <span className="text-green-500">+5</span>
             </div>
-            <div className="col-span-2 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
               Idea <span className="text-blue-500">+3</span>
             </div>
-            <div className="col-span-1 text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
+              Needs Review <span className="text-red-500">-2</span>
+            </div>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
               Reviews <span className="text-purple-500">+0.25</span>
             </div>
-            <div className="col-span-2 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">
               Score
             </div>
           </div>
@@ -101,10 +105,11 @@ const Leaderboard = () => {
             <div
               key={entry.userId}
               onClick={() => navigate(`/users/${entry.userId}`)}
-              className="grid grid-cols-12 gap-2 items-center px-5 py-4 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+              className="grid gap-2 items-center px-5 py-4 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+              style={{ gridTemplateColumns: '2rem 1fr 7rem 7rem 7rem 7rem 6rem' }}
             >
               {/* Rank */}
-              <div className="col-span-1">
+              <div>
                 {index === 0 ? (
                   <span className="text-lg">🥇</span>
                 ) : index === 1 ? (
@@ -119,7 +124,7 @@ const Leaderboard = () => {
               </div>
 
               {/* Author */}
-              <div className="col-span-4">
+              <div>
                 <p className="font-semibold text-slate-900 dark:text-white text-sm">
                   {entry.author}
                 </p>
@@ -127,28 +132,39 @@ const Leaderboard = () => {
               </div>
 
               {/* Endorsed badge count */}
-              <div className="col-span-2 text-center">
+              <div className="text-center">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
                   {entry.badges.endorsed || 0}
                 </span>
               </div>
 
               {/* Idea badge count */}
-              <div className="col-span-2 text-center">
+              <div className="text-center">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
                   {entry.badges.idea || 0}
                 </span>
               </div>
 
+              {/* Needs Review count */}
+              <div className="text-center">
+                <span className={`text-sm font-semibold tabular-nums ${
+                  (entry.badges.needsReview || 0) > 0
+                    ? 'text-red-500 dark:text-red-400'
+                    : 'text-slate-700 dark:text-slate-300'
+                }`}>
+                  {entry.badges.needsReview || 0}
+                </span>
+              </div>
+
               {/* Reviews given */}
-              <div className="col-span-1 text-center">
+              <div className="text-center">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
                   {entry.reviewsGiven || 0}
                 </span>
               </div>
 
               {/* Score */}
-              <div className="col-span-2 text-right">
+              <div className="text-right">
                 <span className="text-lg font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">
                   {entry.score}
                 </span>

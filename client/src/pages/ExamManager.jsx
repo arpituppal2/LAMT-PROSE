@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   ClipboardList, Plus, Trash2, Check, Search, X,
-  ChevronRight, AlertCircle, Loader2, FileText
+  ChevronRight, AlertCircle, Loader2, FileText, Archive
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -15,6 +15,8 @@ const StageBadge = ({ stage }) => {
       ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
       : stage === 'Published'
       ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+      : stage === 'Archived'
+      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
       : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400';
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${colours}`}>
@@ -120,6 +122,9 @@ const ExamManager = () => {
   // selected exam
   const [selectedExam, setSelectedExam] = useState(null);
 
+  // archive sidebar
+  const [showArchive, setShowArchive] = useState(false);
+
   // all problems (for the add-questions panel)
   const [allProblems, setAllProblems] = useState([]);
   const [problemsLoading, setProblemsLoading] = useState(false);
@@ -180,22 +185,32 @@ const ExamManager = () => {
     setSelectedExam(newExam);
   };
 
-  // ── remove problem from exam (optimistic)
-  const handleRemoveProblem = async (problemId) => {
+  // ── archive a problem from the exam (remove from exam + set stage = Archived)
+  const handleArchiveProblem = async (problemId) => {
     setActionError('');
-    const prev = selectedExam.problems;
+    const prevExam = selectedExam.problems;
+    const prevAllProblems = allProblems;
+
+    // Optimistic: remove from exam list and mark archived in allProblems
     setSelectedExam(e => ({ ...e, problems: e.problems.filter(p => p.id !== problemId) }));
     setExams(es => es.map(e =>
       e.id === selectedExam.id
         ? { ...e, problems: e.problems.filter(p => p.id !== problemId) }
         : e
     ));
+    setAllProblems(prev => prev.map(p => p.id === problemId ? { ...p, stage: 'Archived' } : p));
+
     try {
+      // Remove from exam
       await api.delete(`/tests/${selectedExam.id}/problems/${problemId}`);
+      // Archive the problem itself
+      await api.put(`/problems/${problemId}`, { stage: 'Archived' });
     } catch {
-      setActionError('Failed to remove problem. Please try again.');
-      setSelectedExam(e => ({ ...e, problems: prev }));
-      setExams(es => es.map(e => e.id === selectedExam.id ? { ...e, problems: prev } : e));
+      setActionError('Failed to archive problem. Please try again.');
+      // Roll back
+      setSelectedExam(e => ({ ...e, problems: prevExam }));
+      setExams(es => es.map(e => e.id === selectedExam.id ? { ...e, problems: prevExam } : e));
+      setAllProblems(prevAllProblems);
     }
   };
 
@@ -233,12 +248,19 @@ const ExamManager = () => {
   // ── filtered problems for the add-questions table
   const filteredProblems = useMemo(() => {
     return allProblems.filter(p => {
+      if (p.stage === 'Archived') return false;
       const matchSearch = search === '' || p.id.toLowerCase().includes(search.toLowerCase());
       const matchTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
       const matchStage = stageFilter === 'all' || p.stage === stageFilter;
       return matchSearch && matchTopic && matchStage;
     });
   }, [allProblems, search, topicFilter, stageFilter]);
+
+  // Archived problems from allProblems
+  const archivedProblems = useMemo(
+    () => allProblems.filter(p => p.stage === 'Archived'),
+    [allProblems]
+  );
 
   const examProblemIds = useMemo(
     () => new Set((selectedExam?.problems || []).map(p => p.id)),
@@ -252,7 +274,7 @@ const ExamManager = () => {
   // ────────────────────────────────────────────────────────────────────────────
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[1400px] mx-auto">
 
         {/* Page header */}
         <div className="flex items-center justify-between mb-6">
@@ -263,15 +285,33 @@ const ExamManager = () => {
               <p className="text-sm text-slate-500 dark:text-slate-400">Build and manage competition exam sets</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-ucla-blue dark:bg-[#FFD100] text-white dark:text-slate-900 rounded-lg font-bold text-sm hover:opacity-90 transition shadow-sm"
-          >
-            <Plus size={16} /> New Exam
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowArchive(s => !s)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition shadow-sm border ${
+                showArchive
+                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-amber-300 dark:hover:border-amber-600'
+              }`}
+            >
+              <Archive size={15} />
+              Archive
+              {archivedProblems.length > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
+                  {archivedProblems.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-ucla-blue dark:bg-[#FFD100] text-white dark:text-slate-900 rounded-lg font-bold text-sm hover:opacity-90 transition shadow-sm"
+            >
+              <Plus size={16} /> New Exam
+            </button>
+          </div>
         </div>
 
-        {/* Two-panel layout */}
+        {/* Three-panel layout when archive is open, else two-panel */}
         <div className="flex gap-5" style={{ minHeight: '70vh' }}>
 
           {/* ── LEFT PANEL: Exam list ─────────────────────────────────────── */}
@@ -324,7 +364,7 @@ const ExamManager = () => {
             ))}
           </div>
 
-          {/* ── RIGHT PANEL: Exam detail ──────────────────────────────────── */}
+          {/* ── MIDDLE PANEL: Exam detail ─────────────────────────────────── */}
           <div className="flex-1 min-w-0">
             {!selectedExam ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-24">
@@ -373,7 +413,7 @@ const ExamManager = () => {
                           <th className="px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Topics</th>
                           <th className="px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Quality</th>
                           <th className="px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Stage</th>
-                          <th className="px-5 py-2.5 w-10" />
+                          <th className="px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-right">Archive</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -390,13 +430,13 @@ const ExamManager = () => {
                             </td>
                             <td className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{p.quality ? `${p.quality}/10` : '—'}</td>
                             <td className="px-5 py-3"><StageBadge stage={p.stage} /></td>
-                            <td className="px-5 py-3">
+                            <td className="px-5 py-3 text-right">
                               <button
-                                onClick={() => handleRemoveProblem(p.id)}
-                                className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-300 hover:text-red-500 dark:hover:text-red-400 transition"
-                                title="Remove from exam"
+                                onClick={() => handleArchiveProblem(p.id)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 text-[11px] font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition"
+                                title="Remove from exam and archive this problem"
                               >
-                                <X size={14} />
+                                <Archive size={12} /> Archive
                               </button>
                             </td>
                           </tr>
@@ -497,6 +537,43 @@ const ExamManager = () => {
               </div>
             )}
           </div>
+
+          {/* ── RIGHT PANEL: Archive sidebar ──────────────────────────────── */}
+          {showArchive && (
+            <div className="w-72 flex-shrink-0">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-800/50 overflow-hidden shadow-sm h-full">
+                <div className="px-5 py-3 border-b border-amber-100 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20 flex items-center gap-2">
+                  <Archive size={15} className="text-amber-600 dark:text-amber-400" />
+                  <h3 className="font-semibold text-sm text-amber-800 dark:text-amber-300">Archive</h3>
+                  <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">
+                    {archivedProblems.length}
+                  </span>
+                </div>
+                {archivedProblems.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Archive size={28} className="mx-auto text-slate-200 dark:text-slate-700 mb-3" />
+                    <p className="text-slate-400 dark:text-slate-500 text-xs">No archived problems yet.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto" style={{ maxHeight: '70vh' }}>
+                    {archivedProblems.map(p => (
+                      <div key={p.id} className="px-4 py-3">
+                        <p className="font-mono text-sm font-bold text-amber-700 dark:text-amber-400">{p.id}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {(p.topics || []).map(t => (
+                            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 font-medium">{t}</span>
+                          ))}
+                        </div>
+                        {p.quality && (
+                          <p className="text-[11px] text-slate-400 mt-1 tabular-nums">{p.quality}/10</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

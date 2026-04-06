@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Edit, User, Archive, Star, ChevronDown, ChevronUp, 
   CheckCircle, Image as ImageIcon, X,
-  AlertCircle, Save, ArrowLeft, MessageSquare 
+  AlertCircle, Save, ArrowLeft, MessageSquare, Trash2 
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
@@ -224,6 +224,18 @@ const ProblemDetail = () => {
       setMessage(error?.response?.data?.error || 'Failed to save reply');
     } finally {
       setSavingReply(false);
+    }
+  };
+
+  const handleDeleteFeedback = async (e, fbId) => {
+    e.stopPropagation();
+    if (!window.confirm('Remove this feedback? This cannot be undone.')) return;
+    try {
+      await api.delete(`/feedback/${fbId}`);
+      setMessage('Feedback removed.');
+      fetchProblem();
+    } catch (error) {
+      setMessage(error?.response?.data?.error || 'Failed to delete feedback');
     }
   };
 
@@ -595,6 +607,15 @@ const ProblemDetail = () => {
                                 className="text-xs font-medium text-slate-400 hover:text-ucla-blue transition-colors"
                               >
                                 {isEditingThis ? 'Cancel' : 'Edit'}
+                              </button>
+                            )}
+                            {(isMyFeedback || isAdmin) && (
+                              <button
+                                onClick={(e) => handleDeleteFeedback(e, fb.id)}
+                                className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors flex items-center gap-0.5"
+                                title="Delete feedback"
+                              >
+                                <Trash2 size={12} />
                               </button>
                             )}
                             {canEdit && (

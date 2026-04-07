@@ -828,7 +828,7 @@ const ExamManager = () => {
                 <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Create your first exam to get started.</p>
               </div>
             ) : exams.map(exam => (
-              <div key={exam.id} onClick={() => { setSelectedExam(exam); setActionError(''); }}
+              <div key={exam.id} onClick={() => navigate(`/exams/${exam.id}`)}
                 className={`group relative cursor-pointer rounded-xl border p-4 transition-all ${
                   selectedExam?.id === exam.id
                     ? 'border-ucla-blue dark:border-[#FFD100] bg-blue-50 dark:bg-[#FFD100]/5 shadow-md'

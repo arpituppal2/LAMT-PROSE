@@ -144,4 +144,21 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+
+// One-time admin promotion (remove after use)
+router.post('/promote-admin', async (req, res) => {
+  const { email, secret } = req.body;
+  if (secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Invalid secret' });
+  try {
+    const user = await prisma.user.update({
+      where: { email },
+      data: { isAdmin: true },
+      select: { id: true, email: true, firstName: true, isAdmin: true }
+    });
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(400).json({ error: 'User not found or update failed' });
+  }
+});
+
 export default router;

@@ -480,7 +480,7 @@ const NewExamModal = ({ onClose, onCreate }) => {
 
         {/* Template picker */}
         <div className="mb-5">
-          <p className={labelCls}>Choose a Template <span className="normal-case font-normal">(optional)</span></p>
+          <p className={labelCls}>Choose a Template</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {TEMPLATES.map(tpl => (
               <button key={tpl.key} type="button"
@@ -494,16 +494,7 @@ const NewExamModal = ({ onClose, onCreate }) => {
                 <p className="text-slate-400 dark:text-slate-500 text-[11px] mt-0.5">{tpl.description}</p>
               </button>
             ))}
-            <button type="button"
-              onClick={() => { setSelectedTemplate(null); setForm(f => ({ ...f, name: '' })); }}
-              className={`text-left px-3 py-2.5 rounded-xl border transition text-sm ${
-                selectedTemplate === null
-                  ? 'border-slate-400 dark:border-slate-500 bg-slate-50 dark:bg-slate-800'
-                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
-              }`}>
-              <p className="font-semibold text-slate-600 dark:text-slate-300 text-xs">Custom (no template)</p>
-              <p className="text-slate-400 text-[11px] mt-0.5">Freestyle — any number of problems.</p>
-            </button>
+
           </div>
           {selectedTemplate && (
             <div className="mt-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-[#FFD100]/5 border border-blue-100 dark:border-[#FFD100]/20 text-xs text-slate-600 dark:text-slate-300">
@@ -828,7 +819,7 @@ const ExamManager = () => {
                 <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Create your first exam to get started.</p>
               </div>
             ) : exams.map(exam => (
-              <div key={exam.id} onClick={() => navigate(`/exams/${exam.id}`)}
+              <div key={exam.id} onClick={() => { setSelectedExam(exam); setActionError(''); }}
                 className={`group relative cursor-pointer rounded-xl border p-4 transition-all ${
                   selectedExam?.id === exam.id
                     ? 'border-ucla-blue dark:border-[#FFD100] bg-blue-50 dark:bg-[#FFD100]/5 shadow-md'

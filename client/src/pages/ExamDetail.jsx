@@ -331,6 +331,9 @@ export default function ExamDetail() {
   const [search,setSearch]=useState('');
   const [topicF,setTopicF]=useState('all');
   const [stageF,setStageF]=useState('all');
+  const [diffMin,setDiffMin]=useState(1);
+  const [diffMax,setDiffMax]=useState(10);
+  const [sortBy,setSortBy]=useState('id'); // 'id'|'diff-asc'|'diff-desc'
   const [saveState,setSaveState]=useState('idle');
   const [discOpen,setDiscOpen]=useState(false);
   const [allExams,setAllExams]=useState([]);
@@ -398,14 +401,21 @@ export default function ExamDetail() {
   },[updateMap]);
 
   const TOPICS=['Algebra','Geometry','Combinatorics','Number Theory'];
-  const picker=useMemo(()=>allProbs.filter(p=>{
-    if(p.stage==='Archived') return false;
-    if(autoTopics&&topicF==='all'&&!(p.topics||[]).some(t=>autoTopics.includes(t))) return false;
-    if(topicF!=='all'&&!(p.topics||[]).includes(topicF)) return false;
-    if(stageF!=='all'&&p.stage!==stageF) return false;
-    if(search&&!p.id.toLowerCase().includes(search.toLowerCase())&&!(p.latex||'').toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  }),[allProbs,topicF,stageF,search,autoTopics]);
+  const picker=useMemo(()=>{
+    const filtered=allProbs.filter(p=>{
+      if(p.stage==='Archived') return false;
+      if(autoTopics&&topicF==='all'&&!(p.topics||[]).some(t=>autoTopics.includes(t))) return false;
+      if(topicF!=='all'&&!(p.topics||[]).includes(topicF)) return false;
+      if(stageF!=='all'&&p.stage!==stageF) return false;
+      const d=p.quality??0;
+      if(d<diffMin||d>diffMax) return false;
+      if(search&&!p.id.toLowerCase().includes(search.toLowerCase())&&!(p.latex||'').toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+    if(sortBy==='diff-asc') return [...filtered].sort((a,b)=>(a.quality??0)-(b.quality??0));
+    if(sortBy==='diff-desc') return [...filtered].sort((a,b)=>(b.quality??0)-(a.quality??0));
+    return filtered;
+  },[allProbs,topicF,stageF,search,autoTopics,diffMin,diffMax,sortBy]);
 
   const sections=useMemo(()=>{
     const m={}; slots.forEach(s=>{(m[s.section]||(m[s.section]=[])).push(s);}); return m;
@@ -508,6 +518,21 @@ export default function ExamDetail() {
                     {s==='all'?'All':s==='Needs Review'?'NR':s==='Endorsed'?'Endo':s==='Published'?'Publ':'Idea'}
                   </button>
                 ))}
+              </div>
+              {/* Difficulty range + sort */}
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <span className="text-[9px] font-bold text-slate-400 flex-shrink-0">Diff</span>
+                <input type="number" min={1} max={10} value={diffMin} onChange={e=>setDiffMin(Math.min(Number(e.target.value),diffMax))}
+                  className="w-10 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] text-center text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-[#2774AE]/20"/>
+                <span className="text-[9px] text-slate-400">–</span>
+                <input type="number" min={1} max={10} value={diffMax} onChange={e=>setDiffMax(Math.max(Number(e.target.value),diffMin))}
+                  className="w-10 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] text-center text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-[#2774AE]/20"/>
+                <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
+                  className="ml-auto text-[9px] font-semibold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1 py-0.5 outline-none focus:ring-1 focus:ring-[#2774AE]/20">
+                  <option value="id">Sort: ID</option>
+                  <option value="diff-asc">Diff ↑</option>
+                  <option value="diff-desc">Diff ↓</option>
+                </select>
               </div>
             </div>
             {/* Problem list — also a drop target (drop here to remove from exam) */}

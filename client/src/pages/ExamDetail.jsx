@@ -432,9 +432,9 @@ export default function ExamDetail() {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-[11px] font-medium text-slate-400">{filledSlots}/{slots.length}</span>
-            {isDirty&&canEdit&&(
-              <button onClick={handleSave} disabled={saveState==='saving'}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 text-xs font-bold hover:opacity-90 transition shadow-sm">
+            {canEdit&&(
+              <button onClick={handleSave} disabled={saveState==='saving'||!isDirty}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm ${isDirty?'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 hover:opacity-90':'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-default'}`}>
                 {saveState==='saving'?<Spin/>:<Save size={12}/>}
                 {saveState==='saving'?'Saving…':saveState==='saved'?'✓ Saved':'Save'}
               </button>
@@ -454,7 +454,7 @@ export default function ExamDetail() {
         {/* ── Main 2-panel area ── */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
 
-          {/* LEFT — Problem Bank + Discussion */}
+          {/* LEFT — Problem Bank + Discussion (also drop target to remove from exam) */}
           <div className="w-72 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 overflow-hidden">
             {/* Bank header */}
             <div className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -510,8 +510,17 @@ export default function ExamDetail() {
                 ))}
               </div>
             </div>
-            {/* Problem list */}
-            <div className="flex-1 overflow-y-auto">
+            {/* Problem list — also a drop target (drop here to remove from exam) */}
+            <div
+              className="flex-1 overflow-y-auto"
+              onDragOver={e=>e.preventDefault()}
+              onDrop={e=>{
+                e.preventDefault();
+                const fromSlot=e.dataTransfer.getData('fromSlot');
+                const pid=e.dataTransfer.getData('problemId');
+                if(pid&&fromSlot) handleRemove(fromSlot,pid);
+              }}
+            >
               {probLoading?<div className="flex justify-center py-8"><Spin/></div>
                 :picker.length===0?<p className="text-center text-[10px] text-slate-400 py-8 italic">No matches.</p>
                 :picker.map(p=><PickerRow key={p.id} problem={p} assigned={assigned.has(p.id)} onPreview={setPreview}/>)}

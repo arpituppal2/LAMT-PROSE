@@ -13,6 +13,7 @@ import UserProfile from './pages/UserProfile';
 import ExamManager from './pages/ExamManager';
 import ExamDetail from './pages/ExamDetail';
 import ArchivePage from './pages/ArchivePage';
+import TransferGuest from './pages/TransferGuest';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -24,6 +25,20 @@ const PrivateRoute = ({ children }) => {
     );
   }
   return user ? children : <Navigate to="/login" />;
+};
+
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" />;
+  if (!user.isAdmin) return <Navigate to="/dashboard" />;
+  return children;
 };
 
 const PublicRoute = ({ children }) => {
@@ -62,6 +77,9 @@ function App() {
           <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
+
+          {/* Admin Routes */}
+          <Route path="/admin/transfer" element={<AdminRoute><TransferGuest /></AdminRoute>} />
 
           {/* Fallback Route */}
           <Route path="/" element={<Navigate to="/dashboard" />} />

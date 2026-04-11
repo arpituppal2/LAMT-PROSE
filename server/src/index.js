@@ -8,6 +8,7 @@ import problemRoutes from './routes/problem.js';
 import feedbackRoutes from './routes/feedback.js';
 import testRoutes from './routes/test.js';
 import statsRoutes from './routes/stats.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -24,7 +25,6 @@ const ALLOWED_ORIGINS = [
 // Middleware
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) {
       return callback(null, true);
@@ -43,6 +43,7 @@ app.use('/api/problems', problemRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

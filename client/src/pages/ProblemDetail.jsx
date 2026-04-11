@@ -47,6 +47,7 @@ const ProblemDetail = () => {
   const [resolveComment, setResolveComment] = useState('');
   const [editingFeedbackId, setEditingFeedbackId] = useState(null);
   const [editedFeedbackComment, setEditedFeedbackComment] = useState('');
+  const [editedFeedbackAnswer, setEditedFeedbackAnswer] = useState('');
   const [editedFeedbackIsEndorsement, setEditedFeedbackIsEndorsement] = useState(false);
 
   const [replyingId, setReplyingId] = useState(null);
@@ -56,7 +57,6 @@ const ProblemDetail = () => {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [archiveReason, setArchiveReason] = useState('');
 
-  // New state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -212,18 +212,19 @@ const ProblemDetail = () => {
 
   const handleEditFeedback = async (fbId) => {
     try {
-      const payload = { comment: editedFeedbackComment };
+      const payload = { comment: editedFeedbackComment, answer: editedFeedbackAnswer };
       const originalFb = feedbacks.find(f => f.id === fbId);
       if (originalFb && editedFeedbackIsEndorsement !== originalFb.isEndorsement) {
         payload.isEndorsement = editedFeedbackIsEndorsement;
       }
       await api.patch(`/feedback/${fbId}`, payload);
-      setMessage('Feedback updated.');
+      setMessage('Review updated.');
       setEditingFeedbackId(null);
       setEditedFeedbackComment('');
+      setEditedFeedbackAnswer('');
       fetchProblem();
     } catch (error) {
-      setMessage(error?.response?.data?.error || 'Failed to update feedback');
+      setMessage(error?.response?.data?.error || 'Failed to update review');
     }
   };
 
@@ -647,9 +648,11 @@ const ProblemDetail = () => {
                                 onClick={() => {
                                   if (isEditingThis) {
                                     setEditingFeedbackId(null);
+                                    setEditedFeedbackAnswer('');
                                   } else {
                                     setEditingFeedbackId(fb.id);
                                     setEditedFeedbackComment(fbBody);
+                                    setEditedFeedbackAnswer(fb.answer || '');
                                     setEditedFeedbackIsEndorsement(fb.isEndorsement);
                                     setReplyingId(null);
                                   }
@@ -701,7 +704,8 @@ const ProblemDetail = () => {
                           </div>
                         </div>
 
-                        {canEdit && fb.answer && (
+                        {/* Show solver's answer — visible to problem author/admin always, to solver when not editing */}
+                        {(canEdit || isMyFeedback) && fb.answer && !isEditingThis && (
                           <div className="mb-3 flex items-center gap-2">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Their answer:</span>
                             <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-mono text-slate-700 dark:text-slate-300">
@@ -712,12 +716,28 @@ const ProblemDetail = () => {
 
                         {isEditingThis ? (
                           <div className="space-y-3">
-                            <textarea
-                              value={editedFeedbackComment}
-                              onChange={(e) => setEditedFeedbackComment(e.target.value)}
-                              className="w-full p-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all"
-                              rows={3}
-                            />
+                            {/* Answer field — only for the solver (isMyFeedback), not admins editing others' feedback */}
+                            {isMyFeedback && (
+                              <div>
+                                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Your Answer</label>
+                                <input
+                                  type="text"
+                                  value={editedFeedbackAnswer}
+                                  onChange={(e) => setEditedFeedbackAnswer(e.target.value)}
+                                  placeholder="Update your answer..."
+                                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm font-mono focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all dark:text-white"
+                                />
+                              </div>
+                            )}
+                            <div>
+                              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Feedback / Comment</label>
+                              <textarea
+                                value={editedFeedbackComment}
+                                onChange={(e) => setEditedFeedbackComment(e.target.value)}
+                                className="w-full p-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all dark:text-white"
+                                rows={3}
+                              />
+                            </div>
                             {isMyFeedback && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-semibold text-slate-400 uppercase">Type:</span>

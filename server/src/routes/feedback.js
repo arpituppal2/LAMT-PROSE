@@ -204,11 +204,11 @@ router.put('/:id/reply', authenticate, async (req, res) => {
 });
 
 // PATCH /feedback/:id - edit feedback (creator or admin only; NOT problem author)
-// Supports: comment text edit, isEndorsement toggle (endorsement <-> review)
+// Supports: comment text, answer, isEndorsement toggle
 // Cannot edit resolved feedback.
 router.patch('/:id', authenticate, async (req, res) => {
   try {
-    const { comment, isEndorsement } = req.body;
+    const { comment, answer, isEndorsement } = req.body;
     const currentUser = await prisma.user.findUnique({
       where: { id: req.userId },
       select: { isAdmin: true, email: true },
@@ -220,7 +220,6 @@ router.patch('/:id', authenticate, async (req, res) => {
     });
     if (!fb) return res.status(404).json({ error: 'Feedback not found' });
     const isCreator = String(fb.userId) === String(req.userId);
-    // Only the feedback creator or an admin can edit — NOT the problem author
     if (!isCreator && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized to edit this feedback' });
     }
@@ -230,6 +229,7 @@ router.patch('/:id', authenticate, async (req, res) => {
 
     const updateData = {};
     if (comment !== undefined) updateData.feedback = comment;
+    if (answer !== undefined) updateData.answer = answer;
 
     // Handle endorsement toggle
     if (isEndorsement !== undefined && isEndorsement !== fb.isEndorsement) {
@@ -239,7 +239,6 @@ router.patch('/:id', authenticate, async (req, res) => {
       const problem = fb.problem;
 
       if (isEndorsement) {
-        // switching from review -> endorsement
         const newEndorsements = (problem.endorsements || 0) + 1;
         const newSolveCount = Math.max(0, (problem.solveCount || 1) - 1);
         const remainingReviews = await prisma.feedback.count({
@@ -251,7 +250,6 @@ router.patch('/:id', authenticate, async (req, res) => {
           data: { endorsements: newEndorsements, solveCount: newSolveCount, stage: newStage },
         });
       } else {
-        // switching from endorsement -> review
         const newEndorsements = Math.max(0, (problem.endorsements || 1) - 1);
         const newSolveCount = (problem.solveCount || 0) + 1;
         await prisma.problem.update({

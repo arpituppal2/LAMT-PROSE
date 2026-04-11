@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Edit, User, Archive, Star, ChevronDown, ChevronUp, 
   CheckCircle, Image as ImageIcon, X,
-  AlertCircle, Save, ArrowLeft, MessageSquare, Trash2 
+  AlertCircle, Save, ArrowLeft, MessageSquare, Trash2,
+  Eye, ExternalLink
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
@@ -54,6 +55,12 @@ const ProblemDetail = () => {
 
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [archiveReason, setArchiveReason] = useState('');
+
+  // New state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewShowSolution, setPreviewShowSolution] = useState(false);
 
   const extractImages = (text, destination) => {
     if (!text) return { cleanText: '', extractedImages: [] };
@@ -152,7 +159,6 @@ const ProblemDetail = () => {
 
   const handleArchive = async () => {
     try {
-      // Prepend archive reason to notes if provided
       if (archiveReason.trim()) {
         const timestamp = new Date().toLocaleDateString();
         const reasonNote = `[Archived ${timestamp}] ${archiveReason.trim()}`;
@@ -172,6 +178,19 @@ const ProblemDetail = () => {
       navigate('/dashboard');
     } catch (error) {
       setMessage('Failed to archive problem');
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/problems/${id}`);
+      navigate('/dashboard');
+    } catch (error) {
+      setMessage(error?.response?.data?.error || 'Failed to delete problem');
+      setShowDeleteModal(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -274,6 +293,17 @@ const ProblemDetail = () => {
 
   const currentDifficulty = isEditing ? editedDifficulty : (parseInt(problem.quality) || 5);
 
+  const stageBadgeClass = (stage) => {
+    const s = stage === 'needs_review' || stage === 'Needs Review' ? 'needs_review'
+            : stage === 'endorsed' || stage === 'Endorsed' ? 'endorsed'
+            : stage === 'Archived' ? 'archived'
+            : 'idea';
+    if (s === 'needs_review') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+    if (s === 'endorsed') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+    if (s === 'archived') return 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400';
+    return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400';
+  };
+
   return (
     <>
       <Layout>
@@ -301,7 +331,17 @@ const ProblemDetail = () => {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* Preview button — always visible */}
+            <button
+              onClick={() => { setShowPreview(true); setPreviewShowSolution(false); }}
+              className="flex items-center gap-1.5 px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors text-sm font-medium border border-slate-200 dark:border-slate-700"
+              title="Preview problem"
+            >
+              <Eye size={16} />
+              <span className="hidden sm:inline">Preview</span>
+            </button>
+
             {canEdit && (
               <>
                 <button
@@ -323,6 +363,16 @@ const ProblemDetail = () => {
                   >
                     <Archive size={16} />
                     <span className="hidden sm:inline">Archive</span>
+                  </button>
+                )}
+                {!isEditing && (
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors text-sm font-medium"
+                    title="Permanently delete this problem"
+                  >
+                    <Trash2 size={16} />
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
                 )}
               </>
@@ -829,7 +879,7 @@ const ProblemDetail = () => {
       </div>
     </Layout>
 
-      {/* Archive Confirmation Modal */}
+      {/* ── Archive Confirmation Modal ── */}
       {showArchiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
@@ -869,6 +919,192 @@ const ProblemDetail = () => {
                 <Archive size={15} /> Archive
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                <Trash2 size={18} className="text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white text-base">Delete Problem {problem.id}?</h3>
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium mt-0.5">This permanently deletes the problem and all its reviews. This cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <Trash2 size={15} />
+                {deleting ? 'Deleting...' : 'Delete Forever'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Problem Preview Modal ── */}
+      {showPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-0 sm:px-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPreview(false); }}
+        >
+          <div className="bg-white dark:bg-slate-900 w-full sm:max-w-2xl max-h-[92dvh] sm:rounded-2xl rounded-t-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+
+            {/* Preview Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="font-bold text-slate-900 dark:text-white text-base">Problem {problem.id}</span>
+                    <span className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full flex items-center gap-1 ${stageBadgeClass(problem._displayStatus)}`}>
+                      {(problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review') && <AlertCircle size={10} />}
+                      {(problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed') && <Star size={10} className="fill-current" />}
+                      {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review' ? 'Needs Review' :
+                       problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed' ? 'Endorsed' : problem.stage}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                    <User size={11} /> {problem.author.firstName} {problem.author.lastName}
+                    {problem.examType && <><span className="text-slate-300">·</span> {problem.examType}</>}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Preview Body — scrollable */}
+            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+
+              {/* Problem Statement */}
+              <div>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Problem Statement</p>
+                <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed">
+                  <KatexRenderer latex={problem.latex} />
+                </div>
+              </div>
+
+              {/* Answer pill */}
+              {problem.answer && (
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
+                  <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    <KatexRenderer latex={problem.answer} />
+                  </span>
+                </div>
+              )}
+
+              {/* Difficulty + Topics row */}
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-24 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-ucla-blue dark:bg-ucla-gold h-full" style={{ width: `${(parseInt(problem.quality) || 5) * 10}%` }} />
+                    </div>
+                    <span className="text-sm font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">{parseInt(problem.quality) || 5}/10</span>
+                  </div>
+                </div>
+                {problem.topics?.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {problem.topics.map(t => (
+                      <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">{t}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Solution toggle */}
+              {problem.solution && (
+                <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setPreviewShowSolution(!previewShowSolution)}
+                    className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-ucla-blue dark:text-ucla-gold">
+                      <CheckCircle size={14} /> {previewShowSolution ? 'Hide' : 'Show'} Solution
+                    </div>
+                    {previewShowSolution ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                  </button>
+                  {previewShowSolution && (
+                    <div className="p-4 border-t border-slate-100 dark:border-slate-800 prose-math text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                      <KatexRenderer latex={problem.solution} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Author Notes */}
+              {problem.notes && (
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
+                  <div className="text-sm text-slate-700 dark:text-slate-300 prose-math leading-relaxed">
+                    <KatexRenderer latex={problem.notes} />
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* ── Preview Action Bar ── */}
+            <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3.5 flex-shrink-0 bg-slate-50/80 dark:bg-slate-900/80 flex flex-wrap items-center gap-2">
+              {canEdit && (
+                <button
+                  onClick={() => { setShowPreview(false); setIsEditing(true); }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-ucla-blue text-white rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] transition-colors"
+                >
+                  <Edit size={13} /> Edit
+                </button>
+              )}
+              <button
+                onClick={() => navigate(`/feedback/${id}`)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                <MessageSquare size={13} /> Give Feedback
+              </button>
+              {canEdit && problem.stage !== 'Archived' && (
+                <button
+                  onClick={() => { setShowPreview(false); setShowArchiveModal(true); setArchiveReason(''); }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-semibold hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                >
+                  <Archive size={13} /> Archive
+                </button>
+              )}
+              {canEdit && (
+                <button
+                  onClick={() => { setShowPreview(false); setShowDeleteModal(true); }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-red-500 dark:text-red-400 rounded-lg text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
+              )}
+              <button
+                onClick={() => setShowPreview(false)}
+                className="ml-auto flex items-center gap-1.5 px-3 py-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg text-xs font-medium transition-colors"
+              >
+                <ExternalLink size={13} /> Full Page
+              </button>
+            </div>
+
           </div>
         </div>
       )}

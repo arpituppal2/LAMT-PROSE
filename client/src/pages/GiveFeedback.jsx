@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Search, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
+import { Clock, Search, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -8,6 +8,7 @@ import KatexRenderer from '../components/KatexRenderer';
 const GiveFeedback = () => {
   const { problemId: routeProblemId } = useParams();
   const navigate = useNavigate();
+
   const [problem, setProblem] = useState(null);
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -15,7 +16,6 @@ const GiveFeedback = () => {
   const [elapsed, setElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-
   const [hasSubmittedAnswer, setHasSubmittedAnswer] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [reviewType, setReviewType] = useState(null);
@@ -24,7 +24,7 @@ const GiveFeedback = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTopic, setFilterTopic] = useState('');
   const [filterStage, setFilterStage] = useState('');
-  const [filterDifficulty, setFilterDifficulty] = useState(''); // New state for difficulty
+  const [filterDifficulty, setFilterDifficulty] = useState('');
   const [reviewableProblems, setReviewableProblems] = useState([]);
   const [reviewableLoading, setReviewableLoading] = useState(false);
 
@@ -32,13 +32,9 @@ const GiveFeedback = () => {
   const stages = ['Idea', 'Review', 'Live/Ready for Review', 'Endorsed'];
 
   useEffect(() => {
-    if (routeProblemId) {
-      loadSpecificProblem(routeProblemId);
-    } else if (mode === 'random') {
-      loadNextProblem();
-    } else {
-      loadReviewableProblems();
-    }
+    if (routeProblemId) loadSpecificProblem(routeProblemId);
+    else if (mode === 'random') loadNextProblem();
+    else loadReviewableProblems();
   }, [mode, routeProblemId]);
 
   useEffect(() => {
@@ -52,7 +48,7 @@ const GiveFeedback = () => {
 
   useEffect(() => {
     if (!problem || hasSubmittedAnswer) return;
-    const interval = setInterval(() => setElapsed((prev) => prev + 1), 1000);
+    const interval = setInterval(() => setElapsed(prev => prev + 1), 1000);
     return () => clearInterval(interval);
   }, [problem, hasSubmittedAnswer]);
 
@@ -60,15 +56,9 @@ const GiveFeedback = () => {
     try {
       const res = await api.get(`/problems/${id}`);
       setProblem(res.data);
-      setAnswer('');
-      setFeedback('');
-      setReviewType(null);
-      setMessage('');
-      setHasSubmittedAnswer(false);
-      setShowSolution(false);
-    } catch (error) {
-      setMessage('Failed to load problem');
-    }
+      setAnswer(''); setFeedback(''); setReviewType(null); setMessage('');
+      setHasSubmittedAnswer(false); setShowSolution(false);
+    } catch { setMessage('Failed to load problem.'); }
   };
 
   const loadNextProblem = async () => {
@@ -76,19 +66,15 @@ const GiveFeedback = () => {
       const response = await api.get('/feedback/next');
       if (response.data) {
         setProblem(response.data);
-        setAnswer('');
-        setFeedback('');
-        setReviewType(null);
-        setMessage('');
-        setHasSubmittedAnswer(false);
-        setShowSolution(false);
+        setAnswer(''); setFeedback(''); setReviewType(null); setMessage('');
+        setHasSubmittedAnswer(false); setShowSolution(false);
       } else {
         setProblem(null);
-        setMessage('No more problems to review!');
+        setMessage('No more problems to review.');
       }
-    } catch (error) {
+    } catch {
       setProblem(null);
-      setMessage('Failed to load problem');
+      setMessage('Failed to load problem.');
     }
   };
 
@@ -98,31 +84,22 @@ const GiveFeedback = () => {
       const params = new URLSearchParams();
       if (filterTopic) params.append('topic', filterTopic);
       if (filterStage) params.append('stage', filterStage);
-      // If your API supports filtering by difficulty natively, you can append it here:
-      // if (filterDifficulty) params.append('quality', filterDifficulty);
       const res = await api.get(`/feedback/reviewable?${params.toString()}`);
       setReviewableProblems(res.data);
-    } catch (error) {
-      setMessage('Failed to load reviewable problems');
-    } finally {
-      setReviewableLoading(false);
-    }
+    } catch { setMessage('Failed to load problems.'); }
+    finally { setReviewableLoading(false); }
   };
 
   const handleSkip = () => {
     if (loading) return;
-    setMessage('Skipping...');
-    if (routeProblemId) {
-      navigate('/feedback');
-    } else {
-      loadNextProblem();
-    }
+    if (routeProblemId) navigate('/feedback');
+    else loadNextProblem();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (reviewType === null) {
-      setMessage('You must select either "Needs Review" or "Endorse" before submitting.');
+      setMessage('Select a verdict before submitting.');
       return;
     }
     setLoading(true);
@@ -135,15 +112,12 @@ const GiveFeedback = () => {
         timeSpent,
         isEndorsement: reviewType === true,
       });
-      setMessage('Feedback submitted! Loading next problem...');
+      setMessage('Submitted.');
       setReviewType(null);
-      if (routeProblemId) {
-        setTimeout(() => navigate('/feedback'), 1200);
-      } else {
-        setTimeout(loadNextProblem, 1000);
-      }
+      if (routeProblemId) setTimeout(() => navigate('/feedback'), 1000);
+      else setTimeout(loadNextProblem, 800);
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to submit feedback');
+      setMessage(error.response?.data?.error || 'Failed to submit.');
     } finally {
       setLoading(false);
     }
@@ -151,24 +125,14 @@ const GiveFeedback = () => {
 
   const stripFormatting = (text) => {
     if (!text) return '';
-    return text
-      .replace(/\\$[^$]+\\$ /g, '')
-      .replace(/\\$\\$[^$]+\\$\\$ /g, '')
-      .replace(/[#*`]/g, '')
-      .replace(/\\\\/g, '')
-      .substring(0, 50) + (text.length > 50 ? '...' : ''); 
+    return text.replace(/\\$[^$]+\\$/g, '').replace(/[#*`\\\\]/g, '').substring(0, 60) + (text.length > 60 ? '...' : '');
   };
 
-const filteredProblems = reviewableProblems.filter((p) => {
-    // Check quality (difficulty) match
+  const filteredProblems = reviewableProblems.filter(p => {
     if (filterDifficulty && parseInt(p.quality) !== parseInt(filterDifficulty)) return false;
-    
-    // Check search query match
     if (!searchQuery) return true;
-    return (
-      p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.latex || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    return p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.latex || '').toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const minutes = Math.floor(elapsed / 60);
@@ -176,125 +140,112 @@ const filteredProblems = reviewableProblems.filter((p) => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto py-8 transition-colors duration-300">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-ucla-blue dark:text-[#FFD100] mb-2 transition-colors">Give Feedback</h1>
-          <p className="text-gray-600 dark:text-gray-400 transition-colors">Help improve problems by providing solutions and feedback</p>
+      <div className="max-w-3xl mx-auto">
+
+        {/* Page header */}
+        <div className="mb-5">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Feedback</h1>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Review problems and submit verdicts</p>
         </div>
 
+        {/* Mode toggle */}
         {!routeProblemId && (
-          <div className="flex gap-4 mb-8 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 w-fit transition-colors duration-300">
+          <div className="flex border border-gray-200 dark:border-white/10 rounded overflow-hidden text-sm w-fit mb-5">
             <button
-              onClick={() => {
-                if (mode === 'random' && problem) return;
-                setMode('random');
-                setProblem(null);
-                setMessage('');
-              }}
-              className={`px-6 py-2 rounded-lg font-bold transition-all ${
-                mode === 'random' 
-                  ? 'bg-ucla-blue text-white dark:bg-[#FFD100] dark:text-slate-900 shadow-md' 
-                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-slate-900 dark:text-gray-400 dark:hover:bg-slate-700'
+              onClick={() => { if (mode !== 'random') { setMode('random'); setProblem(null); setMessage(''); } }}
+              className={`px-4 py-1.5 transition-colors ${
+                mode === 'random'
+                  ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
+                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
               }`}
             >
-              Random Problem
+              Random
             </button>
             <button
-              onClick={() => {
-                setMode('targeted');
-                setProblem(null);
-                setMessage('');
-              }}
-              className={`px-6 py-2 rounded-lg font-bold transition-all ${
-                mode === 'targeted' 
-                  ? 'bg-ucla-blue text-white dark:bg-[#FFD100] dark:text-slate-900 shadow-md' 
-                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-slate-900 dark:text-gray-400 dark:hover:bg-slate-700'
+              onClick={() => { setMode('targeted'); setProblem(null); setMessage(''); }}
+              className={`px-4 py-1.5 border-l border-gray-200 dark:border-white/10 transition-colors ${
+                mode === 'targeted'
+                  ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
+                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
               }`}
             >
-              Select Problem
+              Select
             </button>
           </div>
         )}
 
+        {/* Targeted: problem picker */}
         {mode === 'targeted' && !problem && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-8 border border-gray-100 dark:border-slate-700/50 transition-colors duration-300">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 transition-colors">Select a Problem to Review</h2>
-            
-            <div className="flex flex-wrap gap-4 mb-8">
-              <div className="flex-1 min-w-[200px] relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+          <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded">
+            {/* Filter bar */}
+            <div className="flex flex-wrap gap-2 p-3 border-b border-gray-100 dark:border-white/8">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by ID or content..."
-                  className="w-full pl-10 pr-4 py-2 bg-transparent dark:bg-slate-900 border border-gray-200 dark:border-slate-600 dark:text-white rounded-lg focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] outline-none transition-colors"
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search ID or content"
+                  className="w-full pl-8 pr-3 py-1.5 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] transition"
                 />
               </div>
-              
               <select
                 value={filterDifficulty}
-                onChange={(e) => setFilterDifficulty(e.target.value)}
-                className="px-4 py-2 bg-transparent dark:bg-slate-900 border border-gray-200 dark:border-slate-600 dark:text-white rounded-lg focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] outline-none transition-colors"
+                onChange={e => setFilterDifficulty(e.target.value)}
+                className="px-2 py-1.5 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none"
               >
-                <option value="">All Difficulties</option>
+                <option value="">All difficulties</option>
                 {[...Array(10)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>Difficulty: {i + 1}</option>
+                  <option key={i+1} value={i+1}>{i+1}/10</option>
                 ))}
               </select>
-
               <select
                 value={filterTopic}
-                onChange={(e) => setFilterTopic(e.target.value)}
-                className="px-4 py-2 bg-transparent dark:bg-slate-900 border border-gray-200 dark:border-slate-600 dark:text-white rounded-lg focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] outline-none transition-colors"
+                onChange={e => setFilterTopic(e.target.value)}
+                className="px-2 py-1.5 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none"
               >
-                <option value="">All Topics</option>
-                {topics.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                <option value="">All topics</option>
+                {topics.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               <select
                 value={filterStage}
-                onChange={(e) => setFilterStage(e.target.value)}
-                className="px-4 py-2 bg-transparent dark:bg-slate-900 border border-gray-200 dark:border-slate-600 dark:text-white rounded-lg focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] outline-none transition-colors"
+                onChange={e => setFilterStage(e.target.value)}
+                className="px-2 py-1.5 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none"
               >
-                <option value="">All Stages</option>
-                {stages.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                <option value="">All stages</option>
+                {stages.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
+            {/* Problem list */}
             {reviewableLoading ? (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400 font-medium">Loading problems...</div>
+              <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Loading...</div>
             ) : filteredProblems.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 dark:text-gray-500 italic">No reviewable problems found.</div>
+              <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">No reviewable problems found.</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredProblems.map((p) => (
+              <div className="divide-y divide-gray-50 dark:divide-white/5">
+                {filteredProblems.map(p => (
                   <button
                     key={p.id}
                     onClick={() => loadSpecificProblem(p.id)}
-                    className="group text-left border border-gray-100 dark:border-slate-700/50 rounded-xl p-5 hover:border-ucla-blue dark:hover:border-[#FFD100] hover:bg-blue-50/50 dark:hover:bg-slate-700/50 transition-all shadow-sm hover:shadow-md"
+                    className="w-full text-left flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-bold text-ucla-blue dark:text-[#FFD100] group-hover:underline">{p.id}</span>
-                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase bg-gray-50 dark:bg-slate-900 px-2 py-0.5 rounded border border-gray-100 dark:border-slate-600">
-                        {p.quality ? `Diff: ${p.quality}/10` : 'No Diff'}
-                      </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-mono text-sm font-medium text-[#2774AE] dark:text-[#FFD100]">{p.id}</span>
+                        <div className="flex gap-1">
+                          {(p.topics || []).map(t => (
+                            <span key={t} className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-white/8 text-gray-400 rounded">{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{stripFormatting(p.latex)}</p>
                     </div>
-                    
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 line-clamp-3 italic transition-colors">
-                      {stripFormatting(p.latex)}
-                    </p>
-
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      {p.topics.map((t) => (
-                        <span key={t} className="px-2 py-0.5 bg-white dark:bg-slate-800 text-[10px] font-bold text-gray-400 dark:text-gray-300 border border-gray-100 dark:border-slate-600 rounded uppercase">
-                          {t}
-                        </span>
-                      ))}
-                      <span className="ml-auto text-[10px] font-bold text-gray-400 dark:text-gray-300 uppercase">
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {p.quality && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{p.quality}/10</span>
+                      )}
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
                         {p._displayStatus === 'needs_review' ? 'Needs Review' : p._displayStatus === 'endorsed' ? 'Endorsed' : p.stage}
                       </span>
                     </div>
@@ -305,44 +256,61 @@ const filteredProblems = reviewableProblems.filter((p) => {
           </div>
         )}
 
+        {/* No-problem state for random mode */}
+        {!problem && mode === 'random' && message && (
+          <p className="text-sm text-gray-400 dark:text-gray-500">{message}</p>
+        )}
+
+        {/* Problem review panel */}
         {problem && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700/50 overflow-hidden transition-colors duration-300">
-            <div className="bg-gray-50/50 dark:bg-slate-800/80 px-8 py-6 border-b border-gray-100 dark:border-slate-700/50 flex justify-between items-center transition-colors">
+          <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
+
+            {/* Problem header */}
+            <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100 dark:border-white/8">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-3 transition-colors">
-                  Problem {problem.id}
-                  <span className="text-sm font-medium text-gray-400 dark:text-gray-500">by {problem.author?.firstName} {problem.author?.lastName}</span>
-                </h2>
-                <div className="flex gap-2 mt-2">
-                  <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-ucla-blue dark:text-blue-300 text-[10px] font-bold rounded border border-blue-200 dark:border-blue-800 uppercase transition-colors">Difficulty: {problem.quality}/10</span>
-                  {problem.topics?.map((topic) => (
-                    <span key={topic} className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-300 text-[10px] font-bold rounded border border-gray-200 dark:border-slate-600 uppercase transition-colors">{topic}</span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">{problem.id}</span>
+                  {problem.quality && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{problem.quality}/10</span>
+                  )}
+                  {(problem.topics || []).map(t => (
+                    <span key={t} className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
                   ))}
                 </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  {problem.author?.firstName} {problem.author?.lastName}
+                </p>
               </div>
-              <div className="flex flex-col items-end">
-                <div className="flex items-center gap-2 text-ucla-blue dark:text-[#FFD100] font-mono font-bold bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm transition-colors">
-                  <Clock size={16} />
+              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                <div className="flex items-center gap-1.5 font-mono text-sm text-gray-600 dark:text-gray-400">
+                  <Clock size={13} className="text-gray-400" />
                   {minutes}:{seconds.toString().padStart(2, '0')}
                 </div>
-                <button onClick={handleSkip} className="mt-2 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 underline transition-colors">Skip Problem</button>
+                <button
+                  onClick={handleSkip}
+                  className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                  Skip
+                </button>
               </div>
             </div>
 
-            <div className="p-8">
-              <div className="prose dark:prose-invert max-w-none mb-8 bg-gray-50/30 dark:bg-slate-900/50 p-8 rounded-2xl border border-gray-100 dark:border-slate-700/50 min-h-[150px] transition-colors">
-                <KatexRenderer latex={problem.latex} />
-              </div>
+            {/* Problem body */}
+            <div className="px-5 py-5 border-b border-gray-100 dark:border-white/8 min-h-[120px]">
+              <KatexRenderer latex={problem.latex} />
+            </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6 pt-6 border-t border-gray-100 dark:border-slate-700/50">
-                <div className="space-y-4">
-                  <label className="block text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors">Your Solution/Answer</label>
+            {/* Form */}
+            <div className="px-5 py-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1.5">Your answer</label>
                   <input
                     type="text"
                     value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl dark:text-white focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] outline-none transition-all font-mono"
-                    placeholder="Enter your solution..."
+                    onChange={e => setAnswer(e.target.value)}
+                    className="w-full px-3 py-2 text-sm font-mono bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] transition disabled:opacity-50"
+                    placeholder="Enter your answer"
                     required
                     disabled={hasSubmittedAnswer}
                   />
@@ -353,67 +321,70 @@ const filteredProblems = reviewableProblems.filter((p) => {
                     type="button"
                     onClick={() => {
                       if (answer.trim()) setHasSubmittedAnswer(true);
-                      else setMessage('Please provide an answer first');
+                      else setMessage('Enter an answer first.');
                     }}
-                    className="w-full bg-ucla-blue text-white dark:bg-[#FFD100] dark:text-slate-900 py-4 rounded-xl font-bold hover:bg-ucla-dark-blue dark:hover:bg-yellow-500 transition-all shadow-lg shadow-blue-200 dark:shadow-none"
+                    className="w-full py-2 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity"
                   >
-                    Check Creator Solution
+                    Check solution
                   </button>
                 ) : (
-                  <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="bg-gray-50 dark:bg-slate-800 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700/50 transition-colors">
+                  <div className="space-y-4">
+
+                    {/* Solution reveal */}
+                    <div className="border border-gray-100 dark:border-white/8 rounded overflow-hidden">
                       <button
                         type="button"
                         onClick={() => setShowSolution(!showSolution)}
-                        className="w-full flex justify-between items-center px-6 py-4 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                        className="w-full flex justify-between items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
                       >
-                        <div className="flex items-center gap-2 font-bold text-ucla-blue dark:text-[#FFD100]">
-                          <CheckCircle size={20} />
-                          See Writer's Solution
-                        </div>
-                        <div className="text-gray-600 dark:text-gray-400">
-                          {showSolution ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                        </div>
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-gray-400" />
+                          Writer's solution
+                        </span>
+                        {showSolution ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
                       </button>
                       {showSolution && (
-                        <div className="p-6 border-t border-gray-200 dark:border-slate-700/50 bg-white dark:bg-slate-900 transition-colors">
-                          <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 tracking-widest">Writer's Solution</h4>
-                          <div className="prose dark:prose-invert max-w-none mb-6 text-gray-800 dark:text-gray-200">
-                            {problem.solution ? <KatexRenderer latex={problem.solution} /> : <p className="italic text-gray-400">No solution provided</p>}
+                        <div className="px-4 py-4 border-t border-gray-100 dark:border-white/8">
+                          <div className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                            {problem.solution
+                              ? <KatexRenderer latex={problem.solution} />
+                              : <span className="text-gray-400 italic">No solution provided.</span>
+                            }
                           </div>
                           {problem.answer && (
-                            <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-100 dark:border-green-800 flex items-center gap-3 transition-colors">
-                              <span className="font-bold text-green-700 dark:text-green-300 text-xs uppercase">Correct Answer:</span>
-                              <div className="dark:text-white">
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-xs text-gray-400 dark:text-gray-500">Answer:</span>
+                              <span className="text-gray-900 dark:text-white font-medium">
                                 <KatexRenderer latex={problem.answer} />
-                              </div>
+                              </span>
                             </div>
                           )}
                         </div>
                       )}
                     </div>
 
-                    <div className="space-y-3">
-                      <label className="block text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors">Review Type <span className="text-red-500">*</span></label>
-                      <div className="flex gap-4">
+                    {/* Verdict */}
+                    <div>
+                      <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1.5">Verdict <span className="text-red-400">*</span></label>
+                      <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => setReviewType(false)}
-                          className={`flex-1 py-4 px-6 rounded-xl border-2 font-bold transition-all ${
-                            reviewType === false 
-                              ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 shadow-md' 
-                              : 'border-gray-100 bg-white text-gray-400 hover:border-red-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-400 dark:hover:border-red-400'
+                          className={`flex-1 py-2 text-sm rounded border transition-colors ${
+                            reviewType === false
+                              ? 'border-red-400 bg-red-50 text-red-600 dark:bg-red-900/20 dark:border-red-500 dark:text-red-400'
+                              : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'
                           }`}
                         >
-                          Needs Review
+                          Needs review
                         </button>
                         <button
                           type="button"
                           onClick={() => setReviewType(true)}
-                          className={`flex-1 py-4 px-6 rounded-xl border-2 font-bold transition-all ${
-                            reviewType === true 
-                              ? 'border-yellow-500 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 shadow-md' 
-                              : 'border-gray-100 bg-white text-gray-400 hover:border-yellow-200 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-400 dark:hover:border-yellow-400'
+                          className={`flex-1 py-2 text-sm rounded border transition-colors ${
+                            reviewType === true
+                              ? 'border-[#FFD100] bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:border-[#FFD100] dark:text-[#FFD100]'
+                              : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'
                           }`}
                         >
                           Endorse
@@ -421,44 +392,39 @@ const filteredProblems = reviewableProblems.filter((p) => {
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <label className="block text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors">Feedback & Comments</label>
+                    {/* Comments */}
+                    <div>
+                      <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1.5">Comments</label>
                       <textarea
                         value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        rows={4}
-                        className="w-full px-6 py-4 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl dark:text-white focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] outline-none transition-all"
-                        placeholder="Share your thoughts, suggestions, or concerns..."
+                        onChange={e => setFeedback(e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] transition resize-y"
+                        placeholder="Notes on correctness, clarity, difficulty..."
                         required
                       />
                     </div>
 
                     {message && (
-                      <div className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
-                        message.includes('submitted') 
-                          ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300' 
-                          : message.includes('select') 
-                            ? 'bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-300' 
-                            : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-300'
-                      }`}>
-                        {message}
-                      </div>
+                      <p className={`text-sm ${
+                        message === 'Submitted.' ? 'text-green-500' : 'text-red-400'
+                      }`}>{message}</p>
                     )}
 
-                    <div className="flex gap-4">
+                    <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => setHasSubmittedAnswer(false)}
-                        className="flex-1 py-4 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all font-bold"
+                        className="px-4 py-2 text-sm border border-gray-200 dark:border-white/10 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
                       >
-                        Edit My Solution
+                        Edit answer
                       </button>
                       <button
                         type="submit"
                         disabled={loading || reviewType === null}
-                        className="flex-[2] bg-ucla-blue text-white dark:bg-[#FFD100] dark:text-slate-900 py-4 rounded-xl hover:bg-ucla-dark-blue dark:hover:bg-yellow-500 transition-all disabled:opacity-50 font-bold shadow-lg shadow-blue-200 dark:shadow-none"
+                        className="flex-1 py-2 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
                       >
-                        {loading ? 'Submitting...' : 'Submit Feedback & Next'}
+                        {loading ? 'Submitting...' : 'Submit'}
                       </button>
                     </div>
                   </div>
@@ -467,6 +433,7 @@ const filteredProblems = reviewableProblems.filter((p) => {
             </div>
           </div>
         )}
+
       </div>
     </Layout>
   );

@@ -125,7 +125,7 @@ const GiveFeedback = () => {
 
   const stripFormatting = (text) => {
     if (!text) return '';
-    return text.replace(/\\$[^$]+\\$/g, '').replace(/[#*`\\\\]/g, '').substring(0, 60) + (text.length > 60 ? '...' : '');
+    return text.replace(/\\$[^$]+\\$/g, '').replace(/[#*`\\\\]/g, '').substring(0, 80) + (text.length > 80 ? '...' : '');
   };
 
   const filteredProblems = reviewableProblems.filter(p => {
@@ -143,111 +143,94 @@ const GiveFeedback = () => {
       <div className="max-w-3xl mx-auto">
 
         {/* Page header */}
-        <div className="mb-5">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Feedback</h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Review problems and submit verdicts</p>
+        <div className="mb-7">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Give Feedback</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Solve a problem, then review and endorse it — or flag it for revision.</p>
         </div>
 
         {/* Mode toggle */}
         {!routeProblemId && (
-          <div className="flex border border-gray-200 dark:border-white/10 rounded overflow-hidden text-sm w-fit mb-5">
+          <div className="flex border border-gray-200 dark:border-white/10 rounded-md overflow-hidden text-sm w-fit mb-6">
             <button
               onClick={() => { if (mode !== 'random') { setMode('random'); setProblem(null); setMessage(''); } }}
-              className={`px-4 py-1.5 transition-colors ${
+              className={`px-5 py-2 transition-colors font-medium ${
                 mode === 'random'
                   ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
                   : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
               }`}
             >
-              Random
+              Random Problem
             </button>
             <button
               onClick={() => { setMode('targeted'); setProblem(null); setMessage(''); }}
-              className={`px-4 py-1.5 border-l border-gray-200 dark:border-white/10 transition-colors ${
+              className={`px-5 py-2 border-l border-gray-200 dark:border-white/10 transition-colors font-medium ${
                 mode === 'targeted'
                   ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
                   : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
               }`}
             >
-              Select
+              Select Problem
             </button>
           </div>
         )}
 
         {/* Targeted: problem picker */}
         {mode === 'targeted' && !problem && (
-          <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded">
-            {/* Filter bar */}
-            <div className="flex flex-wrap gap-2 p-3 border-b border-gray-100 dark:border-white/8">
-              <div className="relative flex-1 min-w-[180px]">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
+            <div className="flex flex-wrap gap-3 p-4 border-b border-gray-100 dark:border-white/8">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search ID or content"
-                  className="w-full pl-8 pr-3 py-1.5 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] transition"
+                  placeholder="Search by ID or content"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 transition"
                 />
               </div>
-              <select
-                value={filterDifficulty}
-                onChange={e => setFilterDifficulty(e.target.value)}
-                className="px-2 py-1.5 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none"
-              >
+              <select value={filterDifficulty} onChange={e => setFilterDifficulty(e.target.value)}
+                className="px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none">
                 <option value="">All difficulties</option>
-                {[...Array(10)].map((_, i) => (
-                  <option key={i+1} value={i+1}>{i+1}/10</option>
-                ))}
+                {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}/10</option>)}
               </select>
-              <select
-                value={filterTopic}
-                onChange={e => setFilterTopic(e.target.value)}
-                className="px-2 py-1.5 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none"
-              >
+              <select value={filterTopic} onChange={e => setFilterTopic(e.target.value)}
+                className="px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none">
                 <option value="">All topics</option>
                 {topics.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <select
-                value={filterStage}
-                onChange={e => setFilterStage(e.target.value)}
-                className="px-2 py-1.5 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none"
-              >
+              <select value={filterStage} onChange={e => setFilterStage(e.target.value)}
+                className="px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none">
                 <option value="">All stages</option>
                 {stages.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
-            {/* Problem list */}
             {reviewableLoading ? (
-              <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Loading...</div>
+              <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Loading...</div>
             ) : filteredProblems.length === 0 ? (
-              <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">No reviewable problems found.</div>
+              <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">No reviewable problems found.</div>
             ) : (
-              <div className="divide-y divide-gray-50 dark:divide-white/5">
+              <div className="divide-y divide-gray-100 dark:divide-white/5">
                 {filteredProblems.map(p => (
                   <button
                     key={p.id}
                     onClick={() => loadSpecificProblem(p.id)}
-                    className="w-full text-left flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
+                    className="w-full text-left flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
                   >
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-mono text-sm font-medium text-[#2774AE] dark:text-[#FFD100]">{p.id}</span>
-                        <div className="flex gap-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{p.id}</span>
+                        <div className="flex gap-1.5">
                           {(p.topics || []).map(t => (
-                            <span key={t} className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-white/8 text-gray-400 rounded">{t}</span>
+                            <span key={t} className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
                           ))}
                         </div>
                       </div>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{stripFormatting(p.latex)}</p>
+                      <p className="text-sm text-gray-400 dark:text-gray-500 truncate">{stripFormatting(p.latex)}</p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {p.quality && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{p.quality}/10</span>
-                      )}
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                        {p._displayStatus === 'needs_review' ? 'Needs Review' : p._displayStatus === 'endorsed' ? 'Endorsed' : p.stage}
-                      </span>
+                    <div className="flex items-center gap-3 flex-shrink-0 text-sm text-gray-400 dark:text-gray-500">
+                      {p.quality && <span className="tabular-nums">{p.quality}/10</span>}
+                      <span>{p._displayStatus === 'needs_review' ? 'Needs Review' : p._displayStatus === 'endorsed' ? 'Endorsed' : p.stage}</span>
                     </div>
                   </button>
                 ))}
@@ -256,60 +239,56 @@ const GiveFeedback = () => {
           </div>
         )}
 
-        {/* No-problem state for random mode */}
         {!problem && mode === 'random' && message && (
-          <p className="text-sm text-gray-400 dark:text-gray-500">{message}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{message}</p>
         )}
 
         {/* Problem review panel */}
         {problem && (
-          <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
+          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
 
             {/* Problem header */}
-            <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100 dark:border-white/8">
+            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-gray-100 dark:border-white/8">
               <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">{problem.id}</span>
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <span className="font-mono text-base font-semibold text-gray-900 dark:text-white">{problem.id}</span>
                   {problem.quality && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{problem.quality}/10</span>
+                    <span className="text-sm text-gray-400 dark:text-gray-500">{problem.quality}/10</span>
                   )}
                   {(problem.topics || []).map(t => (
-                    <span key={t} className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                    <span key={t} className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {problem.author?.firstName} {problem.author?.lastName}
+                <p className="text-sm text-gray-400 dark:text-gray-500">
+                  by {problem.author?.firstName} {problem.author?.lastName}
                 </p>
               </div>
-              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                <div className="flex items-center gap-1.5 font-mono text-sm text-gray-600 dark:text-gray-400">
-                  <Clock size={13} className="text-gray-400" />
+              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1.5 font-mono text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-3 py-1.5 rounded border border-gray-200 dark:border-white/10">
+                  <Clock size={13} />
                   {minutes}:{seconds.toString().padStart(2, '0')}
                 </div>
-                <button
-                  onClick={handleSkip}
-                  className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                >
-                  Skip
+                <button onClick={handleSkip} className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                  Skip problem
                 </button>
               </div>
             </div>
 
-            {/* Problem body */}
-            <div className="px-5 py-5 border-b border-gray-100 dark:border-white/8 min-h-[120px]">
+            {/* Problem statement */}
+            <div className="px-6 py-6 border-b border-gray-100 dark:border-white/8 min-h-[140px] bg-gray-50/40 dark:bg-white/3">
               <KatexRenderer latex={problem.latex} />
             </div>
 
             {/* Form */}
-            <div className="px-5 py-5">
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="px-6 py-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1.5">Your answer</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Your answer</label>
                   <input
                     type="text"
                     value={answer}
                     onChange={e => setAnswer(e.target.value)}
-                    className="w-full px-3 py-2 text-sm font-mono bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] transition disabled:opacity-50"
+                    className="w-full px-4 py-2.5 text-sm font-mono bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 transition disabled:opacity-50"
                     placeholder="Enter your answer"
                     required
                     disabled={hasSubmittedAnswer}
@@ -323,38 +302,39 @@ const GiveFeedback = () => {
                       if (answer.trim()) setHasSubmittedAnswer(true);
                       else setMessage('Enter an answer first.');
                     }}
-                    className="w-full py-2 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity"
+                    className="w-full py-2.5 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity"
                   >
-                    Check solution
+                    Check Creator Solution
                   </button>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-5">
 
-                    {/* Solution reveal */}
-                    <div className="border border-gray-100 dark:border-white/8 rounded overflow-hidden">
+                    {/* Solution accordion */}
+                    <div className="border border-gray-200 dark:border-white/10 rounded-md overflow-hidden">
                       <button
                         type="button"
                         onClick={() => setShowSolution(!showSolution)}
-                        className="w-full flex justify-between items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
+                        className="w-full flex justify-between items-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
                       >
-                        <span className="flex items-center gap-1.5">
-                          <CheckCircle size={13} className="text-gray-400" />
-                          Writer's solution
+                        <span className="flex items-center gap-2">
+                          <CheckCircle size={15} className="text-[#2774AE] dark:text-[#FFD100]" />
+                          See writer's solution
                         </span>
-                        {showSolution ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                        {showSolution
+                          ? <ChevronUp size={15} className="text-gray-400" />
+                          : <ChevronDown size={15} className="text-gray-400" />}
                       </button>
                       {showSolution && (
-                        <div className="px-4 py-4 border-t border-gray-100 dark:border-white/8">
-                          <div className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                        <div className="px-5 py-5 border-t border-gray-100 dark:border-white/8 bg-gray-50/60 dark:bg-white/3">
+                          <div className="text-sm text-gray-700 dark:text-gray-300 mb-4">
                             {problem.solution
                               ? <KatexRenderer latex={problem.solution} />
-                              : <span className="text-gray-400 italic">No solution provided.</span>
-                            }
+                              : <span className="text-gray-400 italic">No solution provided.</span>}
                           </div>
                           {problem.answer && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-xs text-gray-400 dark:text-gray-500">Answer:</span>
-                              <span className="text-gray-900 dark:text-white font-medium">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-400 dark:text-gray-500">Answer:</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
                                 <KatexRenderer latex={problem.answer} />
                               </span>
                             </div>
@@ -365,23 +345,23 @@ const GiveFeedback = () => {
 
                     {/* Verdict */}
                     <div>
-                      <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1.5">Verdict <span className="text-red-400">*</span></label>
-                      <div className="flex gap-2">
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Verdict <span className="text-red-400">*</span></label>
+                      <div className="flex gap-3">
                         <button
                           type="button"
                           onClick={() => setReviewType(false)}
-                          className={`flex-1 py-2 text-sm rounded border transition-colors ${
+                          className={`flex-1 py-2.5 text-sm font-medium rounded border-2 transition-all ${
                             reviewType === false
-                              ? 'border-red-400 bg-red-50 text-red-600 dark:bg-red-900/20 dark:border-red-500 dark:text-red-400'
+                              ? 'border-red-400 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-500 dark:text-red-400'
                               : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'
                           }`}
                         >
-                          Needs review
+                          Needs Review
                         </button>
                         <button
                           type="button"
                           onClick={() => setReviewType(true)}
-                          className={`flex-1 py-2 text-sm rounded border transition-colors ${
+                          className={`flex-1 py-2.5 text-sm font-medium rounded border-2 transition-all ${
                             reviewType === true
                               ? 'border-[#FFD100] bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:border-[#FFD100] dark:text-[#FFD100]'
                               : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'
@@ -394,37 +374,37 @@ const GiveFeedback = () => {
 
                     {/* Comments */}
                     <div>
-                      <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1.5">Comments</label>
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Comments</label>
                       <textarea
                         value={feedback}
                         onChange={e => setFeedback(e.target.value)}
-                        rows={3}
-                        className="w-full px-3 py-2 text-sm bg-transparent border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] transition resize-y"
-                        placeholder="Notes on correctness, clarity, difficulty..."
+                        rows={4}
+                        className="w-full px-4 py-3 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 transition resize-y"
+                        placeholder="Notes on correctness, clarity, difficulty, wording..."
                         required
                       />
                     </div>
 
                     {message && (
                       <p className={`text-sm ${
-                        message === 'Submitted.' ? 'text-green-500' : 'text-red-400'
+                        message === 'Submitted.' ? 'text-green-600 dark:text-green-400' : 'text-red-500'
                       }`}>{message}</p>
                     )}
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-3 pt-1">
                       <button
                         type="button"
                         onClick={() => setHasSubmittedAnswer(false)}
-                        className="px-4 py-2 text-sm border border-gray-200 dark:border-white/10 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
+                        className="px-5 py-2.5 text-sm font-medium border border-gray-200 dark:border-white/10 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                       >
-                        Edit answer
+                        Edit Answer
                       </button>
                       <button
                         type="submit"
                         disabled={loading || reviewType === null}
-                        className="flex-1 py-2 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
+                        className="flex-1 py-2.5 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
                       >
-                        {loading ? 'Submitting...' : 'Submit'}
+                        {loading ? 'Submitting...' : 'Submit Feedback'}
                       </button>
                     </div>
                   </div>

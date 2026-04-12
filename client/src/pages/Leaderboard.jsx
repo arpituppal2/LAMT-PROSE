@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
@@ -10,9 +10,7 @@ const Leaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, []);
+  useEffect(() => { fetchLeaderboard(); }, []);
 
   const fetchLeaderboard = async () => {
     try {
@@ -34,11 +32,8 @@ const Leaderboard = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center h-96">
-          <div className="w-12 h-12 border-4 border-t-ucla-gold rounded-full animate-spin mb-4"></div>
-          <div className="text-slate-500 dark:text-slate-400 font-medium italic">
-            Assembling the legends...
-          </div>
+        <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500 text-sm">
+          Loading...
         </div>
       </Layout>
     );
@@ -46,111 +41,85 @@ const Leaderboard = () => {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Trophy size={22} className="text-ucla-blue dark:text-ucla-gold" />
-            Leaderboard
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            Recognizing our top problem contributors
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leaderboard</h1>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
+            Scoring: endorsed +5 · idea +3 · needs review −2 · review given +0.25
           </p>
         </div>
 
         {/* Search */}
-        <div className="relative">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
+        <div className="relative mb-4">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search contributors..."
+            placeholder="Search by name or initials"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-ucla-blue/20 dark:focus:ring-[#FFD100]/20 outline-none transition-all text-slate-900 dark:text-white text-sm"
+            className="w-full pl-8 pr-4 py-2 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 transition"
           />
         </div>
 
         {/* Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          {/* Column Headers */}
-          <div className="grid grid-cols-14 gap-2 px-5 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800"
-               style={{ gridTemplateColumns: '2rem 1fr 7rem 7rem 7rem 7rem 6rem' }}>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              #
-            </div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Contributor
-            </div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
-              Endorsed <span className="text-green-500">+5</span>
-            </div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
-              Idea <span className="text-blue-500">+3</span>
-            </div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
-              Needs Review <span className="text-red-500">-2</span>
-            </div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center">
-              Reviews <span className="text-purple-500">+0.25</span>
-            </div>
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">
-              Score
-            </div>
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded overflow-hidden">
+          {/* Header row */}
+          <div
+            className="grid gap-2 px-4 py-2.5 border-b border-gray-100 dark:border-white/8 bg-gray-50 dark:bg-white/3"
+            style={{ gridTemplateColumns: '2rem 1fr 6rem 5rem 7rem 6rem 5rem' }}
+          >
+            {['#', 'Contributor', 'Endorsed', 'Idea', 'Needs Review', 'Reviews', 'Score'].map((col, i) => (
+              <div key={col} className={`text-xs font-medium text-gray-400 dark:text-gray-500 ${
+                i > 1 ? 'text-center' : ''
+              } ${i === 6 ? 'text-right' : ''}`}>
+                {col}
+              </div>
+            ))}
           </div>
 
           {filtered.map((entry, index) => (
             <div
               key={entry.userId}
               onClick={() => navigate(`/users/${entry.userId}`)}
-              className="grid gap-2 items-center px-5 py-4 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
-              style={{ gridTemplateColumns: '2rem 1fr 7rem 7rem 7rem 7rem 6rem' }}
+              className="grid gap-2 items-center px-4 py-3 border-b border-gray-50 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
+              style={{ gridTemplateColumns: '2rem 1fr 6rem 5rem 7rem 6rem 5rem' }}
             >
               {/* Rank */}
-              <div>
-                {index === 0 ? (
-                  <span className="text-lg">🥇</span>
-                ) : index === 1 ? (
-                  <span className="text-lg">🥈</span>
-                ) : index === 2 ? (
-                  <span className="text-lg">🥉</span>
-                ) : (
-                  <span className="text-sm font-semibold text-slate-400 tabular-nums">
-                    {index + 1}
-                  </span>
-                )}
+              <div className="text-sm tabular-nums">
+                {index === 0 ? '🥇'
+                  : index === 1 ? '🥈'
+                  : index === 2 ? '🥉'
+                  : <span className="text-gray-400 dark:text-gray-500">{index + 1}</span>
+                }
               </div>
 
               {/* Author */}
               <div>
-                <p className="font-semibold text-slate-900 dark:text-white text-sm">
-                  {entry.author}
-                </p>
-                <p className="text-xs text-slate-400 font-mono">{entry.initials}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{entry.author}</p>
+                <p className="text-xs text-gray-400 font-mono">{entry.initials}</p>
               </div>
 
-              {/* Endorsed badge count */}
+              {/* Endorsed */}
               <div className="text-center">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                <span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
                   {entry.badges.endorsed || 0}
                 </span>
               </div>
 
-              {/* Idea badge count */}
+              {/* Idea */}
               <div className="text-center">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                <span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
                   {entry.badges.idea || 0}
                 </span>
               </div>
 
-              {/* Needs Review count */}
+              {/* Needs Review */}
               <div className="text-center">
-                <span className={`text-sm font-semibold tabular-nums ${
+                <span className={`text-sm tabular-nums ${
                   (entry.badges.needsReview || 0) > 0
-                    ? 'text-red-500 dark:text-red-400'
-                    : 'text-slate-700 dark:text-slate-300'
+                    ? 'text-red-500'
+                    : 'text-gray-700 dark:text-gray-300'
                 }`}>
                   {entry.badges.needsReview || 0}
                 </span>
@@ -158,14 +127,14 @@ const Leaderboard = () => {
 
               {/* Reviews given */}
               <div className="text-center">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                <span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
                   {entry.reviewsGiven || 0}
                 </span>
               </div>
 
               {/* Score */}
               <div className="text-right">
-                <span className="text-lg font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">
+                <span className="text-sm font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
                   {entry.score}
                 </span>
               </div>
@@ -173,26 +142,10 @@ const Leaderboard = () => {
           ))}
 
           {filtered.length === 0 && (
-            <div className="text-center py-16 text-slate-400 text-sm">
-              No contributors found matching &ldquo;{search}&rdquo;
+            <div className="text-center py-12 text-sm text-gray-400 dark:text-gray-500">
+              No results for &ldquo;{search}&rdquo;
             </div>
           )}
-        </div>
-
-        {/* Scoring legend */}
-        <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
-          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-            Endorsed problem: <strong className="text-green-600">+5 pts</strong>
-          </span>
-          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-            Idea stage: <strong className="text-blue-600">+3 pts</strong>
-          </span>
-          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-            Needs Review: <strong className="text-red-500">-2 pts</strong>
-          </span>
-          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-            Review given: <strong className="text-purple-600">+0.25 pts</strong>
-          </span>
         </div>
       </div>
     </Layout>

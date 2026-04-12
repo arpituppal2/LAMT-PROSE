@@ -7,106 +7,50 @@
 @layer base {
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Light mode: warm UCLA-branded off-white background */
-    @apply bg-[#EEF4FB] text-gray-900 dark:bg-[#001B2E] dark:text-gray-100;
+    @apply bg-[#F4F7FB] text-gray-900 dark:bg-[#030d17] dark:text-gray-100;
   }
+}
+
+@layer utilities {
+  .hover\:bg-white\/8:hover { background-color: rgba(255,255,255,0.08); }
+  .hover\:bg-white\/4:hover { background-color: rgba(255,255,255,0.04); }
+  .hover\:bg-white\/3:hover { background-color: rgba(255,255,255,0.03); }
+  .dark\:hover\:bg-white\/3:hover { background-color: rgba(255,255,255,0.03); }
+  .dark\:hover\:bg-white\/4:hover { background-color: rgba(255,255,255,0.04); }
+  .dark\:hover\:bg-white\/8:hover { background-color: rgba(255,255,255,0.08); }
+  .bg-white\/3 { background-color: rgba(255,255,255,0.03); }
+  .bg-white\/4 { background-color: rgba(255,255,255,0.04); }
+  .bg-white\/8 { background-color: rgba(255,255,255,0.08); }
+  .dark\:bg-white\/3 { background-color: rgba(255,255,255,0.03); }
+  .dark\:bg-white\/4 { background-color: rgba(255,255,255,0.04); }
+  .dark\:bg-white\/5 { background-color: rgba(255,255,255,0.05); }
+  .dark\:bg-white\/8 { background-color: rgba(255,255,255,0.08); }
+  .border-white\/8 { border-color: rgba(255,255,255,0.08); }
+  .dark\:border-white\/8 { border-color: rgba(255,255,255,0.08); }
+  .dark\:divide-white\/5 > * + * { border-color: rgba(255,255,255,0.05); }
 }
 
 @layer components {
-  /* ---- LIGHT MODE: UCLA-branded surfaces ---- */
-
-  /* Cards/panels in light mode get a soft blue-white tint */
-  .bg-white {
-    @apply bg-[#F5F9FF];
-  }
-
-  /* ---- DARK MODE: Rich UCLA navy ---- */
-
-  /* 1. White cards -> deep navy blue (not pitch black) */
-  .dark .bg-white {
-    @apply bg-[#002B4E] border-[#003B5C] text-gray-100 !important;
-  }
-
-  /* 2. Light gray backgrounds -> slightly lighter navy */
-  .dark .bg-gray-50,
-  .dark .bg-gray-100,
-  .dark .bg-slate-50 {
-    @apply bg-[#003558] border-[#004A7A] text-gray-100 !important;
-  }
-
-  /* 3. Slate backgrounds -> mid-range navy */
-  .dark .bg-slate-100,
-  .dark .bg-slate-200 {
-    @apply bg-[#003558] text-gray-100 !important;
-  }
-
-  /* 4. Force dark text to become light gray */
-  .dark .text-gray-500,
-  .dark .text-gray-600,
-  .dark .text-gray-700,
-  .dark .text-gray-800,
-  .dark .text-gray-900,
-  .dark .text-black {
-    @apply text-gray-200 !important;
-  }
-
-  /* 5. FIX: Prevent unreadable blue-on-blue for links and accents */
-  .dark .text-blue-500,
-  .dark .text-blue-600,
-  .dark .text-blue-700,
-  .dark .text-blue-800,
-  .dark a {
-    @apply text-blue-300 !important;
-  }
-
-  /* 6. Soften bright borders */
-  .dark .border-gray-100,
-  .dark .border-gray-200,
-  .dark .border-gray-300 {
-    @apply border-[#004A7A] !important;
-  }
-
-  /* 7. Fix table headers */
-  .dark th {
-    @apply bg-[#003558] text-gray-300 border-[#004A7A] !important;
-  }
-  .dark td {
-    @apply border-[#004A7A] !important;
-  }
-
-  /* 8. FIX: Force Preview Box & Markdown to follow dark mode */
-  .dark .prose, 
+  .dark .prose,
   .dark .preview-container {
-    @apply text-gray-200 !important;
+    @apply text-gray-200;
   }
-  .dark .prose strong, 
-  .dark .prose h1, 
-  .dark .prose h2, 
+  .dark .prose strong,
+  .dark .prose h1,
+  .dark .prose h2,
   .dark .prose h3 {
-    @apply text-white !important;
+    @apply text-white;
   }
-
-  /* 9. FIX: Force Chart elements to invert in dark mode (Recharts/Chart.js fallbacks) */
-  .dark .recharts-text {
-    @apply fill-gray-300 !important;
-  }
+  .dark .recharts-text { fill: #9ca3af; }
   .dark .recharts-cartesian-grid-horizontal line,
-  .dark .recharts-cartesian-grid-vertical line {
-    @apply stroke-[#004A7A] !important;
-  }
-  .dark .recharts-tooltip-wrapper .recharts-default-tooltip {
-    @apply bg-[#003558] border-[#004A7A] text-gray-100 !important;
-  }
+  .dark .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.08); }
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: 'SF Mono', 'Fira Code', Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 .katex-display {
@@ -114,18 +58,7 @@ code {
   overflow-y: hidden;
 }
 
-/* Custom scrollbar for the preview panel */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #2774AE;
-  border-radius: 4px;
-}
-/* Ensure the scrollbar is visible against dark navy */
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #60A5FA; 
-}
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 2px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,209,0,0.4); }

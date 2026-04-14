@@ -206,6 +206,18 @@ const NotificationsPanel = ({ notifications, onClose, onMarkRead, onNavigate }) 
   );
 };
 
+// ── Parse resolution note out of feedback text ────────────────────────────────
+const parseResolutionNote = (feedbackText) => {
+  if (!feedbackText) return { body: feedbackText, resolveComment: null };
+  const marker = '\n\n[Resolution] ';
+  const idx = feedbackText.indexOf(marker);
+  if (idx === -1) return { body: feedbackText, resolveComment: null };
+  return {
+    body: feedbackText.slice(0, idx),
+    resolveComment: feedbackText.slice(idx + marker.length),
+  };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -255,6 +267,13 @@ const Dashboard = () => {
   const [editPreviewShowSolution, setEditPreviewShowSolution] = useState(false);
   // Reviewer comments for a needs-review problem
   const [reviewComments, setReviewComments] = useState([]);
+
+  // Reply/Resolve state for reviewer comments
+  const [replyingId, setReplyingId] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [savingReply, setSavingReply] = useState(false);
+  const [resolvingId, setResolvingId] = useState(null);
+  const [resolveComment, setResolveComment] = useState('');
 
   const [formData, setFormData] = useState({ firstName: '', lastName: '', mathExp: '' });
   const [profileSubmitting, setProfileSubmitting] = useState(false);
@@ -336,6 +355,10 @@ const Dashboard = () => {
       });
       setEditMessage('');
       setEditPreviewShowSolution(false);
+      setReplyingId(null);
+      setReplyText('');
+      setResolvingId(null);
+      setResolveComment('');
       // Load reviewer feedback comments for this problem
       try {
         const fbRes = await api.get(`/feedback/problem/${problem.id}`);
@@ -346,6 +369,13 @@ const Dashboard = () => {
     } catch (e) {
       console.error('Failed to load problem detail', e);
     }
+  };
+
+  const refreshReviewComments = async (problemId) => {
+    try {
+      const fbRes = await api.get(`/feedback/problem/${problemId}`);
+      setReviewComments(fbRes.data || []);
+    } catch (_) {}
   };
 
   const handleEditSave = async () => {
@@ -370,6 +400,41 @@ const Dashboard = () => {
       setEditMessage(e.response?.data?.error || 'Failed to save.');
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const handleSaveReply = async (fbId) => {
+    if (!replyText.trim()) {
+      setEditMessage('Reply cannot be empty.');
+      return;
+    }
+    setSavingReply(true);
+    try {
+      await api.put(`/feedback/${fbId}/reply`, { reply: replyText });
+      setEditMessage('Reply saved.');
+      setReplyingId(null);
+      setReplyText('');
+      await refreshReviewComments(editingProblem.id);
+    } catch (error) {
+      setEditMessage(error?.response?.data?.error || 'Failed to save reply.');
+    } finally {
+      setSavingReply(false);
+    }
+  };
+
+  const handleResolveFeedback = async (fbId) => {
+    if (!resolveComment.trim()) {
+      setEditMessage('Resolution comment is required.');
+      return;
+    }
+    try {
+      await api.put(`/feedback/${fbId}/resolve`, { comment: resolveComment });
+      setEditMessage('Feedback resolved.');
+      setResolvingId(null);
+      setResolveComment('');
+      await refreshReviewComments(editingProblem.id);
+    } catch (error) {
+      setEditMessage(error?.response?.data?.error || 'Failed to resolve feedback.');
     }
   };
 
@@ -703,39 +768,178 @@ const Dashboard = () => {
                   </span>
                 </div>
 
-                {/* ── REVIEWER COMMENTS (the actual issue to resolve) ── */}
-                {reviewComments.length > 0 && (
-                  <div className="mb-6 space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reviewer Comments</p>
-                    {reviewComments.map(fb => (
-                      <div key={fb.id} className="p-4 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50/60 dark:bg-red-900/10">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-semibold text-red-600 dark:text-red-400">{fb.reviewerName || fb.author || 'Reviewer'}</span>
-                          {fb.timeTaken > 0 && (
-                            <span className="text-[10px] text-gray-400 font-mono">⏱ {Math.floor(fb.timeTaken / 60)}m {fb.timeTaken % 60}s</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">{fb.feedback}</p>
-                        {fb.answer && (
-                          <div className="mt-2 flex items-center gap-1.5">
-                            <span className="text-xs text-slate-400">Their answer:</span>
-                            <span className="font-mono text-xs bg-white dark:bg-white/8 px-2 py-0.5 rounded border border-slate-200 dark:border-white/10">
-                              <KatexRenderer latex={fb.answer} inline />
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 {editMessage && (
                   <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
-                    editMessage.includes('success') || editMessage.includes('Saved')
+                    editMessage.includes('success') || editMessage.includes('Saved') || editMessage.includes('saved') || editMessage.includes('resolved')
                       ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                       : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
                   }`}>
                     {editMessage}
+                  </div>
+                )}
+
+                {/* ── REVIEWER COMMENTS (full ProblemDetail-style cards) ── */}
+                {reviewComments.length > 0 && (
+                  <div className="mb-6 space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Reviewer Comments
+                    </p>
+                    {reviewComments.map(fb => {
+                      const { body: fbBody, resolveComment: fbResolveNote } = parseResolutionNote(fb.feedback);
+                      const isReplyingThis = replyingId === fb.id;
+                      const isResolvingThis = resolvingId === fb.id;
+                      const normalizeAnswer = (a) => (a || '').trim().replace(/\s+/g, '').toLowerCase();
+                      const answerMismatch = editingProblem.answer && fb.answer &&
+                        normalizeAnswer(editingProblem.answer) !== normalizeAnswer(fb.answer);
+
+                      return (
+                        <div key={fb.id} className={`bg-white dark:bg-slate-900 border rounded-xl p-5 shadow-sm ${
+                          fb.isEndorsement ? 'border-amber-200 dark:border-amber-900/50' :
+                          fb.resolved ? 'border-green-200 dark:border-green-900/50' :
+                          'border-slate-200 dark:border-slate-800'
+                        }`}>
+                          {/* Card header */}
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs ${
+                                fb.isEndorsement ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                              }`}>
+                                {(fb.user?.firstName?.[0] || fb.reviewerName?.[0] || '?')}{(fb.user?.lastName?.[0] || '')}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-900 dark:text-white text-sm leading-none mb-0.5">
+                                  {fb.user ? `${fb.user.firstName} ${fb.user.lastName}` : (fb.reviewerName || fb.author || 'Reviewer')}
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  {fb.createdAt && <>{new Date(fb.createdAt).toLocaleDateString()} &bull; </>}
+                                  <span className={
+                                    fb.isEndorsement ? 'text-amber-600 dark:text-amber-500' :
+                                    fb.resolved ? 'text-green-600 dark:text-green-500' :
+                                    'text-slate-500'
+                                  }>
+                                    {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved' : 'Review'}
+                                  </span>
+                                  {fb.timeTaken > 0 && (
+                                    <span className="ml-1.5 font-mono">⏱ {Math.floor(fb.timeTaken / 60)}m {fb.timeTaken % 60}s</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Actions: Reply + Resolve */}
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => {
+                                  if (isReplyingThis) {
+                                    setReplyingId(null);
+                                    setReplyText('');
+                                  } else {
+                                    setReplyingId(fb.id);
+                                    setReplyText(fb.authorReply || '');
+                                    setResolvingId(null);
+                                  }
+                                }}
+                                className="flex items-center gap-1 text-xs font-medium text-[#2774AE] dark:text-[#FFD100] hover:underline transition-colors"
+                              >
+                                <MessageSquare size={11} />
+                                {isReplyingThis ? 'Cancel' : fb.authorReply ? 'Edit Reply' : 'Reply'}
+                              </button>
+                              {!fb.resolved && !fb.isEndorsement && (
+                                <button
+                                  onClick={() => {
+                                    setResolvingId(isResolvingThis ? null : fb.id);
+                                    setReplyingId(null);
+                                  }}
+                                  className="text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                                >
+                                  {isResolvingThis ? 'Cancel' : 'Resolve'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Their answer */}
+                          {fb.answer && (
+                            <div className="mb-3 flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Their answer:</span>
+                              <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-mono text-slate-700 dark:text-slate-300">
+                                <KatexRenderer latex={fb.answer} inline />
+                              </span>
+                              {answerMismatch && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-400 rounded text-[10px] font-semibold">
+                                  <AlertCircle size={10} /> Doesn't match stored answer
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Feedback body */}
+                          <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{fbBody}</p>
+
+                          {/* Author reply (display) */}
+                          {!isReplyingThis && fb.authorReply && (
+                            <div className="mt-3 ml-4 pl-3 border-l-2 border-slate-200 dark:border-slate-700">
+                              <p className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] mb-1 flex items-center gap-1">
+                                <MessageSquare size={10} /> Author Reply
+                              </p>
+                              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{fb.authorReply}</p>
+                            </div>
+                          )}
+
+                          {/* Reply editor */}
+                          {isReplyingThis && (
+                            <div className="mt-3 ml-4 pl-3 border-l-2 border-[#2774AE]/30 dark:border-[#FFD100]/30">
+                              <p className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] mb-2 flex items-center gap-1">
+                                <MessageSquare size={10} /> {fb.authorReply ? 'Edit Reply' : 'Reply'}
+                              </p>
+                              <textarea
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder="Write your reply..."
+                                className="w-full p-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-[#2774AE]/20 outline-none transition-all dark:text-white"
+                                rows={3}
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleSaveReply(fb.id)}
+                                disabled={savingReply}
+                                className="mt-2 bg-[#2774AE] text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] transition-colors disabled:opacity-50"
+                              >
+                                {savingReply ? 'Saving...' : 'Save Reply'}
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Resolution note (display) */}
+                          {fb.resolved && fbResolveNote && (
+                            <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                              <p className="text-xs font-semibold text-green-600 dark:text-green-500 uppercase mb-1">Resolution Note</p>
+                              <p className="text-sm text-green-800 dark:text-green-300 leading-relaxed">{fbResolveNote}</p>
+                            </div>
+                          )}
+
+                          {/* Resolve editor */}
+                          {isResolvingThis && (
+                            <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                              <textarea
+                                value={resolveComment}
+                                onChange={(e) => setResolveComment(e.target.value)}
+                                placeholder="How did you address this?"
+                                className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-[#2774AE]/20 outline-none bg-white dark:bg-slate-900 transition-all dark:text-white"
+                                rows={2}
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleResolveFeedback(fb.id)}
+                                className="w-full bg-[#2774AE] text-white py-2 rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] transition-colors"
+                              >
+                                Confirm Resolution
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

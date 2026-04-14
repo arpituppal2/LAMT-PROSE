@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, Info } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
@@ -9,6 +9,7 @@ const Leaderboard = () => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showScoreInfo, setShowScoreInfo] = useState(false);
 
   useEffect(() => { fetchLeaderboard(); }, []);
 
@@ -23,18 +24,18 @@ const Leaderboard = () => {
     }
   };
 
-  const filtered = leaderboard.filter(entry =>
-    search === '' ||
-    entry.author.toLowerCase().includes(search.toLowerCase()) ||
-    entry.initials.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = leaderboard
+    .filter(entry => entry.score > 0) // hide zero-score users
+    .filter(entry =>
+      search === '' ||
+      entry.author.toLowerCase().includes(search.toLowerCase()) ||
+      entry.initials.toLowerCase().includes(search.toLowerCase())
+    );
 
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500 text-sm">
-          Loading...
-        </div>
+        <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
       </Layout>
     );
   }
@@ -43,11 +44,41 @@ const Leaderboard = () => {
     <Layout>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leaderboard</h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
-            Scoring: endorsed +5 · idea +3 · needs review −2 · review given +0.25
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leaderboard</h1>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Contributors ranked by problem quality score.</p>
+          </div>
+          {/* Scoring info tooltip */}
+          <div className="relative">
+            <button
+              onClick={() => setShowScoreInfo(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/8 hover:bg-gray-200 dark:hover:bg-white/12 rounded-lg transition-colors border border-gray-200 dark:border-white/10"
+            >
+              <Info size={13} /> Scoring
+            </button>
+            {showScoreInfo && (
+              <div className="absolute right-0 top-full mt-2 z-10 w-64 bg-white dark:bg-[#0d1b2a] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl p-4">
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">How scores are calculated</p>
+                <div className="space-y-1.5">
+                  {[
+                    ['Endorsed problem', '+5'],
+                    ['Idea / draft', '+3'],
+                    ['Needs Review', '−2'],
+                    ['Review given', '+0.25'],
+                  ].map(([label, val]) => (
+                    <div key={label} className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
+                      <span className={`text-xs font-bold tabular-nums ${
+                        val.startsWith('−') ? 'text-red-500' : 'text-[#2774AE] dark:text-[#FFD100]'
+                      }`}>{val}</span>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => setShowScoreInfo(false)} className="mt-3 text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Close</button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Search */}
@@ -64,7 +95,6 @@ const Leaderboard = () => {
 
         {/* Table */}
         <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded overflow-hidden">
-          {/* Header row */}
           <div
             className="grid gap-2 px-4 py-2.5 border-b border-gray-100 dark:border-white/8 bg-gray-50 dark:bg-white/3"
             style={{ gridTemplateColumns: '2rem 1fr 6rem 5rem 7rem 6rem 5rem' }}
@@ -85,65 +115,31 @@ const Leaderboard = () => {
               className="grid gap-2 items-center px-4 py-3 border-b border-gray-50 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
               style={{ gridTemplateColumns: '2rem 1fr 6rem 5rem 7rem 6rem 5rem' }}
             >
-              {/* Rank */}
               <div className="text-sm tabular-nums">
-                {index === 0 ? '🥇'
-                  : index === 1 ? '🥈'
-                  : index === 2 ? '🥉'
-                  : <span className="text-gray-400 dark:text-gray-500">{index + 1}</span>
-                }
+                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉'
+                  : <span className="text-gray-400 dark:text-gray-500">{index + 1}</span>}
               </div>
-
-              {/* Author */}
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{entry.author}</p>
                 <p className="text-xs text-gray-400 font-mono">{entry.initials}</p>
               </div>
-
-              {/* Endorsed */}
-              <div className="text-center">
-                <span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
-                  {entry.badges.endorsed || 0}
-                </span>
-              </div>
-
-              {/* Idea */}
-              <div className="text-center">
-                <span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
-                  {entry.badges.idea || 0}
-                </span>
-              </div>
-
-              {/* Needs Review */}
+              <div className="text-center"><span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">{entry.badges.endorsed || 0}</span></div>
+              <div className="text-center"><span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">{entry.badges.idea || 0}</span></div>
               <div className="text-center">
                 <span className={`text-sm tabular-nums ${
-                  (entry.badges.needsReview || 0) > 0
-                    ? 'text-red-500'
-                    : 'text-gray-700 dark:text-gray-300'
-                }`}>
-                  {entry.badges.needsReview || 0}
-                </span>
+                  (entry.badges.needsReview || 0) > 0 ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'
+                }`}>{entry.badges.needsReview || 0}</span>
               </div>
-
-              {/* Reviews given */}
-              <div className="text-center">
-                <span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
-                  {entry.reviewsGiven || 0}
-                </span>
-              </div>
-
-              {/* Score */}
+              <div className="text-center"><span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">{entry.reviewsGiven || 0}</span></div>
               <div className="text-right">
-                <span className="text-sm font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                  {entry.score}
-                </span>
+                <span className="text-sm font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{entry.score}</span>
               </div>
             </div>
           ))}
 
           {filtered.length === 0 && (
             <div className="text-center py-12 text-sm text-gray-400 dark:text-gray-500">
-              No results for &ldquo;{search}&rdquo;
+              {search ? `No results for "${search}"` : 'No contributors yet.'}
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import {
   Edit, User, Archive, Star, ChevronDown, ChevronUp, 
   CheckCircle, Image as ImageIcon, X,
   AlertCircle, Save, ArrowLeft, MessageSquare, Trash2,
-  Eye, ExternalLink
+  Eye, ExternalLink, Info
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
@@ -32,6 +32,7 @@ const ProblemDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
 
   const [editedLatex, setEditedLatex] = useState('');
   const [editedSolution, setEditedSolution] = useState('');
@@ -49,6 +50,8 @@ const ProblemDetail = () => {
   const [editedFeedbackComment, setEditedFeedbackComment] = useState('');
   const [editedFeedbackAnswer, setEditedFeedbackAnswer] = useState('');
   const [editedFeedbackIsEndorsement, setEditedFeedbackIsEndorsement] = useState(false);
+  // Solver photo uploads on feedback entries
+  const [feedbackPhotos, setFeedbackPhotos] = useState({});
 
   const [replyingId, setReplyingId] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -61,6 +64,36 @@ const ProblemDetail = () => {
   const [deleting, setDeleting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewShowSolution, setPreviewShowSolution] = useState(false);
+
+  // Unsaved changes warning
+  useEffect(() => {
+    const handler = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const markDirty = () => setIsDirty(true);
+
+  const handleCancelEdit = () => {
+    if (isDirty && !window.confirm('You have unsaved changes. Discard them?')) return;
+    setIsEditing(false);
+    setIsDirty(false);
+    // re-init fields from problem
+    if (problem) {
+      setEditedLatex(problem.latex || '');
+      setEditedSolution(problem.solution || '');
+      setEditedAnswer(problem.answer || '');
+      setEditedNotes(problem.notes || '');
+      setEditedTopics(problem.topics || []);
+      setEditedDifficulty(parseInt(problem.quality) || 5);
+      setEditedStage(problem.stage);
+    }
+  };
 
   const extractImages = (text, destination) => {
     if (!text) return { cleanText: '', extractedImages: [] };
@@ -95,6 +128,7 @@ const ProblemDetail = () => {
       setEditedTopics(data.topics || []);
       setEditedStage(data.stage);
       setEditedDifficulty(parseInt(data.quality) || 5);
+      setIsDirty(false);
     } catch (error) {
       setMessage('Failed to load problem');
     } finally {
@@ -108,6 +142,7 @@ const ProblemDetail = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setEditedImages(prev => [...prev, { dataUrl: reader.result, destination: 'problem' }]);
+        markDirty();
       };
       reader.readAsDataURL(file);
     });
@@ -115,6 +150,7 @@ const ProblemDetail = () => {
 
   const removeImage = (index) => {
     setEditedImages(prev => prev.filter((_, i) => i !== index));
+    markDirty();
   };
 
   const toggleImageDestination = (index) => {
@@ -123,6 +159,29 @@ const ProblemDetail = () => {
         ? { ...img, destination: img.destination === 'problem' ? 'solution' : 'problem' }
         : img
     ));
+    markDirty();
+  };
+
+  // Feedback photo upload
+  const handleFeedbackPhotoUpload = (fbId, e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFeedbackPhotos(prev => ({
+          ...prev,
+          [fbId]: [...(prev[fbId] || []), reader.result]
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeFeedbackPhoto = (fbId, idx) => {
+    setFeedbackPhotos(prev => ({
+      ...prev,
+      [fbId]: (prev[fbId] || []).filter((_, i) => i !== idx)
+    }));
   };
 
   const handleSave = async () => {
@@ -151,6 +210,7 @@ const ProblemDetail = () => {
       });
       setMessage('Problem updated.');
       setIsEditing(false);
+      setIsDirty(false);
       fetchProblem();
     } catch (error) {
       setMessage('Failed to update problem');
@@ -305,13 +365,27 @@ const ProblemDetail = () => {
     return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400';
   };
 
+  // Normalize answer for comparison (trim, lowercase)
+  const normalizeAnswer = (a) => (a || '').trim().replace(/\s+/g, '').toLowerCase();
+
   return (
     <>
       <Layout>
         <div className="max-w-6xl mx-auto px-6 pb-20">
 
+        {/* Back button */}
+        <button
+          onClick={() => {
+            if (isDirty && !window.confirm('You have unsaved changes. Leave anyway?')) return;
+            navigate(-1);
+          }}
+          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] mb-5 transition-colors pt-2"
+        >
+          <ArrowLeft size={14} /> Back
+        </button>
+
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 pt-2">
+        <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Problem {problem.id}</h1>
@@ -333,7 +407,6 @@ const ProblemDetail = () => {
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            {/* Preview button — always visible */}
             <button
               onClick={() => { setShowPreview(true); setPreviewShowSolution(false); }}
               className="flex items-center gap-1.5 px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors text-sm font-medium border border-slate-200 dark:border-slate-700"
@@ -346,7 +419,14 @@ const ProblemDetail = () => {
             {canEdit && (
               <>
                 <button
-                  onClick={() => setIsEditing(!isEditing)}
+                  onClick={() => {
+                    if (isEditing) {
+                      handleCancelEdit();
+                    } else {
+                      setIsEditing(true);
+                      setIsDirty(false);
+                    }
+                  }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                     isEditing
                       ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
@@ -381,6 +461,13 @@ const ProblemDetail = () => {
           </div>
         </div>
 
+        {/* Dirty banner */}
+        {isDirty && (
+          <div className="mb-4 px-4 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-xs font-medium flex items-center gap-2">
+            <AlertCircle size={13} /> You have unsaved changes.
+          </div>
+        )}
+
         {message && (
           <div className={`mb-6 px-4 py-3 rounded-lg text-sm font-medium ${
             message.includes('Failed') || message.includes('Cannot')
@@ -400,7 +487,7 @@ const ProblemDetail = () => {
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Problem Statement</h2>
-                {isEditing && <span className="text-[10px] font-semibold text-ucla-blue bg-ucla-blue/10 px-2 py-0.5 rounded uppercase">Editing</span>}
+                {isEditing && <span className="text-[10px] font-semibold text-white bg-[#2774AE] dark:bg-[#FFD100] dark:text-slate-900 px-2 py-0.5 rounded uppercase tracking-wide">Editing</span>}
               </div>
               <div className="p-6">
                 {isEditing ? (
@@ -408,7 +495,7 @@ const ProblemDetail = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                       <textarea
                         value={editedLatex}
-                        onChange={(e) => setEditedLatex(e.target.value)}
+                        onChange={(e) => { setEditedLatex(e.target.value); markDirty(); }}
                         rows={18}
                         placeholder="Type LaTeX here..."
                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all resize-y"
@@ -444,7 +531,7 @@ const ProblemDetail = () => {
                         ))}
                         <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-white hover:border-ucla-blue transition-all group">
                           <ImageIcon size={20} className="text-slate-300 group-hover:text-ucla-blue" />
-                          <span className="text-[10px] text-slate-400 mt-1.5 font-semibold uppercase">Add</span>
+                          <span className="text-[10px] text-slate-400 mt-1.5 font-semibold uppercase">Add Image</span>
                           <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
                         </label>
                       </div>
@@ -500,7 +587,7 @@ const ProblemDetail = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     <textarea
                       value={editedSolution}
-                      onChange={(e) => setEditedSolution(e.target.value)}
+                      onChange={(e) => { setEditedSolution(e.target.value); markDirty(); }}
                       rows={12}
                       placeholder="Write solution in LaTeX..."
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all resize-y"
@@ -517,7 +604,7 @@ const ProblemDetail = () => {
                   <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Author Notes</label>
                   <textarea
                     value={editedNotes}
-                    onChange={(e) => setEditedNotes(e.target.value)}
+                    onChange={(e) => { setEditedNotes(e.target.value); markDirty(); }}
                     rows={3}
                     placeholder="Private notes for reviewers..."
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all"
@@ -530,7 +617,7 @@ const ProblemDetail = () => {
                     <input
                       type="text"
                       value={editedAnswer}
-                      onChange={(e) => setEditedAnswer(e.target.value)}
+                      onChange={(e) => { setEditedAnswer(e.target.value); markDirty(); }}
                       className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all font-mono"
                     />
                   </div>
@@ -538,7 +625,7 @@ const ProblemDetail = () => {
                     <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Stage</label>
                     <select
                       value={editedStage}
-                      onChange={(e) => setEditedStage(e.target.value)}
+                      onChange={(e) => { setEditedStage(e.target.value); markDirty(); }}
                       className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none font-medium"
                     >
                       {stageOptions.map(s => <option key={s} value={s}>{s}</option>)}
@@ -551,7 +638,7 @@ const ProblemDetail = () => {
                   <input
                     type="range" min="1" max="10" step="1"
                     value={editedDifficulty}
-                    onChange={(e) => setEditedDifficulty(Number(e.target.value))}
+                    onChange={(e) => { setEditedDifficulty(Number(e.target.value)); markDirty(); }}
                     className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-ucla-blue"
                   />
                   <div className="mt-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between">
@@ -567,9 +654,12 @@ const ProblemDetail = () => {
                       <button
                         key={topic}
                         type="button"
-                        onClick={() => setEditedTopics(prev =>
-                          prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-                        )}
+                        onClick={() => {
+                          setEditedTopics(prev =>
+                            prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
+                          );
+                          markDirty();
+                        }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                           editedTopics.includes(topic)
                             ? 'bg-ucla-blue border-ucla-blue text-white'
@@ -614,6 +704,12 @@ const ProblemDetail = () => {
 
                     const { body: fbBody, resolveComment: fbResolveNote } = parseResolutionNote(fb.feedback);
 
+                    // Answer mismatch check
+                    const correctAnswer = problem.answer;
+                    const solverAnswer = fb.answer;
+                    const answerMismatch = correctAnswer && solverAnswer &&
+                      normalizeAnswer(correctAnswer) !== normalizeAnswer(solverAnswer);
+
                     return (
                       <div key={fb.id} className={`bg-white dark:bg-slate-900 border rounded-xl p-5 shadow-sm ${
                         fb.isEndorsement ? 'border-amber-200 dark:border-amber-900/50' :
@@ -638,6 +734,9 @@ const ProblemDetail = () => {
                                 }`}>
                                   {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved' : 'Review'}
                                 </span>
+                                {fb.timeTaken > 0 && (
+                                  <span className="ml-1.5 font-mono">⏱ {Math.floor(fb.timeTaken / 60)}m {fb.timeTaken % 60}s</span>
+                                )}
                               </p>
                             </div>
                           </div>
@@ -704,19 +803,23 @@ const ProblemDetail = () => {
                           </div>
                         </div>
 
-                        {/* Show solver's answer — visible to problem author/admin always, to solver when not editing */}
+                        {/* Answer + mismatch warning */}
                         {(canEdit || isMyFeedback) && fb.answer && !isEditingThis && (
-                          <div className="mb-3 flex items-center gap-2">
+                          <div className="mb-3 flex items-center gap-2 flex-wrap">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Their answer:</span>
                             <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-mono text-slate-700 dark:text-slate-300">
-                              <KatexRenderer latex={fb.answer} />
+                              <KatexRenderer latex={fb.answer} inline />
                             </span>
+                            {answerMismatch && (
+                              <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-400 rounded text-[10px] font-semibold">
+                                <AlertCircle size={10} /> Doesn't match stored answer
+                              </span>
+                            )}
                           </div>
                         )}
 
                         {isEditingThis ? (
                           <div className="space-y-3">
-                            {/* Answer field — only for the solver (isMyFeedback), not admins editing others' feedback */}
                             {isMyFeedback && (
                               <div>
                                 <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Your Answer</label>
@@ -737,6 +840,25 @@ const ProblemDetail = () => {
                                 className="w-full p-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all dark:text-white"
                                 rows={3}
                               />
+                            </div>
+                            {/* Photo upload for solver */}
+                            <div>
+                              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Attach Photos</label>
+                              <div className="flex flex-wrap gap-2">
+                                {(feedbackPhotos[fb.id] || []).map((src, idx) => (
+                                  <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                                    <img src={src} alt="" className="w-full h-full object-cover" />
+                                    <button onClick={() => removeFeedbackPhoto(fb.id, idx)} className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                      <X size={12} className="text-white" />
+                                    </button>
+                                  </div>
+                                ))}
+                                <label className="w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-ucla-blue transition-all">
+                                  <ImageIcon size={16} className="text-slate-400" />
+                                  <span className="text-[9px] text-slate-400 mt-1">Add</span>
+                                  <input type="file" className="hidden" accept="image/*" multiple onChange={(e) => handleFeedbackPhotoUpload(fb.id, e)} />
+                                </label>
+                              </div>
                             </div>
                             {isMyFeedback && (
                               <div className="flex items-center gap-2">
@@ -840,41 +962,39 @@ const ProblemDetail = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar — only show non-editing info cards; hide Difficulty/Topics/LiveRender when editing */}
           <div className="lg:col-span-4 space-y-4">
             <div className="sticky top-6 space-y-4">
 
-              {/* Difficulty Card */}
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Difficulty</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-ucla-blue dark:text-ucla-gold leading-none tabular-nums">{currentDifficulty}</span>
-                  <span className="text-base font-medium text-slate-300 dark:text-slate-600">/10</span>
+              {/* Difficulty Card — only when NOT editing */}
+              {!isEditing && (
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Difficulty</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-ucla-blue dark:text-ucla-gold leading-none tabular-nums">{currentDifficulty}</span>
+                    <span className="text-base font-medium text-slate-300 dark:text-slate-600">/10</span>
+                  </div>
                 </div>
-                <div className="mt-3 w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-ucla-blue dark:bg-ucla-gold h-full transition-all duration-500"
-                    style={{ width: `${currentDifficulty * 10}%` }}
-                  />
-                </div>
-              </div>
+              )}
 
-              {/* Topics Card */}
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Topics</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(isEditing ? editedTopics : problem.topics).length > 0
-                    ? (isEditing ? editedTopics : problem.topics).map(t => (
-                        <span key={t} className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">
-                          {t}
-                        </span>
-                      ))
-                    : <span className="text-slate-400 italic text-xs">No topics tagged.</span>
-                  }
+              {/* Topics Card — only when NOT editing */}
+              {!isEditing && (
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Topics</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {problem.topics.length > 0
+                      ? problem.topics.map(t => (
+                          <span key={t} className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">
+                            {t}
+                          </span>
+                        ))
+                      : <span className="text-slate-400 italic text-xs">No topics tagged.</span>
+                    }
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Author Notes Card */}
+              {/* Author Notes Card — only when NOT editing */}
               {!isEditing && problem.notes && (
                 <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Author Notes</p>
@@ -884,14 +1004,16 @@ const ProblemDetail = () => {
                 </div>
               )}
 
+              {/* When editing: show a compact hint instead */}
               {isEditing && (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Live Render</p>
-                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-lg overflow-x-auto min-h-[80px] text-slate-900 dark:text-slate-100 text-sm">
-                    <KatexRenderer latex={editedLatex} />
-                  </div>
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 mb-1">
+                    <Info size={12} /> Editing mode
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-500">Difficulty, topics, and stage are editable in the metadata panel below. Live preview is inline.</p>
                 </div>
               )}
+
             </div>
           </div>
 
@@ -899,7 +1021,7 @@ const ProblemDetail = () => {
       </div>
     </Layout>
 
-      {/* ── Archive Confirmation Modal ── */}
+      {/* Archive Confirmation Modal */}
       {showArchiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
@@ -926,16 +1048,8 @@ const ProblemDetail = () => {
               />
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowArchiveModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { setShowArchiveModal(false); handleArchive(); }}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-              >
+              <button onClick={() => setShowArchiveModal(false)} className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+              <button onClick={() => { setShowArchiveModal(false); handleArchive(); }} className="flex-1 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
                 <Archive size={15} /> Archive
               </button>
             </div>
@@ -943,7 +1057,7 @@ const ProblemDetail = () => {
         </div>
       )}
 
-      {/* ── Delete Confirmation Modal ── */}
+      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
@@ -957,35 +1071,22 @@ const ProblemDetail = () => {
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                <Trash2 size={15} />
-                {deleting ? 'Deleting...' : 'Delete Forever'}
+              <button onClick={() => setShowDeleteModal(false)} disabled={deleting} className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50">Cancel</button>
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
+                <Trash2 size={15} /> {deleting ? 'Deleting...' : 'Delete Forever'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Problem Preview Modal ── */}
+      {/* Problem Preview Modal */}
       {showPreview && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-0 sm:px-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowPreview(false); }}
         >
           <div className="bg-white dark:bg-slate-900 w-full sm:max-w-2xl max-h-[92dvh] sm:rounded-2xl rounded-t-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-
-            {/* Preview Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div>
@@ -1004,18 +1105,12 @@ const ProblemDetail = () => {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-              >
+              <button onClick={() => setShowPreview(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                 <X size={18} />
               </button>
             </div>
 
-            {/* Preview Body — scrollable */}
             <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-
-              {/* Problem Statement */}
               <div>
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Problem Statement</p>
                 <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed">
@@ -1023,7 +1118,6 @@ const ProblemDetail = () => {
                 </div>
               </div>
 
-              {/* Answer pill */}
               {problem.answer && (
                 <div className="flex items-center gap-2.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
@@ -1033,16 +1127,10 @@ const ProblemDetail = () => {
                 </div>
               )}
 
-              {/* Difficulty + Topics row */}
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-24 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-ucla-blue dark:bg-ucla-gold h-full" style={{ width: `${(parseInt(problem.quality) || 5) * 10}%` }} />
-                    </div>
-                    <span className="text-sm font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">{parseInt(problem.quality) || 5}/10</span>
-                  </div>
+                  <span className="text-sm font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">{parseInt(problem.quality) || 5}/10</span>
                 </div>
                 {problem.topics?.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -1053,13 +1141,9 @@ const ProblemDetail = () => {
                 )}
               </div>
 
-              {/* Solution toggle */}
               {problem.solution && (
                 <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setPreviewShowSolution(!previewShowSolution)}
-                    className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
+                  <button onClick={() => setPreviewShowSolution(!previewShowSolution)} className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     <div className="flex items-center gap-2 text-sm font-semibold text-ucla-blue dark:text-ucla-gold">
                       <CheckCircle size={14} /> {previewShowSolution ? 'Hide' : 'Show'} Solution
                     </div>
@@ -1073,7 +1157,6 @@ const ProblemDetail = () => {
                 </div>
               )}
 
-              {/* Author Notes */}
               {problem.notes && (
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
@@ -1082,49 +1165,31 @@ const ProblemDetail = () => {
                   </div>
                 </div>
               )}
-
             </div>
 
-            {/* ── Preview Action Bar ── */}
             <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3.5 flex-shrink-0 bg-slate-50/80 dark:bg-slate-900/80 flex flex-wrap items-center gap-2">
               {canEdit && (
-                <button
-                  onClick={() => { setShowPreview(false); setIsEditing(true); }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-ucla-blue text-white rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] transition-colors"
-                >
+                <button onClick={() => { setShowPreview(false); setIsEditing(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-ucla-blue text-white rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] transition-colors">
                   <Edit size={13} /> Edit
                 </button>
               )}
-              <button
-                onClick={() => navigate(`/feedback/${id}`)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
+              <button onClick={() => navigate(`/feedback/${id}`)} className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <MessageSquare size={13} /> Give Feedback
               </button>
               {canEdit && problem.stage !== 'Archived' && (
-                <button
-                  onClick={() => { setShowPreview(false); setShowArchiveModal(true); setArchiveReason(''); }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-semibold hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                >
+                <button onClick={() => { setShowPreview(false); setShowArchiveModal(true); setArchiveReason(''); }} className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-semibold hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
                   <Archive size={13} /> Archive
                 </button>
               )}
               {canEdit && (
-                <button
-                  onClick={() => { setShowPreview(false); setShowDeleteModal(true); }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-red-500 dark:text-red-400 rounded-lg text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                >
+                <button onClick={() => { setShowPreview(false); setShowDeleteModal(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-red-500 dark:text-red-400 rounded-lg text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                   <Trash2 size={13} /> Delete
                 </button>
               )}
-              <button
-                onClick={() => setShowPreview(false)}
-                className="ml-auto flex items-center gap-1.5 px-3 py-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg text-xs font-medium transition-colors"
-              >
+              <button onClick={() => setShowPreview(false)} className="ml-auto flex items-center gap-1.5 px-3 py-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg text-xs font-medium transition-colors">
                 <ExternalLink size={13} /> Full Page
               </button>
             </div>
-
           </div>
         </div>
       )}

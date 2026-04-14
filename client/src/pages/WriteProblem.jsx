@@ -5,289 +5,293 @@ import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-const WriteProblem = () => {
-  const [latex, setLatex] = useState('');
-  const [solution, setSolution] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [notes, setNotes] = useState('');
-  const [topics, setTopics] = useState([]);
-  const [difficulty, setDifficulty] = useState(5);
-  const [examType, setExamType] = useState('Numerical Answer');
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
+const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Very Hard'];
+const SUBTOPICS = {
+  Algebra: ['Polynomials', 'Sequences & Series', 'Inequalities', 'Functions', 'Complex Numbers', 'Other'],
+  Geometry: ['Euclidean', 'Coordinate', 'Trigonometry', 'Transformations', 'Other'],
+  Combinatorics: ['Counting', 'Graph Theory', 'Probability', 'Games', 'Other'],
+  'Number Theory': ['Divisibility', 'Modular Arithmetic', 'Primes', 'Diophantine Equations', 'Other'],
+};
+
+export default function WriteProblem() {
   const navigate = useNavigate();
+  const [form, setForm] = useState({
+    statement: '',
+    answer: '',
+    solution: '',
+    topic: 'Algebra',
+    subtopic: '',
+    difficulty: 'Medium',
+    notes: '',
+  });
+  const [images, setImages] = useState([]);
+  const [preview, setPreview] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
-  const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const handleTopicToggle = (topic) => {
-    setTopics(prev =>
-      prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-    );
-  };
-
-  const handleImageUpload = (e) => {
+  const handleImage = (e) => {
     const files = Array.from(e.target.files);
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImages(prev => [...prev, { dataUrl: reader.result, destination: 'problem' }]);
+      reader.onload = (ev) => {
+        setImages(prev => [...prev, { file, url: ev.target.result, name: file.name }]);
       };
       reader.readAsDataURL(file);
     });
   };
 
-  const removeImage = (index) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const toggleImageDestination = (index) => {
-    setImages(prev => prev.map((img, i) =>
-      i === index
-        ? { ...img, destination: img.destination === 'problem' ? 'solution' : 'problem' }
-        : img
-    ));
-  };
+  const removeImage = (i) => setImages(prev => prev.filter((_, idx) => idx !== i));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (topics.length === 0) {
-      setMessage('Please select at least one topic.');
-      return;
-    }
-
-    setLoading(true);
-    setMessage('');
-
+    if (!form.statement.trim()) { setError('Statement is required.'); return; }
+    setSubmitting(true);
+    setError('');
     try {
-      let finalLatex = latex;
-      let finalSolution = solution;
-
-      const problemImages = images.filter(img => img.destination === 'problem');
-      const solutionImages = images.filter(img => img.destination === 'solution');
-
-      if (problemImages.length > 0) {
-        finalLatex += '\n\n' + problemImages.map((img, i) => `![Problem Image ${i + 1}](${img.dataUrl})`).join('\n');
-      }
-      if (solutionImages.length > 0) {
-        finalSolution += '\n\n' + solutionImages.map((img, i) => `![Solution Image ${i + 1}](${img.dataUrl})`).join('\n');
-      }
-
-      const response = await api.post('/problems', {
-        latex: finalLatex,
-        solution: finalSolution,
-        answer,
-        notes,
-        topics,
-        quality: String(difficulty),
-        examType,
-      });
-
-      setMessage(`Problem ${response.data.id} submitted.`);
-      setTimeout(() => navigate('/inventory'), 1500);
-    } catch (error) {
-      const errMsg = error.response?.data?.details || error.response?.data?.error || 'Connection failed.';
-      setMessage(`Error: ${errMsg}`);
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      images.forEach(img => fd.append('images', img.file));
+      await api.post('/problems', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setSuccess(true);
+      setTimeout(() => navigate('/dashboard'), 1500);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to submit problem.');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
+  if (success) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+            <Send size={28} className="text-green-600 dark:text-green-400" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Problem submitted!</h2>
+          <p className="text-sm text-gray-500">Redirecting to dashboard…</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-6 py-10">
-
-        {/* Header */}
-        <div className="mb-8 flex items-center gap-3">
-          <FlaskConical size={22} className="text-ucla-blue dark:text-ucla-gold" />
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Write Problem
-          </h1>
+      <div className="w-full px-[5%] py-10">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Write a Problem</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Problems start as Ideas and enter the review queue.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPreview(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-600 dark:text-gray-300 hover:border-[#2774AE]/40 transition-colors"
+          >
+            <ArrowRightLeft size={14} />
+            {preview ? 'Edit' : 'Preview'}
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-          {/* LEFT: FORM */}
-          <div className="lg:col-span-7">
-            <form onSubmit={handleSubmit} className="space-y-6">
-
-              {/* Problem Text */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Problem Statement
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left column */}
+            <div className="space-y-5">
+              {/* Statement */}
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Problem Statement <span className="text-red-400">*</span>
                 </label>
-                <textarea
-                  value={latex}
-                  onChange={(e) => setLatex(e.target.value)}
-                  rows={8}
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
-                  placeholder="Enter problem text. Use $...$ for inline math."
-                  required
-                />
-              </div>
-
-              {/* Image Gallery */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Attachments</label>
-                <div className="flex flex-wrap gap-3">
-                  {images.map((img, idx) => (
-                    <div key={idx} className="relative w-24 h-28 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden group border border-slate-200 dark:border-slate-700">
-                      <img src={img.dataUrl} alt="upload" className="w-full h-16 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => toggleImageDestination(idx)}
-                        className={`w-full h-12 flex items-center justify-center text-[9px] font-semibold uppercase transition-colors gap-1 ${
-                          img.destination === 'problem' ? 'bg-ucla-blue text-white' : 'bg-ucla-gold text-slate-900'
-                        }`}
-                      >
-                        {img.destination} <ArrowRightLeft size={9} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                  <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer hover:bg-ucla-blue/5 hover:border-ucla-blue transition-all group">
-                    <ImageIcon size={20} className="text-slate-400 group-hover:text-ucla-blue" />
-                    <span className="text-[10px] text-slate-400 mt-1.5 font-semibold uppercase">Add File</span>
-                    <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
-                  </label>
-                </div>
-              </div>
-
-              {/* Solution */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Solution</label>
-                <textarea
-                  value={solution}
-                  onChange={(e) => setSolution(e.target.value)}
-                  rows={6}
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
-                  placeholder="Explain the solution..."
-                  required
-                />
+                {preview ? (
+                  <div className="min-h-[120px] text-sm text-gray-800 dark:text-gray-200 prose dark:prose-invert max-w-none">
+                    <KatexRenderer content={form.statement || '_No statement yet_'} />
+                  </div>
+                ) : (
+                  <textarea
+                    value={form.statement}
+                    onChange={e => set('statement', e.target.value)}
+                    rows={6}
+                    placeholder="Write the problem statement. Supports LaTeX: $x^2 + y^2 = r^2$"
+                    className="w-full text-sm bg-transparent border-none outline-none resize-none text-gray-900 dark:text-white placeholder:text-gray-400"
+                  />
+                )}
               </div>
 
               {/* Answer */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Answer</label>
-                <input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="e.g. 42 or 1/2"
-                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none text-slate-900 dark:text-white shadow-sm"
-                  required
-                />
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Answer</label>
+                {preview ? (
+                  <div className="text-sm text-gray-800 dark:text-gray-200">
+                    <KatexRenderer content={form.answer || '_No answer yet_'} />
+                  </div>
+                ) : (
+                  <input
+                    value={form.answer}
+                    onChange={e => set('answer', e.target.value)}
+                    placeholder="Final answer (supports LaTeX)"
+                    className="w-full text-sm bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
+                  />
+                )}
               </div>
 
-              {/* Difficulty & Topics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Difficulty</label>
-                  <input
-                    type="range" min="1" max="10" step="1"
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-ucla-blue"
+              {/* Solution */}
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Solution</label>
+                {preview ? (
+                  <div className="min-h-[80px] text-sm text-gray-800 dark:text-gray-200 prose dark:prose-invert max-w-none">
+                    <KatexRenderer content={form.solution || '_No solution yet_'} />
+                  </div>
+                ) : (
+                  <textarea
+                    value={form.solution}
+                    onChange={e => set('solution', e.target.value)}
+                    rows={5}
+                    placeholder="Full solution (supports LaTeX)"
+                    className="w-full text-sm bg-transparent border-none outline-none resize-none text-gray-900 dark:text-white placeholder:text-gray-400"
                   />
-                  <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Level</span>
-                    <span className="text-sm font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">{difficulty}/10</span>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Internal Notes
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={e => set('notes', e.target.value)}
+                  rows={3}
+                  placeholder="Notes for reviewers (not shown publicly)"
+                  className="w-full text-sm bg-transparent border-none outline-none resize-none text-gray-900 dark:text-white placeholder:text-gray-400"
+                />
+              </div>
+            </div>
+
+            {/* Right column */}
+            <div className="space-y-5">
+              {/* Meta */}
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5 space-y-4">
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Classification</h2>
+
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Topic</label>
+                  <div className="flex flex-wrap gap-2">
+                    {TOPICS.map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => { set('topic', t); set('subtopic', ''); }}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          form.topic === t
+                            ? 'bg-[#2774AE] text-white'
+                            : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Topics</label>
-                  <div className="flex flex-wrap gap-2">
-                    {topicOptions.map(topic => (
+                {form.topic && SUBTOPICS[form.topic] && (
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Subtopic</label>
+                    <select
+                      value={form.subtopic}
+                      onChange={e => set('subtopic', e.target.value)}
+                      className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 dark:text-white"
+                    >
+                      <option value="">Select subtopic…</option>
+                      {SUBTOPICS[form.topic].map(s => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Difficulty</label>
+                  <div className="flex gap-2">
+                    {DIFFICULTIES.map(d => (
                       <button
-                        key={topic} type="button"
-                        onClick={() => handleTopicToggle(topic)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                          topics.includes(topic)
-                            ? 'bg-ucla-blue border-ucla-blue text-white'
-                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-ucla-blue'
+                        key={d}
+                        type="button"
+                        onClick={() => set('difficulty', d)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          form.difficulty === d
+                            ? 'bg-[#2774AE] text-white'
+                            : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'
                         }`}
                       >
-                        {topic}
+                        {d}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Submit */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                {message && (
-                  <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
-                    message.includes('submitted') || message.includes('Problem')
-                      ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                      : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                  }`}>
-                    {message}
+              {/* Images */}
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5">
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Attachments</h2>
+                <label className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-white/5 border border-dashed border-gray-300 dark:border-white/10 rounded-lg cursor-pointer hover:border-[#2774AE]/40 transition-colors">
+                  <ImageIcon size={14} className="text-gray-400" />
+                  <span className="text-sm text-gray-500">Attach images</span>
+                  <input type="file" accept="image/*" multiple onChange={handleImage} className="hidden" />
+                </label>
+                {images.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {images.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img src={img.url} alt={img.name} className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-white/10" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(i)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={10} className="text-white" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
-                <button
-                  type="submit" disabled={loading}
-                  className="w-full bg-ucla-blue hover:bg-[#1a5a8a] text-white py-3 rounded-xl transition-all disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2"
-                >
-                  {loading ? 'Submitting...' : (<>Submit Problem <Send size={15} /></>)}
-                </button>
               </div>
-            </form>
-          </div>
 
-          {/* RIGHT: LIVE PREVIEW */}
-          <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-8">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</span>
-              </div>
-              <div className="p-6 space-y-6 max-h-[calc(100vh-220px)] overflow-y-auto">
-
-                <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Problem</h3>
-                  <div className="text-slate-800 dark:text-slate-200 leading-relaxed text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 min-h-[100px]">
-                    {latex
-                      ? <KatexRenderer latex={latex} />
-                      : <span className="text-slate-400 dark:text-slate-600 italic text-sm">Waiting for input...</span>}
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      {images.filter(img => img.destination === 'problem').map((img, i) => (
-                        <img key={i} src={img.dataUrl} className="rounded-lg border border-slate-200 dark:border-slate-700" alt="preview" />
-                      ))}
-                    </div>
+              {/* Test / Submit */}
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5">
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Submit</h2>
+                {error && (
+                  <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-lg">
+                    <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
                   </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPreview(v => !v)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                  >
+                    <FlaskConical size={14} />
+                    {preview ? 'Back to Edit' : 'Preview'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#2774AE] text-white text-sm font-semibold rounded-lg hover:bg-[#1a5f8e] transition-colors disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <><Send size={14} /> Submit</>  
+                    )}
+                  </button>
                 </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Solution</h3>
-                  <div className="text-slate-800 dark:text-slate-200 leading-relaxed text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 min-h-[80px]">
-                    {solution
-                      ? <KatexRenderer latex={solution} />
-                      : <span className="text-slate-400 dark:text-slate-600 italic text-sm">No solution yet...</span>}
-                  </div>
-                </div>
-
               </div>
             </div>
-
-            {answer && (
-              <div className="bg-ucla-blue rounded-xl p-4 text-white">
-                <p className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1">Answer</p>
-                <p className="text-xl font-bold font-mono">{answer}</p>
-              </div>
-            )}
           </div>
-
-        </div>
+        </form>
       </div>
     </Layout>
   );
-};
-
-export default WriteProblem;
+}

@@ -2,322 +2,350 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Star, LayoutDashboard, MessageSquare, Trash2, User,
-  Eye, X, ChevronDown, ChevronUp, CheckCircle,
-  ClipboardEdit, Save, Search, Plus, Filter, Clock, Lightbulb
+  X, ChevronDown, ChevronUp, CheckCircle,
+  ClipboardEdit, Save, ArrowLeft, AlertCircle, Bell, PenTool
 } from 'lucide-react';
-import Layout from '../components/Layout';
+import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
+import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-const TOPIC_COLORS = {
-  Algebra: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  Geometry: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  Combinatorics: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  'Number Theory': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-};
-
-const STATUS_COLORS = {
-  Idea: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  Endorsed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  'Needs Review': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  Archived: 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400',
-};
-
-function StatCard({ label, value, icon: Icon, active, onClick, color = 'text-[#2774AE]' }) {
+// ── Shared diff label (NO bar ever) ──────────────────────────────────────────
+const DiffLabel = ({ quality, className = '' }) => {
+  const d = parseInt(quality);
+  if (!d) return <span className="text-gray-300 dark:text-white/20">—</span>;
   return (
-    <button
-      onClick={onClick}
-      className={`text-left rounded-xl border p-4 transition-all ${
-        active
-          ? 'bg-[#2774AE] text-white border-[#2774AE] shadow-md shadow-[#2774AE]/15 dark:bg-[#1b5e8c] dark:border-[#1b5e8c]'
-          : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/8 hover:border-[#2774AE]/30 hover:shadow-sm'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className={`text-xs font-medium ${active ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>{label}</span>
-        <Icon size={14} className={active ? 'text-white' : color} />
-      </div>
-      <div className={`text-2xl font-bold tabular-nums ${active ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{value}</div>
-    </button>
+    <span className={`tabular-nums font-semibold text-xs text-[#2774AE] dark:text-[#FFD100] ${className}`}>
+      {d}/10
+    </span>
   );
-}
+};
 
-function EditProblemDrawer({ problem, open, onClose, onSave }) {
-  const [form, setForm] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setForm(problem ? {
-      statement: problem.statement || '',
-      answer: problem.answer || '',
-      solution: problem.solution || '',
-      topic: problem.topic || 'Algebra',
-      difficulty: problem.difficulty || 'Medium',
-      notes: problem.notes || '',
-      status: problem.status || 'Idea',
-    } : null);
-  }, [problem]);
-
-  if (!open || !form) return null;
-
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const res = await api.put(`/problems/${problem.id}`, form);
-      onSave(res.data);
-      onClose();
-    } catch (e) {
-      console.error(e);
-      alert('Failed to save changes.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
+// ── Status badge ─────────────────────────────────────────────────────────────
+const StatusBadge = ({ status, stage }) => {
+  const isNR = status === 'needs_review' || status === 'Needs Review';
+  const isEnd = status === 'Endorsed' || status === 'endorsed';
+  const label = isNR ? 'Needs Review' : isEnd ? 'Endorsed' : (stage || status);
+  const cls = isEnd
+    ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
+    : isNR
+    ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+    : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400';
   return (
-    <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[1px] flex justify-end" onClick={onClose}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded font-medium ${cls}`}>
+      {isNR && <AlertCircle size={10} />}
+      {isEnd && <Star size={10} className="fill-current" />}
+      {label}
+    </span>
+  );
+};
+
+// ── Notifications panel ───────────────────────────────────────────────────────
+const NotificationsPanel = ({ notifications, onClose, onMarkRead, onNavigate }) => {
+  const unread = notifications.filter(n => !n.read);
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
       <div
         className="w-full max-w-sm h-full bg-white dark:bg-[#0d1b2a] border-l border-slate-200 dark:border-white/10 shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Quick Edit</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Problem #{problem.id}</p>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/8">
+          <div className="flex items-center gap-2">
+            <Bell size={16} className="text-[#2774AE] dark:text-[#FFD100]" />
+            <span className="font-semibold text-sm text-slate-900 dark:text-white">Notifications</span>
+            {unread.length > 0 && (
+              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 rounded-full">{unread.length}</span>
+            )}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400"><X size={16} /></button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Statement</label>
-            <textarea value={form.statement} onChange={e => set('statement', e.target.value)} rows={6}
-              className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Answer</label>
-            <input value={form.answer} onChange={e => set('answer', e.target.value)}
-              className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Solution</label>
-            <textarea value={form.solution} onChange={e => set('solution', e.target.value)} rows={5}
-              className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Topic</label>
-              <select value={form.topic} onChange={e => set('topic', e.target.value)}
-                className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none">
-                <option>Algebra</option>
-                <option>Geometry</option>
-                <option>Combinatorics</option>
-                <option>Number Theory</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Difficulty</label>
-              <select value={form.difficulty} onChange={e => set('difficulty', e.target.value)}
-                className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none">
-                <option>Easy</option>
-                <option>Medium</option>
-                <option>Hard</option>
-                <option>Very Hard</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Status</label>
-            <select value={form.status} onChange={e => set('status', e.target.value)}
-              className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none">
-              <option>Idea</option>
-              <option>Needs Review</option>
-              <option>Endorsed</option>
-              <option>Archived</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Notes</label>
-            <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3}
-              className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30" />
+          <div className="flex items-center gap-2">
+            {unread.length > 0 && (
+              <button onClick={() => onMarkRead('all')} className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors">Mark all read</button>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-white/8 text-slate-400 transition-colors">
+              <X size={15} />
+            </button>
           </div>
         </div>
 
-        <div className="px-4 py-3 border-t border-slate-200 dark:border-white/10 flex gap-2">
-          <button onClick={onClose} className="flex-1 px-3 py-2 rounded-lg text-sm bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300">Cancel</button>
-          <button onClick={handleSave} disabled={saving}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-[#2774AE] text-white hover:bg-[#1f6396] disabled:opacity-50">
-            {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Save size={14} /> Save</>}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PreviewModal({ problem, onClose }) {
-  if (!problem) return null;
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div
-        className="bg-white dark:bg-[#0d1b2a] border border-slate-200 dark:border-white/10 w-full sm:max-w-2xl max-h-[92dvh] sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="px-5 py-4 border-b border-slate-200 dark:border-white/10 flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              {problem.topic && <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TOPIC_COLORS[problem.topic] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'}`}>{problem.topic}</span>}
-              {problem.status && <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[problem.status] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'}`}>{problem.status}</span>}
-              {problem.difficulty && <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400">{problem.difficulty}</span>}
+        <div className="flex-1 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Bell size={32} className="text-slate-200 dark:text-white/10 mb-3" />
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No notifications yet</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Replies and feedback updates will appear here</p>
             </div>
-            <h3 className="text-base font-semibold text-slate-900 dark:text-white">Problem Preview</h3>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"><X size={16} /></button>
-        </div>
-        <div className="overflow-y-auto px-5 py-5 space-y-5">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Statement</p>
-            <div className="text-sm text-slate-800 dark:text-slate-100 leading-7"><KatexRenderer content={problem.statement || '_No statement_'} /></div>
-          </div>
-          {problem.answer && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Answer</p>
-              <div className="text-sm text-slate-800 dark:text-slate-100"><KatexRenderer content={problem.answer} /></div>
-            </div>
-          )}
-          {problem.solution && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Solution</p>
-              <div className="text-sm text-slate-800 dark:text-slate-100 leading-7"><KatexRenderer content={problem.solution} /></div>
+          ) : (
+            <div className="divide-y divide-slate-50 dark:divide-white/5">
+              {notifications.map(n => (
+                <div
+                  key={n.id}
+                  onClick={() => { onMarkRead(n.id); onNavigate(n.link); }}
+                  className={`px-5 py-4 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-white/3 ${
+                    !n.read ? 'bg-[#2774AE]/4 dark:bg-[#FFD100]/4' : ''
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                      !n.read ? 'bg-[#2774AE] dark:bg-[#FFD100]' : 'bg-transparent'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-800 dark:text-slate-200 leading-snug">{n.message}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{n.time}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState(null);
-  const [myProblems, setMyProblems] = useState([]);
-  const [feedbackProblems, setFeedbackProblems] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('mine');
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [selectedTopic, setSelectedTopic] = useState('All');
-  const [previewProblem, setPreviewProblem] = useState(null);
-  const [editingProblem, setEditingProblem] = useState(null);
-  const [expandedReviewId, setExpandedReviewId] = useState(null);
+  // ── State ────────────────────────────────────────────────────────────────
+  const [problems, setProblems]     = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [filter, setFilter]         = useState('all');
+  const [stats, setStats]           = useState(null);
+  const [myFeedback, setMyFeedback] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const load = async () => {
+  // Review feedback
+  const [reviewProblems, setReviewProblems] = useState([]);
+  const [reviewLoading, setReviewLoading]   = useState(false);
+
+  // Edit inline
+  const [editingProblem, setEditingProblem]           = useState(null);
+  const [editForm, setEditForm]                       = useState({});
+  const [editSaving, setEditSaving]                   = useState(false);
+  const [reviewComments, setReviewComments]           = useState([]);
+  const [reviewCommentsLoading, setReviewCommentsLoading] = useState(false);
+  const [replyDrafts, setReplyDrafts]                 = useState({});
+  const [replyLoading, setReplyLoading]               = useState({});
+  const [editPreviewShowSolution, setEditPreviewShowSolution] = useState(false);
+
+  // Active tab
+  const [activeTab, setActiveTab] = useState('problems');
+
+  // ── Load data ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    loadDashboard();
+  }, [user]);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
+
+  const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [statsRes, mineRes, feedbackRes, reviewsRes] = await Promise.all([
-        api.get('/dashboard/stats'),
-        api.get('/dashboard/my-problems'),
-        api.get('/dashboard/needs-feedback'),
-        api.get('/dashboard/my-reviews'),
+      const [problemsRes, statsRes, feedbackRes] = await Promise.all([
+        api.get('/problems/my'),
+        api.get('/problems/stats'),
+        api.get('/feedback/my'),
       ]);
+      setProblems(problemsRes.data);
       setStats(statsRes.data);
-      setMyProblems(mineRes.data || []);
-      setFeedbackProblems(feedbackRes.data || []);
-      setReviews(reviewsRes.data || []);
-    } catch (e) {
-      console.error(e);
+      setMyFeedback(feedbackRes.data || []);
+
+      // Load review-flagged problems
+      setReviewLoading(true);
+      const res = await api.get('/problems/my');
+      const needsReview = res.data.filter(
+        p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
+      );
+      setReviewProblems(needsReview);
+      setReviewLoading(false);
+
+      // Load notifications
+      try {
+        const notifRes = await api.get('/notifications');
+        setNotifications(notifRes.data || []);
+      } catch (_) {
+        setNotifications([]);
+      }
+    } catch (err) {
+      console.error('Dashboard load error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  // ── Edit problem ─────────────────────────────────────────────────────────
+  const openEditProblem = async (problem) => {
+    setEditingProblem(problem);
+    setEditForm({
+      latex:     problem.latex || '',
+      solution:  problem.solution || '',
+      answer:    problem.answer || '',
+      notes:     problem.notes || '',
+      quality:   problem.quality || '',
+      topics:    problem.topics || [],
+      stage:     problem.stage || 'Idea',
+    });
+    setEditPreviewShowSolution(false);
+
+    // Load review comments
+    setReviewCommentsLoading(true);
+    try {
+      const res = await api.get(`/feedback/problem/${problem.id}`);
+      setReviewComments(res.data || []);
+    } catch (_) {
+      setReviewComments([]);
+    } finally {
+      setReviewCommentsLoading(false);
+    }
+  };
+
+  const handleEditFieldChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const toggleEditTopic = (topic) => {
+    setEditForm(prev => ({
+      ...prev,
+      topics: prev.topics.includes(topic)
+        ? prev.topics.filter(t => t !== topic)
+        : [...prev.topics, topic]
+    }));
+  };
+
+  const handleEditSave = async () => {
+    if (!editingProblem) return;
+    setEditSaving(true);
+    try {
+      await api.put(`/problems/${editingProblem.id}`, editForm);
+      await loadDashboard();
+      setEditingProblem(null);
+      setReviewComments([]);
+    } catch (err) {
+      alert('Save failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  // ── Profile update ───────────────────────────────────────────────────────
+  const [formData, setFormData] = useState({
+    firstName: '', lastName: '', initials: '', mathExperience: ''
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMsg, setProfileMsg]       = useState('');
 
   useEffect(() => {
-    const tab = searchParams.get('tab');
-    const filter = searchParams.get('filter');
-    const topic = searchParams.get('topic');
-    if (tab) setActiveTab(tab);
-    if (filter) setActiveFilter(filter);
-    if (topic) setSelectedTopic(topic);
-  }, [searchParams]);
+    if (user) {
+      setFormData({
+        firstName:      user.firstName || '',
+        lastName:       user.lastName  || '',
+        initials:       user.initials  || '',
+        mathExperience: user.mathExperience || '',
+      });
+    }
+  }, [user]);
 
-  const setTab = (tab) => {
-    setActiveTab(tab);
-    const next = new URLSearchParams(searchParams);
-    next.set('tab', tab);
-    setSearchParams(next);
-  };
-
-  const setFilter = (filter) => {
-    setActiveFilter(filter);
-    const next = new URLSearchParams(searchParams);
-    next.set('filter', filter);
-    setSearchParams(next);
-  };
-
-  const setTopic = (topic) => {
-    setSelectedTopic(topic);
-    const next = new URLSearchParams(searchParams);
-    next.set('topic', topic);
-    setSearchParams(next);
-  };
-
-  const updateProblemLocally = (updated) => {
-    setMyProblems(prev => prev.map(p => p.id === updated.id ? updated : p));
-    load();
-  };
-
-  const deleteProblem = async (id) => {
-    if (!window.confirm('Delete this problem?')) return;
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
     try {
-      await api.delete(`/problems/${id}`);
-      setMyProblems(prev => prev.filter(p => p.id !== id));
-      load();
-    } catch (e) {
-      console.error(e);
-      alert('Failed to delete problem.');
+      await api.put('/auth/profile', formData);
+      setProfileMsg('Saved!');
+      setTimeout(() => setProfileMsg(''), 3000);
+    } catch (err) {
+      setProfileMsg('Failed to save.');
+    } finally {
+      setProfileSaving(false);
     }
   };
 
-  const endorseProblem = async (id) => {
+  // ── Feedback / reviews ───────────────────────────────────────────────────
+  const handleDeleteFeedback = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('Remove this review?')) return;
     try {
-      await api.post(`/problems/${id}/endorse`);
-      load();
-    } catch (e) {
-      console.error(e);
-      alert('Failed to endorse problem.');
+      await api.delete(`/feedback/${id}`);
+      setMyFeedback(prev => prev.filter(f => f.id !== id));
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  const filteredMine = myProblems.filter(p => {
-    const matchesSearch = !search ||
-      p.statement?.toLowerCase().includes(search.toLowerCase()) ||
-      p.topic?.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = activeFilter === 'all'
-      || (activeFilter === 'endorsed' && p.status === 'Endorsed')
-      || (activeFilter === 'needs-review' && p.status === 'Needs Review')
-      || (activeFilter === 'idea' && p.status === 'Idea');
-    const matchesTopic = selectedTopic === 'All' || p.topic === selectedTopic;
-    return matchesSearch && matchesFilter && matchesTopic;
+  const handleSaveReply = async (feedbackId) => {
+    const body = replyDrafts[feedbackId]?.trim();
+    if (!body) return;
+    setReplyLoading(prev => ({ ...prev, [feedbackId]: true }));
+    try {
+      await api.post(`/feedback/${feedbackId}/reply`, { body });
+      setReplyDrafts(prev => ({ ...prev, [feedbackId]: '' }));
+      const res = await api.get(`/feedback/problem/${editingProblem?.id}`);
+      setReviewComments(res.data || []);
+    } catch (err) {
+      alert('Reply failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setReplyLoading(prev => ({ ...prev, [feedbackId]: false }));
+    }
+  };
+
+  const handleResolveFeedback = async (feedbackId) => {
+    try {
+      await api.patch(`/feedback/${feedbackId}/resolve`);
+      setReviewComments(prev =>
+        prev.map(f => f.id === feedbackId ? { ...f, resolved: true } : f)
+      );
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleMarkNotifRead = async (id) => {
+    try {
+      if (id === 'all') {
+        await api.patch('/notifications/read-all');
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      } else {
+        await api.patch(`/notifications/${id}/read`);
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      }
+    } catch (_) {}
+  };
+
+  const handleNavNotif = (link) => {
+    setShowNotifications(false);
+    navigate(link);
+  };
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const isValidAnswer = (ans) => ans && ans.trim() !== '' && ans.trim() !== '0';
+
+  const filteredProblems = problems.filter((p) => {
+    if (filter === 'all') return true;
+    if (filter === 'needs_review') return p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review';
+    if (filter === 'Endorsed') return p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed';
+    return p._displayStatus === filter || p.stage === filter;
   });
 
-  const topicCounts = myProblems.reduce((acc, p) => {
-    if (p.topic) acc[p.topic] = (acc[p.topic] || 0) + 1;
-    return acc;
-  }, {});
-  const topics = ['All', ...Object.keys(topicCounts).sort()];
+  const needsReviewCount = problems.filter(p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review').length;
+  const unreadCount = notifications.filter(n => !n.read).length;
 
+  const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
+
+  // ── Render ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="w-10 h-10 border-2 border-[#2774AE] border-t-transparent rounded-full animate-spin" />
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-[#2774AE] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-400 dark:text-gray-500">Loading dashboard…</p>
+          </div>
         </div>
       </Layout>
     );
@@ -325,328 +353,561 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="w-full px-[5%] py-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your problems, reviews, and feedback queue.</p>
-          </div>
-          <button
-            onClick={() => navigate('/write')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#2774AE] text-white text-sm font-semibold hover:bg-[#1f6396] shadow-sm"
-          >
-            <Plus size={16} />
-            New Problem
-          </button>
-        </div>
+      {showNotifications && (
+        <NotificationsPanel
+          notifications={notifications}
+          onClose={() => setShowNotifications(false)}
+          onMarkRead={handleMarkNotifRead}
+          onNavigate={handleNavNotif}
+        />
+      )}
 
-        {/* Top stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <StatCard
-            label="My Problems"
-            value={stats?.myProblems ?? myProblems.length}
-            icon={LayoutDashboard}
-            active={activeTab === 'mine' && activeFilter === 'all'}
-            onClick={() => { setTab('mine'); setFilter('all'); }}
-          />
-          <StatCard
-            label="Endorsed"
-            value={stats?.endorsed ?? myProblems.filter(p => p.status === 'Endorsed').length}
-            icon={Star}
-            active={activeTab === 'mine' && activeFilter === 'endorsed'}
-            onClick={() => { setTab('mine'); setFilter('endorsed'); }}
-            color="text-green-500"
-          />
-          <StatCard
-            label="Needs Review"
-            value={stats?.needsReview ?? myProblems.filter(p => p.status === 'Needs Review').length}
-            icon={Clock}
-            active={activeTab === 'mine' && activeFilter === 'needs-review'}
-            onClick={() => { setTab('mine'); setFilter('needs-review'); }}
-            color="text-amber-500"
-          />
-          <StatCard
-            label="Ideas"
-            value={myProblems.filter(p => p.status === 'Idea').length}
-            icon={Lightbulb}
-            active={activeTab === 'mine' && activeFilter === 'idea'}
-            onClick={() => { setTab('mine'); setFilter('idea'); }}
-            color="text-blue-500"
-          />
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              Welcome back, {user?.firstName || 'Writer'}
+            </h1>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Your problem-writing dashboard</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/write')}
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#2774AE] hover:bg-[#1a5a8a] dark:bg-[#FFD100] dark:hover:bg-[#e6bc00] text-white dark:text-slate-900 rounded-lg text-xs font-semibold transition-colors"
+            >
+              <PenTool size={13} /> New Problem
+            </button>
+            <button
+              onClick={() => setShowNotifications(true)}
+              className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              <Bell size={16} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{unreadCount}</span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+        <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-white/8">
           {[
-            { key: 'mine', label: 'My Problems', icon: LayoutDashboard },
-            { key: 'feedback', label: 'Needs Feedback', icon: MessageSquare },
-            { key: 'reviews', label: 'My Reviews', icon: User },
-          ].map(tab => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setTab(tab.key)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  active
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                    : 'bg-white dark:bg-white/5 border border-slate-200 dark:border-white/8 text-slate-600 dark:text-slate-300 hover:border-[#2774AE]/30'
-                }`}
-              >
-                <Icon size={14} />
-                {tab.label}
-              </button>
-            );
-          })}
+            { key: 'problems', label: 'My Problems', icon: <LayoutDashboard size={14} /> },
+            { key: 'myreviews', label: 'My Reviews', icon: <MessageSquare size={14} /> },
+            { key: 'review', label: 'Review Feedback', icon: <ClipboardEdit size={14} />, badge: needsReviewCount },
+            { key: 'settings', label: 'Account', icon: <User size={14} /> },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === tab.key
+                  ? 'border-[#2774AE] dark:border-[#FFD100] text-[#2774AE] dark:text-[#FFD100]'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {tab.badge > 0 && (
+                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-red-500 text-white rounded-full">{tab.badge}</span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* My Problems */}
-        {activeTab === 'mine' && (
-          <>
-            <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
-              <div className="relative flex-1 max-w-md">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search by statement or topic…"
-                  className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30"
-                />
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-sm">
-                  <Filter size={14} />
-                  Topic
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {topics.map(topic => (
-                    <button
-                      key={topic}
-                      onClick={() => setTopic(topic)}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                        selectedTopic === topic
-                          ? 'bg-[#2774AE] text-white'
-                          : 'bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300'
-                      }`}
-                    >
-                      {topic}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        {/* ── MY PROBLEMS TAB ── */}
+        {activeTab === 'problems' && (
+          <div>
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'My Problems', value: stats?.totalProblems || 0, filterVal: 'all', icon: null },
+                { label: 'Endorsed', value: stats?.totalEndorsements || 0, filterVal: 'Endorsed', icon: <Star size={11} /> },
+                { label: 'Needs Review', value: needsReviewCount, filterVal: 'needs_review', icon: <AlertCircle size={11} /> },
+                { label: 'Ideas', value: problems.filter(p => p.stage === 'Idea' || p._displayStatus === 'Idea').length, filterVal: 'Idea', icon: null },
+              ].map((card, i) => (
+                <button
+                  key={i}
+                  onClick={() => setFilter(card.filterVal)}
+                  className={`text-left bg-white dark:bg-white/5 border rounded-lg p-4 transition-all hover:shadow-md hover:border-[#2774AE]/30 dark:hover:border-[#FFD100]/30 ${
+                    filter === card.filterVal
+                      ? 'border-[#2774AE] dark:border-[#FFD100] ring-1 ring-[#2774AE]/20 dark:ring-[#FFD100]/20'
+                      : 'border-gray-200 dark:border-white/8'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+                    {card.icon}{card.label}
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{card.value}</p>
+                </button>
+              ))}
             </div>
 
-            <div className="bg-white dark:bg-[#091521] border border-slate-200 dark:border-white/8 rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px]">
+            {/* Filter bar */}
+            <div className="flex items-center gap-2 mt-5 mb-4 flex-wrap">
+              {[
+                { val: 'all', label: 'All' },
+                { val: 'needs_review', label: 'Needs Review' },
+                { val: 'Idea', label: 'Idea' },
+                { val: 'Endorsed', label: 'Endorsed' },
+              ].map(f => (
+                <button
+                  key={f.val}
+                  onClick={() => setFilter(f.val)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    filter === f.val
+                      ? 'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900'
+                      : 'bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/12'
+                  }`}
+                >
+                  {f.label}
+                  {f.val === 'needs_review' && needsReviewCount > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-bold bg-red-500 text-white rounded-full">{needsReviewCount}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Problems table */}
+            {filteredProblems.length === 0 ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <LayoutDashboard size={36} className="text-gray-200 dark:text-white/10 mb-3" />
+                <p className="text-base font-semibold text-gray-700 dark:text-gray-300">No problems found</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try a different filter or write a new problem.</p>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
+                <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-slate-200/80 dark:border-white/8 bg-slate-50/70 dark:bg-white/4">
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Problem</th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Topic</th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Difficulty</th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Actions</th>
+                    <tr className="border-b border-gray-100 dark:border-white/8">
+                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Status</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {filteredMine.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-5 py-16 text-center">
-                          <div className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500">
-                            <LayoutDashboard size={26} />
-                            <p className="text-sm">No problems match your filters.</p>
+                  <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                    {filteredProblems.map(problem => (
+                      <tr key={problem.id}
+                        onClick={() => navigate(`/problem/${problem.id}`)}
+                        className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors">
+                        <td className="px-4 py-3.5">
+                          <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[220px] mt-0.5">
+                            {problem.latex?.replace(/[$#\\]/g, '').slice(0, 70) || ''}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex flex-wrap gap-1">
+                            {(problem.topics || []).map(t => (
+                              <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                            ))}
                           </div>
                         </td>
-                      </tr>
-                    ) : filteredMine.map(problem => (
-                      <tr key={problem.id} className="border-b last:border-b-0 border-slate-100 dark:border-white/6 hover:bg-slate-50/80 dark:hover:bg-white/3 transition-colors">
-                        <td className="px-5 py-4 align-top">
-                          <button
-                            onClick={() => navigate(`/problem/${problem.id}`)}
-                            className="text-left group"
-                          >
-                            <div className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2 group-hover:text-[#2774AE] transition-colors">
-                              <KatexRenderer content={problem.statement || '_No statement_'} />
-                            </div>
-                          </button>
+                        <td className="px-4 py-3.5">
+                          <DiffLabel quality={problem.quality} />
                         </td>
-                        <td className="px-5 py-4 align-top">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${TOPIC_COLORS[problem.topic] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'}`}>
-                            {problem.topic || '—'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 align-top">
-                          <span className="text-sm text-slate-600 dark:text-slate-300">{problem.difficulty || '—'}</span>
-                        </td>
-                        <td className="px-5 py-4 align-top">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[problem.status] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'}`}>
-                            {problem.status || 'Unknown'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 align-top">
-                          <div className="flex items-center gap-2 justify-end">
-                            <button
-                              onClick={() => setPreviewProblem(problem)}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 hover:text-[#2774AE] hover:border-[#2774AE]/30 dark:text-slate-300"
-                              title="Preview"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              onClick={() => setEditingProblem(problem)}
-                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10"
-                            >
-                              <ClipboardEdit size={12} /> Edit
-                            </button>
-                            {problem.status !== 'Endorsed' && (
-                              <button
-                                onClick={() => endorseProblem(problem.id)}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700"
-                              >
-                                <CheckCircle size={12} /> Endorse
-                              </button>
-                            )}
-                            <button
-                              onClick={() => deleteProblem(problem.id)}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
+                        <td className="px-4 py-3.5">
+                          <StatusBadge status={problem._displayStatus} stage={problem.stage} />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          </>
-        )}
-
-        {/* Needs Feedback */}
-        {activeTab === 'feedback' && (
-          <div className="bg-white dark:bg-[#091521] border border-slate-200 dark:border-white/8 rounded-2xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px]">
-                <thead>
-                  <tr className="border-b border-slate-200/80 dark:border-white/8 bg-slate-50/70 dark:bg-white/4">
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Problem</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Topic</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Author</th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {feedbackProblems.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-5 py-16 text-center">
-                        <div className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500">
-                          <MessageSquare size={26} />
-                          <p className="text-sm">No problems need your feedback right now.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : feedbackProblems.map(problem => (
-                    <tr key={problem.id} className="border-b last:border-b-0 border-slate-100 dark:border-white/6 hover:bg-slate-50/80 dark:hover:bg-white/3 transition-colors cursor-pointer" onClick={() => navigate(`/problem/${problem.id}`)}>
-                      <td className="px-5 py-4 align-top">
-                        <div className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2"><KatexRenderer content={problem.statement || '_No statement_'} /></div>
-                      </td>
-                      <td className="px-5 py-4 align-top">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${TOPIC_COLORS[problem.topic] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'}`}>{problem.topic || '—'}</span>
-                      </td>
-                      <td className="px-5 py-4 align-top">
-                        <span className="text-sm text-slate-600 dark:text-slate-300">{problem.authorName || '—'}</span>
-                      </td>
-                      <td className="px-5 py-4 align-top">
-                        <div className="flex items-center gap-2 justify-end">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setEditingProblem(problem); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10"
-                          >
-                            <ClipboardEdit size={12} /> Edit
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/feedback/${problem.id}`); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-[#2774AE] text-white hover:bg-[#1f6396]"
-                          >
-                            <MessageSquare size={12} /> Give Feedback
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            )}
           </div>
         )}
 
-        {/* Reviews */}
-        {activeTab === 'reviews' && (
-          <div className="space-y-3">
-            {reviews.length === 0 ? (
-              <div className="bg-white dark:bg-[#091521] border border-slate-200 dark:border-white/8 rounded-2xl px-5 py-16 text-center">
-                <div className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500">
-                  <User size={26} />
-                  <p className="text-sm">You have not written any reviews yet.</p>
+        {/* ── MY REVIEWS TAB ── */}
+        {activeTab === 'myreviews' && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Reviews you've written on others' problems.</p>
+            {myFeedback.length === 0 ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <MessageSquare size={36} className="text-gray-200 dark:text-white/10 mb-3" />
+                <p className="text-base font-semibold text-gray-700 dark:text-gray-300">No reviews yet</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Head to Feedback to start reviewing problems.</p>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
+                {myFeedback.map(fb => (
+                  <div
+                    key={fb.id}
+                    className="flex items-start gap-4 px-5 py-4 border-b border-gray-50 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors group"
+                    onClick={() => navigate(`/problem/${fb.problemId}`)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100] group-hover:underline">{fb.problemId}</span>
+                        {fb.isEndorsement && (
+                          <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-medium">★ Endorsement</span>
+                        )}
+                        {fb.timeTaken > 0 && (
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">⏱ {Math.floor(fb.timeTaken / 60)}m {fb.timeTaken % 60}s</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic line-clamp-2">{fb.feedback}</p>
+                      {isValidAnswer(fb.answer) && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                          Ans: <span className="font-mono"><KatexRenderer latex={fb.answer} inline /></span>
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => handleDeleteFeedback(e, fb.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 dark:text-gray-600 hover:text-red-500 transition-all flex-shrink-0"
+                      title="Remove review"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── REVIEW FEEDBACK TAB ── */}
+        {activeTab === 'review' && (
+          <div>
+            {editingProblem ? (
+              <div>
+                <div className="flex items-center gap-3 mb-5">
+                  <button
+                    onClick={() => { setEditingProblem(null); setReviewComments([]); }}
+                    className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+                  >
+                    <ArrowLeft size={15} /> Back to list
+                  </button>
+                  <span className="text-gray-300 dark:text-white/20">|</span>
+                  <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{editingProblem.id}</span>
+                </div>
+
+                {/* Two-column layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                  {/* LEFT: edit form */}
+                  <div className="lg:col-span-7 space-y-4">
+
+                    {/* Review comments */}
+                    {reviewCommentsLoading ? (
+                      <div className="text-center py-8 text-gray-400 text-sm">Loading feedback…</div>
+                    ) : reviewComments.length > 0 ? (
+                      <div className="space-y-3">
+                        {reviewComments.map(fc => (
+                          <div key={fc.id} className={`rounded-xl border p-4 transition-all ${
+                            fc.resolved
+                              ? 'border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-900/10 opacity-60'
+                              : 'border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10'
+                          }`}>
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{fc.reviewerName || 'Reviewer'}</span>
+                                {fc.resolved && <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">✓ Resolved</span>}
+                              </div>
+                              <span className="text-[10px] text-gray-400">{fc.createdAt ? new Date(fc.createdAt).toLocaleDateString() : ''}</span>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{fc.feedback}</p>
+
+                            {/* Replies */}
+                            {fc.replies?.length > 0 && (
+                              <div className="mt-3 space-y-2 pl-3 border-l-2 border-gray-200 dark:border-white/10">
+                                {fc.replies.map((r, idx) => (
+                                  <div key={idx} className="text-xs text-gray-600 dark:text-gray-400">
+                                    <span className="font-semibold text-gray-700 dark:text-gray-300">{r.authorName || 'You'}:</span> {r.body}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Reply box */}
+                            {!fc.resolved && (
+                              <div className="mt-3 flex gap-2">
+                                <input
+                                  type="text"
+                                  value={replyDrafts[fc.id] || ''}
+                                  onChange={e => setReplyDrafts(prev => ({ ...prev, [fc.id]: e.target.value }))}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleSaveReply(fc.id); }}
+                                  placeholder="Reply…"
+                                  className="flex-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                                />
+                                <button
+                                  onClick={() => handleSaveReply(fc.id)}
+                                  disabled={replyLoading[fc.id]}
+                                  className="px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                                >
+                                  {replyLoading[fc.id] ? '…' : 'Reply'}
+                                </button>
+                                <button
+                                  onClick={() => handleResolveFeedback(fc.id)}
+                                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                                >
+                                  ✓ Resolve
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">No feedback comments yet.</div>
+                    )}
+
+                    {/* Edit fields */}
+                    <div className="space-y-3 pt-2">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Problem Statement</label>
+                        <textarea
+                          value={editForm.latex}
+                          onChange={e => handleEditFieldChange('latex', e.target.value)}
+                          rows={5}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Solution</label>
+                        <textarea
+                          value={editForm.solution}
+                          onChange={e => handleEditFieldChange('solution', e.target.value)}
+                          rows={4}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Answer</label>
+                        <input
+                          value={editForm.answer}
+                          onChange={e => handleEditFieldChange('answer', e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Notes</label>
+                        <textarea
+                          value={editForm.notes}
+                          onChange={e => handleEditFieldChange('notes', e.target.value)}
+                          rows={2}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Difficulty (1–10)</label>
+                        <input
+                          type="range" min="1" max="10"
+                          value={editForm.quality || 5}
+                          onChange={e => handleEditFieldChange('quality', e.target.value)}
+                          className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-[#2774AE]"
+                        />
+                        <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                          <span>1</span><span className="font-semibold text-[#2774AE] dark:text-[#FFD100]">{editForm.quality || 5}</span><span>10</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Topics</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {topicOptions.map(topic => (
+                            <button
+                              key={topic}
+                              type="button"
+                              onClick={() => toggleEditTopic(topic)}
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                (editForm.topics || []).includes(topic)
+                                  ? 'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900'
+                                  : 'bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/12'
+                              }`}
+                            >
+                              {topic}
+                            </button>
+                          ))}
+                        </div>
+                        {(editForm.topics || []).length > 0 && (
+                          <p className="text-[10px] text-gray-400 mt-1">{editForm.topics.join(', ')}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Stage</label>
+                        <select
+                          value={editForm.stage}
+                          onChange={e => handleEditFieldChange('stage', e.target.value)}
+                          className="px-3 py-1.5 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                        >
+                          <option value="Idea">Idea</option>
+                          <option value="Needs Review">Needs Review</option>
+                          <option value="Endorsed">Endorsed</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleEditSave}
+                      disabled={editSaving}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#2774AE] hover:bg-[#1a5a8a] dark:bg-[#FFD100] dark:hover:bg-[#e6bc00] text-white dark:text-slate-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                    >
+                      <Save size={14} />{editSaving ? 'Saving…' : 'Save Changes'}
+                    </button>
+                  </div>
+
+                  {/* RIGHT: live preview */}
+                  <div className="lg:col-span-5">
+                    <div className="sticky top-4 space-y-4">
+                      <div className="bg-white dark:bg-white/4 border border-gray-200 dark:border-white/8 rounded-xl p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</p>
+                        <div className="prose-math text-sm text-slate-800 dark:text-slate-100 leading-relaxed mt-3">
+                          {editForm.latex
+                            ? <KatexRenderer latex={editForm.latex} />
+                            : <span className="text-gray-300 dark:text-white/20 italic">Start typing to preview…</span>
+                          }
+                        </div>
+                        {editForm.answer && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
+                            <span className="font-mono text-sm text-[#2774AE] dark:text-[#FFD100]">
+                              <KatexRenderer latex={editForm.answer} inline />
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Solution preview */}
+                      <div className="border border-gray-200 dark:border-white/8 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => setEditPreviewShowSolution(!editPreviewShowSolution)}
+                          className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-white/4 hover:bg-slate-100 dark:hover:bg-white/8 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 text-xs font-semibold text-[#2774AE] dark:text-[#FFD100]">
+                            <CheckCircle size={14} /> {editPreviewShowSolution ? 'Hide' : 'Show'} Solution
+                          </div>
+                          {editPreviewShowSolution ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                        </button>
+                        {editPreviewShowSolution && (
+                          <div className="p-4 border-t border-slate-100 dark:border-white/8 prose-math text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                            {editForm.solution
+                              ? <KatexRenderer latex={editForm.solution} />
+                              : <span className="text-gray-300 dark:text-white/20 italic">No solution yet</span>
+                            }
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            ) : reviews.map(review => {
-              const expanded = expandedReviewId === review.id;
-              return (
-                <div key={review.id} className="bg-white dark:bg-[#091521] border border-slate-200 dark:border-white/8 rounded-2xl overflow-hidden shadow-sm">
-                  <button
-                    onClick={() => setExpandedReviewId(expanded ? null : review.id)}
-                    className="w-full flex items-start justify-between gap-4 px-5 py-4 text-left hover:bg-slate-50/80 dark:hover:bg-white/3 transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                        {review.problem?.topic && <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TOPIC_COLORS[review.problem.topic] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'}`}>{review.problem.topic}</span>}
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400">Rating {review.rating ?? '—'}/5</span>
-                      </div>
-                      <div className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2">
-                        <KatexRenderer content={review.problem?.statement || '_No statement_'} />
-                      </div>
-                    </div>
-                    {expanded ? <ChevronUp size={16} className="text-slate-400 flex-shrink-0 mt-1" /> : <ChevronDown size={16} className="text-slate-400 flex-shrink-0 mt-1" />}
-                  </button>
-                  {expanded && (
-                    <div className="px-5 py-4 border-t border-slate-200 dark:border-white/8 space-y-4">
-                      {review.comment && (
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Comment</p>
-                          <p className="text-sm text-slate-700 dark:text-slate-200 leading-6 whitespace-pre-wrap">{review.comment}</p>
-                        </div>
-                      )}
-                      {Array.isArray(review.tags) && review.tags.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Tags</p>
-                          <div className="flex flex-wrap gap-2">
-                            {review.tags.map(tag => (
-                              <span key={tag} className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-[#2774AE]/10 text-[#2774AE] dark:bg-[#2774AE]/20 dark:text-blue-300">{tag}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            ) : (
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Problems marked <span className="font-semibold text-red-500 dark:text-red-400">Needs Review</span> — edit and resubmit directly here.
+                </p>
+
+                {reviewLoading ? (
+                  <div className="flex items-center justify-center py-12 text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                ) : reviewProblems.length === 0 ? (
+                  <div className="flex flex-col items-center py-16 text-center">
+                    <CheckCircle size={40} className="text-green-400 dark:text-green-500 mb-3" />
+                    <p className="text-base font-semibold text-gray-700 dark:text-gray-300">You're all caught up!</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">No problems are marked Needs Review.</p>
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-gray-100 dark:border-white/8">
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
+                          <th className="px-4 py-2.5 w-24"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                        {reviewProblems.map(problem => (
+                          <tr key={problem.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors cursor-pointer" onClick={() => navigate(`/problem/${problem.id}`)}>
+                            <td className="px-4 py-3.5">
+                              <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[220px] mt-0.5">
+                                {problem.latex?.replace(/[$#\\]/g, '').slice(0, 70) || ''}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex flex-wrap gap-1">
+                                {(problem.topics || []).map(t => (
+                                  <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <DiffLabel quality={problem.quality} />
+                            </td>
+                            <td className="px-4 py-3.5 text-right">
+                              <div className="flex items-center gap-2 justify-end">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openEditProblem(problem); }}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors"
+                                >
+                                  <ClipboardEdit size={12} /> Edit
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── ACCOUNT TAB ── */}
+        {activeTab === 'settings' && (
+          <div className="max-w-md space-y-6">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Account</h2>
+
+            <form onSubmit={handleProfileSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">First Name</label>
+                <input value={formData.firstName} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Last Name</label>
+                <input value={formData.lastName} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Initials</label>
+                <input
+                  value={formData.initials}
+                  onChange={e => setFormData(f => ({ ...f, initials: e.target.value }))}
+                  maxLength={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Math Experience</label>
+                <select
+                  value={formData.mathExperience}
+                  onChange={e => setFormData(f => ({ ...f, mathExperience: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                >
+                  <option value="">Select level</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={profileSaving}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#2774AE] hover:bg-[#1a5a8a] dark:bg-[#FFD100] dark:hover:bg-[#e6bc00] text-white dark:text-slate-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                <Save size={14} />{profileSaving ? 'Saving…' : 'Save'}
+              </button>
+              {profileMsg && <p className="text-sm text-green-600 dark:text-green-400">{profileMsg}</p>}
+            </form>
           </div>
         )}
       </div>
-
-      <PreviewModal problem={previewProblem} onClose={() => setPreviewProblem(null)} />
-      <EditProblemDrawer
-        problem={editingProblem}
-        open={!!editingProblem}
-        onClose={() => setEditingProblem(null)}
-        onSave={updateProblemLocally}
-      />
     </Layout>
   );
 }

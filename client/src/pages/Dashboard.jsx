@@ -150,7 +150,7 @@ export default function Dashboard() {
     try {
       const [problemsRes, statsRes, feedbackRes] = await Promise.all([
         api.get('/problems/my'),
-        api.get('/problems/stats'),
+        api.get('/stats/dashboard'),
         api.get('/feedback/my'),
       ]);
       setProblems(problemsRes.data);
@@ -159,8 +159,7 @@ export default function Dashboard() {
 
       // Load review-flagged problems
       setReviewLoading(true);
-      const res = await api.get('/problems/my');
-      const needsReview = res.data.filter(
+      const needsReview = problemsRes.data.filter(
         p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
       );
       setReviewProblems(needsReview);

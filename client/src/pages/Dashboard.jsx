@@ -150,7 +150,7 @@ export default function Dashboard() {
     try {
       const [problemsRes, statsRes, feedbackRes] = await Promise.all([
         api.get('/problems/my'),
-        api.get('/problems/stats'),
+        api.get('/stats/dashboard'),
         api.get('/feedback/my'),
       ]);
       setProblems(problemsRes.data);
@@ -159,8 +159,7 @@ export default function Dashboard() {
 
       // Load review-flagged problems
       setReviewLoading(true);
-      const res = await api.get('/problems/my');
-      const needsReview = res.data.filter(
+      const needsReview = problemsRes.data.filter(
         p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
       );
       setReviewProblems(needsReview);
@@ -419,11 +418,11 @@ export default function Dashboard() {
         {/* ── MY PROBLEMS TAB ── */}
         {activeTab === 'problems' && (
           <div>
-            {/* Stat cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Stat cards — clicking them filters the table below */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
-                { label: 'My Problems', value: stats?.totalProblems || 0, filterVal: 'all', icon: null },
-                { label: 'Endorsed', value: stats?.totalEndorsements || 0, filterVal: 'Endorsed', icon: <Star size={11} /> },
+                { label: 'My Problems', value: stats?.totalProblems ?? problems.length, filterVal: 'all', icon: null },
+                { label: 'Endorsed', value: stats?.totalEndorsements ?? problems.filter(p => p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed').length, filterVal: 'Endorsed', icon: <Star size={11} /> },
                 { label: 'Needs Review', value: needsReviewCount, filterVal: 'needs_review', icon: <AlertCircle size={11} /> },
                 { label: 'Ideas', value: problems.filter(p => p.stage === 'Idea' || p._displayStatus === 'Idea').length, filterVal: 'Idea', icon: null },
               ].map((card, i) => (
@@ -440,31 +439,6 @@ export default function Dashboard() {
                     {card.icon}{card.label}
                   </div>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{card.value}</p>
-                </button>
-              ))}
-            </div>
-
-            {/* Filter bar */}
-            <div className="flex items-center gap-2 mt-5 mb-4 flex-wrap">
-              {[
-                { val: 'all', label: 'All' },
-                { val: 'needs_review', label: 'Needs Review' },
-                { val: 'Idea', label: 'Idea' },
-                { val: 'Endorsed', label: 'Endorsed' },
-              ].map(f => (
-                <button
-                  key={f.val}
-                  onClick={() => setFilter(f.val)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                    filter === f.val
-                      ? 'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900'
-                      : 'bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/12'
-                  }`}
-                >
-                  {f.label}
-                  {f.val === 'needs_review' && needsReviewCount > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-bold bg-red-500 text-white rounded-full">{needsReviewCount}</span>
-                  )}
                 </button>
               ))}
             </div>

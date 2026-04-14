@@ -218,13 +218,14 @@ const Dashboard = () => {
     const [showSol, setShowSol] = useState(false);
     if (!problem) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm" onClick={onClose}>
         <div
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl flex flex-col"
+          style={{ width: '70vw', height: '70vh', maxWidth: '1100px' }}
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+          <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
             <div>
               <div className="flex items-center gap-2.5">
                 <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">{problem.id}</span>
@@ -241,6 +242,11 @@ const Dashboard = () => {
                     ? 'Endorsed'
                     : problem.stage}
                 </span>
+                {problem.quality && (
+                  <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
+                    {parseInt(problem.quality)}/10
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 mt-0.5">{problem.topics?.join(' · ')}</p>
             </div>
@@ -253,10 +259,10 @@ const Dashboard = () => {
           </div>
 
           {/* Body */}
-          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          <div className="overflow-y-auto flex-1 px-8 py-6 space-y-6">
             <div>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Problem Statement</p>
-              <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Problem Statement</p>
+              <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-base">
                 <KatexRenderer latex={problem.latex} />
               </div>
             </div>
@@ -270,35 +276,19 @@ const Dashboard = () => {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#2774AE] dark:bg-[#FFD100] h-full transition-all"
-                      style={{ width: `${(parseInt(problem.quality) || 5) * 10}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                    {parseInt(problem.quality) || '?'}/10
-                  </span>
-                </div>
+            {problem.topics?.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {problem.topics.map(t => (
+                  <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">{t}</span>
+                ))}
               </div>
-              {problem.topics?.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {problem.topics.map(t => (
-                    <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">{t}</span>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
 
             {problem.solution && (
               <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setShowSol(s => !s)}
-                  className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="w-full flex justify-between items-center px-5 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
                     <CheckCircle size={14} /> {showSol ? 'Hide' : 'Show'} Solution
@@ -306,7 +296,7 @@ const Dashboard = () => {
                   {showSol ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                 </button>
                 {showSol && (
-                  <div className="p-4 border-t border-slate-100 dark:border-slate-800 prose-math text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                  <div className="p-5 border-t border-slate-100 dark:border-slate-800 prose-math text-base text-slate-800 dark:text-slate-200 leading-relaxed">
                     <KatexRenderer latex={problem.solution} />
                   </div>
                 )}
@@ -314,7 +304,7 @@ const Dashboard = () => {
             )}
 
             {problem.notes && (
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="p-5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
                 <div className="text-sm text-slate-700 dark:text-slate-300 prose-math leading-relaxed">
                   <KatexRenderer latex={problem.notes} />
@@ -324,7 +314,7 @@ const Dashboard = () => {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex-shrink-0 bg-slate-50/80 dark:bg-slate-900/80 flex items-center gap-2">
+          <div className="border-t border-slate-100 dark:border-slate-800 px-6 py-3 flex-shrink-0 bg-slate-50/80 dark:bg-slate-900/80 flex items-center gap-2">
             <button
               onClick={() => { onClose(); navigate(`/problem/${problem.id}`); }}
               className="flex items-center gap-1.5 px-3 py-2 bg-[#2774AE] text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
@@ -484,21 +474,10 @@ const Dashboard = () => {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              {problem.quality ? (
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-14 bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-                                    <div
-                                      className="bg-[#2774AE] dark:bg-[#FFD100] h-full"
-                                      style={{ width: `${(parseInt(problem.quality) || 0) * 10}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                                    {parseInt(problem.quality)}/10
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-gray-300 dark:text-gray-600">—</span>
-                              )}
+                              {problem.quality
+                                ? <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
+                                : <span className="text-gray-300 dark:text-gray-600">—</span>
+                              }
                             </td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-0.5 text-xs rounded font-medium ${
@@ -747,12 +726,7 @@ const Dashboard = () => {
                     <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
                       <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</p>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-16 bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
-                            <div className="bg-[#2774AE] dark:bg-[#FFD100] h-full" style={{ width: `${(parseInt(editForm.quality) || 5) * 10}%` }} />
-                          </div>
-                          <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
-                        </div>
+                        <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                       </div>
 
                       <div className="px-5 py-5 space-y-4 overflow-y-auto max-h-[70vh]">
@@ -852,14 +826,10 @@ const Dashboard = () => {
                                 </div>
                               </td>
                               <td className="px-4 py-3">
-                                {problem.quality ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-14 bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-                                      <div className="bg-[#2774AE] dark:bg-[#FFD100] h-full" style={{ width: `${(parseInt(problem.quality) || 0) * 10}%` }} />
-                                    </div>
-                                    <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
-                                  </div>
-                                ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                {problem.quality
+                                  ? <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
+                                  : <span className="text-gray-300 dark:text-gray-600">—</span>
+                                }
                               </td>
                               <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
                                 {new Date(problem.createdAt).toLocaleDateString()}

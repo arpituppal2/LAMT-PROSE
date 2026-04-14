@@ -24,19 +24,20 @@ export default function ProblemInventory() {
   }, []);
 
   const topics = useMemo(() => {
-    const t = new Set(problems.map(p => p.topic).filter(Boolean));
+    const t = new Set(problems.flatMap(p => p.topics || []).filter(Boolean));
     return ['All', ...Array.from(t).sort()];
   }, [problems]);
 
   const statuses = ['All', 'Idea', 'Endorsed', 'Needs Review', 'Archived'];
 
   const filtered = useMemo(() => problems.filter(p => {
+    const displayStatus = p._displayStatus || p.stage || 'Idea';
     const matchSearch = !search ||
-      p.statement?.toLowerCase().includes(search.toLowerCase()) ||
-      p.topic?.toLowerCase().includes(search.toLowerCase()) ||
-      p.author?.toLowerCase().includes(search.toLowerCase());
-    const matchTopic = topicFilter === 'All' || p.topic === topicFilter;
-    const matchStatus = statusFilter === 'All' || p.status === statusFilter;
+      p.latex?.toLowerCase().includes(search.toLowerCase()) ||
+      p.topics?.some(t => t.toLowerCase().includes(search.toLowerCase())) ||
+      `${p.author?.firstName} ${p.author?.lastName}`.toLowerCase().includes(search.toLowerCase());
+    const matchTopic = topicFilter === 'All' || (p.topics || []).includes(topicFilter);
+    const matchStatus = statusFilter === 'All' || displayStatus === statusFilter;
     return matchSearch && matchTopic && matchStatus;
   }), [problems, search, topicFilter, statusFilter]);
 
@@ -58,6 +59,8 @@ export default function ProblemInventory() {
     });
     return Object.entries(counts).map(([date, count]) => ({ date, count }));
   }, [problems]);
+
+  const getDisplayStatus = (p) => p._displayStatus || p.stage || 'Idea';
 
   const statusColor = (s) => ({
     'Endorsed':     'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -82,10 +85,10 @@ export default function ProblemInventory() {
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Total',       value: problems.length,                                          icon: BookOpen,  color: 'text-[#2774AE]' },
-            { label: 'Endorsed',    value: problems.filter(p=>p.status==='Endorsed').length,         icon: Star,     color: 'text-green-500' },
-            { label: 'Needs Review',value: problems.filter(p=>p.status==='Needs Review').length,     icon: Clock,    color: 'text-amber-500' },
-            { label: 'Ideas',       value: problems.filter(p=>p.status==='Idea').length,             icon: TrendingUp,color:'text-blue-500' },
+            { label: 'Total',        value: problems.length,                                                          icon: BookOpen,   color: 'text-[#2774AE]' },
+            { label: 'Endorsed',     value: problems.filter(p => getDisplayStatus(p) === 'Endorsed').length,         icon: Star,      color: 'text-green-500' },
+            { label: 'Needs Review', value: problems.filter(p => getDisplayStatus(p) === 'Needs Review').length,     icon: Clock,     color: 'text-amber-500' },
+            { label: 'Ideas',        value: problems.filter(p => getDisplayStatus(p) === 'Idea').length,             icon: TrendingUp, color: 'text-blue-500' },
           ].map(s => (
             <div key={s.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-4">
               <div className="flex items-center justify-between mb-1">
@@ -190,19 +193,24 @@ export default function ProblemInventory() {
                     className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2 max-w-md">
-                        {p.statement || <span className="text-gray-400 italic">No statement</span>}
+                      <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2 max-w-md font-mono">
+                        {p.latex || <span className="text-gray-400 italic font-sans">No statement</span>}
                       </div>
+                      <div className="text-xs text-gray-400 mt-0.5">{p.id}</div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{p.topic || '—'}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {(p.topics || []).join(', ') || '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{p.author || '—'}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {p.author ? `${p.author.firstName} ${p.author.lastName}` : '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(p.status)}`}>
-                        {p.status || 'Unknown'}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(getDisplayStatus(p))}`}>
+                        {getDisplayStatus(p)}
                       </span>
                     </td>
                   </tr>

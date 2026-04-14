@@ -112,7 +112,6 @@ export default function Dashboard() {
   const [problems, setProblems]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [filter, setFilter]         = useState('all');
-  const [stats, setStats]           = useState(null);
   const [myFeedback, setMyFeedback] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -148,16 +147,13 @@ export default function Dashboard() {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [problemsRes, statsRes, feedbackRes] = await Promise.all([
+      const [problemsRes, feedbackRes] = await Promise.all([
         api.get('/problems/my'),
-        api.get('/stats/dashboard'),
         api.get('/feedback/my'),
       ]);
       setProblems(problemsRes.data);
-      setStats(statsRes.data);
       setMyFeedback(feedbackRes.data || []);
 
-      // Load review-flagged problems
       setReviewLoading(true);
       const needsReview = problemsRes.data.filter(
         p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
@@ -165,7 +161,6 @@ export default function Dashboard() {
       setReviewProblems(needsReview);
       setReviewLoading(false);
 
-      // Load notifications
       try {
         const notifRes = await api.get('/notifications');
         setNotifications(notifRes.data || []);
@@ -193,7 +188,6 @@ export default function Dashboard() {
     });
     setEditPreviewShowSolution(false);
 
-    // Load review comments
     setReviewCommentsLoading(true);
     try {
       const res = await api.get(`/feedback/problem/${problem.id}`);
@@ -331,8 +325,11 @@ export default function Dashboard() {
     return p._displayStatus === filter || p.stage === filter;
   });
 
+  // Derived counts — always accurate, no API dependency
+  const endorsedCount   = problems.filter(p => p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed').length;
   const needsReviewCount = problems.filter(p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review').length;
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const ideasCount      = problems.filter(p => p.stage === 'Idea' || p._displayStatus === 'Idea').length;
+  const unreadCount     = notifications.filter(n => !n.read).length;
 
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
@@ -418,13 +415,13 @@ export default function Dashboard() {
         {/* ── MY PROBLEMS TAB ── */}
         {activeTab === 'problems' && (
           <div>
-            {/* Stat cards — clicking them filters the table below */}
+            {/* Stat cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
-                { label: 'My Problems', value: stats?.totalProblems ?? problems.length, filterVal: 'all', icon: null },
-                { label: 'Endorsed', value: stats?.totalEndorsements ?? problems.filter(p => p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed').length, filterVal: 'Endorsed', icon: <Star size={11} /> },
-                { label: 'Needs Review', value: needsReviewCount, filterVal: 'needs_review', icon: <AlertCircle size={11} /> },
-                { label: 'Ideas', value: problems.filter(p => p.stage === 'Idea' || p._displayStatus === 'Idea').length, filterVal: 'Idea', icon: null },
+                { label: 'My Problems', value: problems.length,   filterVal: 'all',          icon: null },
+                { label: 'Endorsed',    value: endorsedCount,     filterVal: 'Endorsed',     icon: <Star size={11} /> },
+                { label: 'Needs Review',value: needsReviewCount,  filterVal: 'needs_review', icon: <AlertCircle size={11} /> },
+                { label: 'Ideas',       value: ideasCount,        filterVal: 'Idea',         icon: null },
               ].map((card, i) => (
                 <button
                   key={i}
@@ -771,7 +768,7 @@ export default function Dashboard() {
             ) : (
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Problems marked <span className="font-semibold text-red-500 dark:text-red-400">Needs Review</span> — edit and resubmit directly here.
+                  Problems marked <span className="font-semibold text-red-500 dark:text-red-400">Needs Review</span> — click to view, or edit and resubmit directly here.
                 </p>
 
                 {reviewLoading ? (
@@ -813,14 +810,12 @@ export default function Dashboard() {
                               <DiffLabel quality={problem.quality} />
                             </td>
                             <td className="px-4 py-3.5 text-right">
-                              <div className="flex items-center gap-2 justify-end">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); openEditProblem(problem); }}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors"
-                                >
-                                  <ClipboardEdit size={12} /> Edit
-                                </button>
-                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openEditProblem(problem); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors ml-auto"
+                              >
+                                <ClipboardEdit size={12} /> Edit
+                              </button>
                             </td>
                           </tr>
                         ))}

@@ -218,6 +218,32 @@ const parseResolutionNote = (feedbackText) => {
   };
 };
 
+// ── Reviewer display name helper ──────────────────────────────────────────────
+const getReviewerName = (fb) => {
+  if (fb.user?.firstName || fb.user?.lastName) {
+    return `${fb.user.firstName || ''} ${fb.user.lastName || ''}`.trim();
+  }
+  if (fb.reviewerName && fb.reviewerName.toLowerCase() !== 'reviewer') return fb.reviewerName;
+  if (fb.author && fb.author.toLowerCase() !== 'reviewer') return fb.author;
+  return 'Anonymous';
+};
+
+const getReviewerInitials = (fb) => {
+  if (fb.user?.firstName || fb.user?.lastName) {
+    return `${fb.user.firstName?.[0] || ''}${fb.user.lastName?.[0] || ''}`;
+  }
+  const name = fb.reviewerName || fb.author || '';
+  if (name && name.toLowerCase() !== 'reviewer') return name[0].toUpperCase();
+  return '?';
+};
+
+// ── Answer display guard ──────────────────────────────────────────────────────
+const isValidAnswer = (answer) => {
+  if (!answer) return false;
+  const trimmed = answer.trim().toLowerCase();
+  return trimmed !== '' && trimmed !== 'n/a' && trimmed !== 'na' && trimmed !== 'null' && trimmed !== 'undefined';
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -729,7 +755,7 @@ const Dashboard = () => {
                         )}
                       </div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 italic line-clamp-2">{fb.feedback}</p>
-                      {fb.answer && (
+                      {isValidAnswer(fb.answer) && (
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                           Ans: <span className="font-mono"><KatexRenderer latex={fb.answer} inline /></span>
                         </p>
@@ -789,7 +815,7 @@ const Dashboard = () => {
                       const isReplyingThis = replyingId === fb.id;
                       const isResolvingThis = resolvingId === fb.id;
                       const normalizeAnswer = (a) => (a || '').trim().replace(/\s+/g, '').toLowerCase();
-                      const answerMismatch = editingProblem.answer && fb.answer &&
+                      const answerMismatch = editingProblem.answer && isValidAnswer(fb.answer) &&
                         normalizeAnswer(editingProblem.answer) !== normalizeAnswer(fb.answer);
 
                       return (
@@ -804,11 +830,11 @@ const Dashboard = () => {
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs ${
                                 fb.isEndorsement ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                               }`}>
-                                {(fb.user?.firstName?.[0] || fb.reviewerName?.[0] || '?')}{(fb.user?.lastName?.[0] || '')}
+                                {getReviewerInitials(fb)}
                               </div>
                               <div>
                                 <p className="font-semibold text-slate-900 dark:text-white text-sm leading-none mb-0.5">
-                                  {fb.user ? `${fb.user.firstName} ${fb.user.lastName}` : (fb.reviewerName || fb.author || 'Reviewer')}
+                                  {getReviewerName(fb)}
                                 </p>
                                 <p className="text-xs text-slate-400">
                                   {fb.createdAt && <>{new Date(fb.createdAt).toLocaleDateString()} &bull; </>}
@@ -858,8 +884,8 @@ const Dashboard = () => {
                             </div>
                           </div>
 
-                          {/* Their answer */}
-                          {fb.answer && (
+                          {/* Their answer — only shown when valid */}
+                          {isValidAnswer(fb.answer) && (
                             <div className="mb-3 flex items-center gap-2 flex-wrap">
                               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Their answer:</span>
                               <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-mono text-slate-700 dark:text-slate-300">
@@ -924,7 +950,7 @@ const Dashboard = () => {
                               <textarea
                                 value={resolveComment}
                                 onChange={(e) => setResolveComment(e.target.value)}
-                                placeholder="How did you address this?"
+                                placeholder="How did you address this feedback?"
                                 className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-[#2774AE]/20 outline-none bg-white dark:bg-slate-900 transition-all dark:text-white"
                                 rows={2}
                                 autoFocus

@@ -23,9 +23,9 @@ const DiffLabel = ({ quality, className = '' }) => {
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 const StatusBadge = ({ status, stage }) => {
-  const isNR = status === 'needs_review' || status === 'Needs Review';
-  const isEnd = status === 'Endorsed' || status === 'endorsed';
-  const label = isNR ? 'Needs Review' : isEnd ? 'Endorsed' : (stage || status);
+  const isNR  = status === 'Needs Review';
+  const isEnd = status === 'Endorsed';
+  const label = isNR ? 'Needs Review' : isEnd ? 'Endorsed' : (stage || status || 'Idea');
   const cls = isEnd
     ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
     : isNR
@@ -33,7 +33,7 @@ const StatusBadge = ({ status, stage }) => {
     : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400';
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded font-medium ${cls}`}>
-      {isNR && <AlertCircle size={10} />}
+      {isNR  && <AlertCircle size={10} />}
       {isEnd && <Star size={10} className="fill-current" />}
       {label}
     </span>
@@ -121,13 +121,13 @@ export default function Dashboard() {
   const [reviewLoading, setReviewLoading]   = useState(false);
 
   // Edit inline
-  const [editingProblem, setEditingProblem]           = useState(null);
-  const [editForm, setEditForm]                       = useState({});
-  const [editSaving, setEditSaving]                   = useState(false);
-  const [reviewComments, setReviewComments]           = useState([]);
+  const [editingProblem, setEditingProblem]               = useState(null);
+  const [editForm, setEditForm]                           = useState({});
+  const [editSaving, setEditSaving]                       = useState(false);
+  const [reviewComments, setReviewComments]               = useState([]);
   const [reviewCommentsLoading, setReviewCommentsLoading] = useState(false);
-  const [replyDrafts, setReplyDrafts]                 = useState({});
-  const [replyLoading, setReplyLoading]               = useState({});
+  const [replyDrafts, setReplyDrafts]                     = useState({});
+  const [replyLoading, setReplyLoading]                   = useState({});
   const [editPreviewShowSolution, setEditPreviewShowSolution] = useState(false);
 
   // Active tab
@@ -155,9 +155,8 @@ export default function Dashboard() {
       setMyFeedback(feedbackRes.data || []);
 
       setReviewLoading(true);
-      const needsReview = problemsRes.data.filter(
-        p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
-      );
+      // Server always returns 'Needs Review' (with space) from computeDisplayStatus
+      const needsReview = problemsRes.data.filter(p => p._displayStatus === 'Needs Review');
       setReviewProblems(needsReview);
       setReviewLoading(false);
 
@@ -178,13 +177,13 @@ export default function Dashboard() {
   const openEditProblem = async (problem) => {
     setEditingProblem(problem);
     setEditForm({
-      latex:     problem.latex || '',
-      solution:  problem.solution || '',
-      answer:    problem.answer || '',
-      notes:     problem.notes || '',
-      quality:   problem.quality || '',
-      topics:    problem.topics || [],
-      stage:     problem.stage || 'Idea',
+      latex:    problem.latex    || '',
+      solution: problem.solution || '',
+      answer:   problem.answer   || '',
+      notes:    problem.notes    || '',
+      quality:  problem.quality  || '',
+      topics:   problem.topics   || [],
+      stage:    problem.stage    || 'Idea',
     });
     setEditPreviewShowSolution(false);
 
@@ -237,9 +236,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       setFormData({
-        firstName:      user.firstName || '',
-        lastName:       user.lastName  || '',
-        initials:       user.initials  || '',
+        firstName:      user.firstName      || '',
+        lastName:       user.lastName       || '',
+        initials:       user.initials       || '',
         mathExperience: user.mathExperience || '',
       });
     }
@@ -318,18 +317,20 @@ export default function Dashboard() {
   // ── Helpers ──────────────────────────────────────────────────────────────
   const isValidAnswer = (ans) => ans && ans.trim() !== '' && ans.trim() !== '0';
 
+  // Server computeDisplayStatus returns: 'Archived' | 'Needs Review' | 'Endorsed' | stage ('Idea' etc.)
   const filteredProblems = problems.filter((p) => {
-    if (filter === 'all') return true;
-    if (filter === 'needs_review') return p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review';
-    if (filter === 'Endorsed') return p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed';
-    return p._displayStatus === filter || p.stage === filter;
+    if (filter === 'all')          return true;
+    if (filter === 'Needs Review') return p._displayStatus === 'Needs Review';
+    if (filter === 'Endorsed')     return p._displayStatus === 'Endorsed';
+    if (filter === 'Idea')         return p._displayStatus === 'Idea';
+    return p._displayStatus === filter;
   });
 
-  // Derived counts — always accurate, no API dependency
-  const endorsedCount   = problems.filter(p => p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed').length;
-  const needsReviewCount = problems.filter(p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review').length;
-  const ideasCount      = problems.filter(p => p.stage === 'Idea' || p._displayStatus === 'Idea').length;
-  const unreadCount     = notifications.filter(n => !n.read).length;
+  // Derived counts — computed purely from _displayStatus, matching server output exactly
+  const endorsedCount    = problems.filter(p => p._displayStatus === 'Endorsed').length;
+  const needsReviewCount = problems.filter(p => p._displayStatus === 'Needs Review').length;
+  const ideasCount       = problems.filter(p => p._displayStatus === 'Idea').length;
+  const unreadCount      = notifications.filter(n => !n.read).length;
 
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
@@ -389,10 +390,10 @@ export default function Dashboard() {
         {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-white/8">
           {[
-            { key: 'problems', label: 'My Problems', icon: <LayoutDashboard size={14} /> },
-            { key: 'myreviews', label: 'My Reviews', icon: <MessageSquare size={14} /> },
-            { key: 'review', label: 'Review Feedback', icon: <ClipboardEdit size={14} />, badge: needsReviewCount },
-            { key: 'settings', label: 'Account', icon: <User size={14} /> },
+            { key: 'problems',  label: 'My Problems',     icon: <LayoutDashboard size={14} /> },
+            { key: 'myreviews', label: 'My Reviews',       icon: <MessageSquare size={14} /> },
+            { key: 'review',    label: 'Review Feedback',  icon: <ClipboardEdit size={14} />, badge: needsReviewCount },
+            { key: 'settings',  label: 'Account',          icon: <User size={14} /> },
           ].map(tab => (
             <button
               key={tab.key}
@@ -418,10 +419,10 @@ export default function Dashboard() {
             {/* Stat cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
-                { label: 'My Problems', value: problems.length,   filterVal: 'all',          icon: null },
-                { label: 'Endorsed',    value: endorsedCount,     filterVal: 'Endorsed',     icon: <Star size={11} /> },
-                { label: 'Needs Review',value: needsReviewCount,  filterVal: 'needs_review', icon: <AlertCircle size={11} /> },
-                { label: 'Ideas',       value: ideasCount,        filterVal: 'Idea',         icon: null },
+                { label: 'My Problems',  value: problems.length, filterVal: 'all',          icon: null },
+                { label: 'Endorsed',     value: endorsedCount,   filterVal: 'Endorsed',     icon: <Star size={11} /> },
+                { label: 'Needs Review', value: needsReviewCount,filterVal: 'Needs Review', icon: <AlertCircle size={11} /> },
+                { label: 'Ideas',        value: ideasCount,      filterVal: 'Idea',         icon: null },
               ].map((card, i) => (
                 <button
                   key={i}
@@ -853,17 +854,13 @@ export default function Dashboard() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Math Experience</label>
-                <select
+                <textarea
                   value={formData.mathExperience}
                   onChange={e => setFormData(f => ({ ...f, mathExperience: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
-                >
-                  <option value="">Select level</option>
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                  <option value="expert">Expert</option>
-                </select>
+                  rows={3}
+                  placeholder="Describe your math competition background…"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
+                />
               </div>
               <button
                 type="submit"

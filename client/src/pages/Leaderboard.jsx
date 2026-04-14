@@ -1,151 +1,109 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Info } from 'lucide-react';
-import api from '../utils/api';
+import { Trophy, Medal, Award } from 'lucide-react';
 import Layout from '../components/Layout';
+import api from '../utils/api';
 
-const Leaderboard = () => {
-  const navigate = useNavigate();
-  const [leaderboard, setLeaderboard] = useState([]);
+export default function Leaderboard() {
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [showScoreInfo, setShowScoreInfo] = useState(false);
 
-  useEffect(() => { fetchLeaderboard(); }, []);
+  useEffect(() => {
+    api.get('/leaderboard')
+      .then(res => setUsers(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-  const fetchLeaderboard = async () => {
-    try {
-      const response = await api.get('/stats/leaderboard');
-      setLeaderboard(response.data);
-    } catch (error) {
-      console.error('Failed to fetch leaderboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const scoreOf = (u) =>
+    (u.endorsedCount || 0) * 5 +
+    (u.ideaCount || 0) * 3 -
+    (u.needsReviewCount || 0) * 2 +
+    (u.reviewsGiven || 0) * 0.25;
 
-  const filtered = leaderboard
-    .filter(entry => entry.score > 0) // hide zero-score users
-    .filter(entry =>
-      search === '' ||
-      entry.author.toLowerCase().includes(search.toLowerCase()) ||
-      entry.initials.toLowerCase().includes(search.toLowerCase())
-    );
+  const sorted = [...users]
+    .filter(u => scoreOf(u) > 0)
+    .sort((a, b) => scoreOf(b) - scoreOf(a));
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
-      </Layout>
-    );
-  }
+  const icons = [Trophy, Medal, Award];
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leaderboard</h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Contributors ranked by problem quality score.</p>
-          </div>
-          {/* Scoring info tooltip */}
-          <div className="relative">
-            <button
-              onClick={() => setShowScoreInfo(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/8 hover:bg-gray-200 dark:hover:bg-white/12 rounded-lg transition-colors border border-gray-200 dark:border-white/10"
-            >
-              <Info size={13} /> Scoring
-            </button>
-            {showScoreInfo && (
-              <div className="absolute right-0 top-full mt-2 z-10 w-64 bg-white dark:bg-[#0d1b2a] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl p-4">
-                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">How scores are calculated</p>
-                <div className="space-y-1.5">
-                  {[
-                    ['Endorsed problem', '+5'],
-                    ['Idea / draft', '+3'],
-                    ['Needs Review', '−2'],
-                    ['Review given', '+0.25'],
-                  ].map(([label, val]) => (
-                    <div key={label} className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
-                      <span className={`text-xs font-bold tabular-nums ${
-                        val.startsWith('−') ? 'text-red-500' : 'text-[#2774AE] dark:text-[#FFD100]'
-                      }`}>{val}</span>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={() => setShowScoreInfo(false)} className="mt-3 text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Close</button>
-              </div>
-            )}
+      <div className="w-full px-[5%]">
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Leaderboard</h1>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Scoring: endorsed <span className="font-semibold text-yellow-600 dark:text-yellow-400">+5</span>
+              {' · '} idea <span className="font-semibold text-blue-600 dark:text-blue-400">+3</span>
+              {' · '} needs review <span className="font-semibold text-red-500">−2</span>
+              {' · '} review given <span className="font-semibold text-green-600 dark:text-green-400">+0.25</span>
+            </span>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by name or initials"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-4 py-2 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 transition"
-          />
-        </div>
-
-        {/* Table */}
-        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded overflow-hidden">
-          <div
-            className="grid gap-2 px-4 py-2.5 border-b border-gray-100 dark:border-white/8 bg-gray-50 dark:bg-white/3"
-            style={{ gridTemplateColumns: '2rem 1fr 6rem 5rem 7rem 6rem 5rem' }}
-          >
-            {['#', 'Contributor', 'Endorsed', 'Idea', 'Needs Review', 'Reviews', 'Score'].map((col, i) => (
-              <div key={col} className={`text-xs font-medium text-gray-400 dark:text-gray-500 ${
-                i > 1 ? 'text-center' : ''
-              } ${i === 6 ? 'text-right' : ''}`}>
-                {col}
-              </div>
-            ))}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-[#2774AE] border-t-transparent rounded-full animate-spin" />
           </div>
-
-          {filtered.map((entry, index) => (
-            <div
-              key={entry.userId}
-              onClick={() => navigate(`/users/${entry.userId}`)}
-              className="grid gap-2 items-center px-4 py-3 border-b border-gray-50 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
-              style={{ gridTemplateColumns: '2rem 1fr 6rem 5rem 7rem 6rem 5rem' }}
-            >
-              <div className="text-sm tabular-nums">
-                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉'
-                  : <span className="text-gray-400 dark:text-gray-500">{index + 1}</span>}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{entry.author}</p>
-                <p className="text-xs text-gray-400 font-mono">{entry.initials}</p>
-              </div>
-              <div className="text-center"><span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">{entry.badges.endorsed || 0}</span></div>
-              <div className="text-center"><span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">{entry.badges.idea || 0}</span></div>
-              <div className="text-center">
-                <span className={`text-sm tabular-nums ${
-                  (entry.badges.needsReview || 0) > 0 ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'
-                }`}>{entry.badges.needsReview || 0}</span>
-              </div>
-              <div className="text-center"><span className="text-sm tabular-nums text-gray-700 dark:text-gray-300">{entry.reviewsGiven || 0}</span></div>
-              <div className="text-right">
-                <span className="text-sm font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{entry.score}</span>
-              </div>
-            </div>
-          ))}
-
-          {filtered.length === 0 && (
-            <div className="text-center py-12 text-sm text-gray-400 dark:text-gray-500">
-              {search ? `No results for "${search}"` : 'No contributors yet.'}
-            </div>
-          )}
-        </div>
+        ) : sorted.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">No contributors yet.</div>
+        ) : (
+          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-white/8">
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide w-12">#</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Writer</th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Score</th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide hidden sm:table-cell">Endorsed</th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide hidden sm:table-cell">Ideas</th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide hidden md:table-cell">Reviews Given</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                {sorted.map((u, i) => {
+                  const Icon = icons[i] || null;
+                  const score = scoreOf(u);
+                  return (
+                    <tr key={u.id} className={`transition-colors ${
+                      i === 0 ? 'bg-yellow-50/50 dark:bg-yellow-900/10' :
+                      i === 1 ? 'bg-gray-50/50 dark:bg-white/2' :
+                      i === 2 ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''
+                    }`}>
+                      <td className="px-5 py-3.5">
+                        {Icon
+                          ? <Icon size={16} className={i===0?'text-yellow-500':i===1?'text-gray-400':'text-orange-400'} />
+                          : <span className="text-sm text-gray-400 tabular-nums">{i + 1}</span>
+                        }
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-[#2774AE] dark:bg-[#FFD100]/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold text-white dark:text-[#FFD100]">{u.initials || u.firstName?.[0] || '?'}</span>
+                          </div>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{u.firstName} {u.lastName}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <span className="text-sm font-bold tabular-nums text-[#2774AE] dark:text-[#FFD100]">{score.toFixed(2)}</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right hidden sm:table-cell">
+                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.endorsedCount || 0}</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right hidden sm:table-cell">
+                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.ideaCount || 0}</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right hidden md:table-cell">
+                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.reviewsGiven || 0}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </Layout>
   );
-};
-
-export default Leaderboard;
+}

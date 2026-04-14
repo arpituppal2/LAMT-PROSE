@@ -5,13 +5,22 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-size: 16px;
+  }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-size: 1rem;
     @apply bg-[#F4F7FB] text-gray-900 dark:bg-[#030d17] dark:text-gray-100;
   }
+
+  /* Bump Tailwind's default text sizes up one step globally */
+  .text-xs   { font-size: 0.8125rem !important; line-height: 1.25rem !important; }
+  .text-sm   { font-size: 0.9375rem !important; line-height: 1.5rem !important; }
+  .text-base { font-size: 1.0625rem !important; line-height: 1.75rem !important; }
 }
 
 @layer utilities {
@@ -57,8 +66,3 @@ code {
   overflow-x: auto;
   overflow-y: hidden;
 }
-
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 2px; }
-.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,209,0,0.4); }

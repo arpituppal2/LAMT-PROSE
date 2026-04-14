@@ -134,7 +134,7 @@ const Layout = ({ children }) => {
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
         <main className="flex-1 overflow-y-auto bg-[#F4F7FB] dark:bg-[#030d17]">
-          <div className="p-8">
+          <div className="py-6">
             {children}
           </div>
         </main>

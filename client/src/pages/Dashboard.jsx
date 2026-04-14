@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Star, LayoutDashboard, MessageSquare, Trash2, User,
   Eye, X, ChevronDown, ChevronUp, CheckCircle,
-  ClipboardEdit, Save, ArrowLeft, ArrowRightLeft
+  ClipboardEdit, Save, ArrowLeft, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
@@ -213,34 +213,45 @@ const Dashboard = () => {
     );
   }
 
+  // ── Exam-style Preview Modal ──
   const PreviewPanel = ({ problem, onClose }) => {
     const [showSol, setShowSol] = useState(false);
     if (!problem) return null;
+    const diff = parseInt(problem.quality) || null;
+    const statusLabel =
+      problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review' ? 'Needs Review'
+      : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed' ? 'Endorsed'
+      : problem.stage;
+    const statusClass =
+      problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+        ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+        : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+        ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
+        : 'bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-gray-300';
+
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      >
         <div
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 w-full sm:max-w-2xl max-h-[92dvh] sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+          {/* Header */}
+          <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
             <div>
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">{problem.id}</span>
-                <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                  problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                    ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                    : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                    ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
-                    : 'bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-gray-300'
-                }`}>
-                  {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                    ? 'Needs Review'
-                    : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                    ? 'Endorsed'
-                    : problem.stage}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="font-mono text-base font-bold text-slate-900 dark:text-white">{problem.id}</span>
+                <span className={`px-2.5 py-0.5 text-xs rounded font-semibold flex items-center gap-1 ${statusClass}`}>
+                  {(problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review') && <AlertCircle size={10} />}
+                  {(problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed') && <Star size={10} className="fill-current" />}
+                  {statusLabel}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">{problem.topics?.join(' · ')}</p>
+              {problem.topics?.length > 0 && (
+                <p className="text-xs text-slate-400 mt-0.5">{problem.topics.join(' · ')}</p>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -250,31 +261,43 @@ const Dashboard = () => {
             </button>
           </div>
 
+          {/* Scrollable body */}
           <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+            {/* Problem Statement */}
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Problem Statement</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Problem Statement</p>
               <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm">
                 <KatexRenderer latex={problem.latex} />
               </div>
             </div>
 
+            {/* Answer pill */}
             {problem.answer && (
               <div className="flex items-center gap-2.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Answer</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
                 <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">
                   <KatexRenderer latex={problem.answer} />
                 </span>
               </div>
             )}
 
+            {/* Difficulty bar + Topics */}
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                    {parseInt(problem.quality) || '?'}/10
-                  </span>
-                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
+                {diff ? (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#2774AE] dark:bg-[#FFD100] h-full transition-all duration-500"
+                        style={{ width: `${diff * 10}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{diff}/10</span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-slate-300 dark:text-slate-600">—</span>
+                )}
               </div>
               {problem.topics?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
@@ -285,6 +308,7 @@ const Dashboard = () => {
               )}
             </div>
 
+            {/* Solution toggle */}
             {problem.solution && (
               <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                 <button
@@ -304,9 +328,10 @@ const Dashboard = () => {
               </div>
             )}
 
+            {/* Author Notes */}
             {problem.notes && (
               <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
                 <div className="text-sm text-slate-700 dark:text-slate-300 prose-math leading-relaxed">
                   <KatexRenderer latex={problem.notes} />
                 </div>
@@ -314,7 +339,8 @@ const Dashboard = () => {
             )}
           </div>
 
-          <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 flex justify-between items-center">
+          {/* Footer */}
+          <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 bg-slate-50/80 dark:bg-slate-900/80 flex justify-between items-center gap-3">
             <button
               onClick={() => navigate(`/problem/${problem.id}`)}
               className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors font-medium"
@@ -432,54 +458,67 @@ const Dashboard = () => {
                         No problems match this filter.
                       </td>
                     </tr>
-                  ) : filteredProblems.map(problem => (
-                    <tr key={problem.id}
-                      onClick={() => navigate(`/problem/${problem.id}`)}
-                      className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors">
-                      <td className="px-4 py-3.5">
-                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">
-                          {problem.latex?.replace(/[$#\\]/g, '').slice(0, 60) || ''}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex flex-wrap gap-1">
-                          {(problem.topics || []).map(t => (
-                            <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {problem.quality
-                          ? <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
-                          : <span className="text-gray-300 dark:text-white/20">—</span>}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`inline-block px-2 py-0.5 text-xs rounded font-medium ${
-                          problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                            ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
-                            : problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                            ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                            : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400'
-                        }`}>
-                          {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                            ? 'Needs Review'
-                            : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                            ? 'Endorsed'
-                            : problem.stage}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
-                        <button
-                          onClick={() => setPreviewProblem(problem)}
-                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
-                          title="Preview"
-                        >
-                          <Eye size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  ) : filteredProblems.map(problem => {
+                    const diff = parseInt(problem.quality) || null;
+                    return (
+                      <tr key={problem.id}
+                        onClick={() => navigate(`/problem/${problem.id}`)}
+                        className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors">
+                        <td className="px-4 py-3.5">
+                          <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">
+                            {problem.latex?.replace(/[$#\\]/g, '').slice(0, 60) || ''}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex flex-wrap gap-1">
+                            {(problem.topics || []).map(t => (
+                              <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {diff ? (
+                            <div className="flex items-center gap-1.5 min-w-[80px]">
+                              <div className="w-14 bg-slate-100 dark:bg-white/10 h-1.5 rounded-full overflow-hidden flex-shrink-0">
+                                <div
+                                  className="bg-[#2774AE] dark:bg-[#FFD100] h-full"
+                                  style={{ width: `${diff * 10}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{diff}/10</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-300 dark:text-white/20">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-block px-2 py-0.5 text-xs rounded font-medium ${
+                            problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+                              ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
+                              : problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+                              ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                              : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400'
+                          }`}>
+                            {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+                              ? 'Needs Review'
+                              : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+                              ? 'Endorsed'
+                              : problem.stage}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => setPreviewProblem(problem)}
+                            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+                            title="Preview"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -655,6 +694,12 @@ const Dashboard = () => {
                       <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</p>
                         <div className="flex items-center gap-1.5">
+                          <div className="w-16 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-[#2774AE] dark:bg-[#FFD100] h-full transition-all"
+                              style={{ width: `${(parseInt(editForm.quality) || 5) * 10}%` }}
+                            />
+                          </div>
                           <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                         </div>
                       </div>
@@ -735,45 +780,58 @@ const Dashboard = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                        {reviewProblems.map(problem => (
-                          <tr key={problem.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors">
-                            <td className="px-4 py-3.5">
-                              <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
-                              <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">
-                                {problem.latex?.replace(/[$#\\]/g, '').slice(0, 60) || ''}
-                              </p>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <div className="flex flex-wrap gap-1">
-                                {(problem.topics || []).map(t => (
-                                  <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              {problem.quality
-                                ? <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
-                                : null}
-                            </td>
-                            <td className="px-4 py-3.5 text-right">
-                              <div className="flex items-center gap-2 justify-end">
-                                <button
-                                  onClick={() => setPreviewProblem(problem)}
-                                  className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
-                                  title="Preview"
-                                >
-                                  <Eye size={14} />
-                                </button>
-                                <button
-                                  onClick={() => openEditProblem(problem)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors"
-                                >
-                                  <ClipboardEdit size={12} /> Edit
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {reviewProblems.map(problem => {
+                          const diff = parseInt(problem.quality) || null;
+                          return (
+                            <tr key={problem.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors">
+                              <td className="px-4 py-3.5">
+                                <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">
+                                  {problem.latex?.replace(/[$#\\]/g, '').slice(0, 60) || ''}
+                                </p>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <div className="flex flex-wrap gap-1">
+                                  {(problem.topics || []).map(t => (
+                                    <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                {diff ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-14 bg-slate-100 dark:bg-white/10 h-1.5 rounded-full overflow-hidden flex-shrink-0">
+                                      <div
+                                        className="bg-[#2774AE] dark:bg-[#FFD100] h-full"
+                                        style={{ width: `${diff * 10}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{diff}/10</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-300 dark:text-white/20">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3.5 text-right">
+                                <div className="flex items-center gap-2 justify-end">
+                                  <button
+                                    onClick={() => setPreviewProblem(problem)}
+                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+                                    title="Preview"
+                                  >
+                                    <Eye size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => openEditProblem(problem)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors"
+                                  >
+                                    <ClipboardEdit size={12} /> Edit
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

@@ -60,17 +60,17 @@ const Sidebar = ({ dark, toggleDark }) => {
   return (
     <div
       className={`h-screen text-white flex flex-col flex-shrink-0 ${
-        collapsed ? 'w-14' : 'w-56'
+        collapsed ? 'w-14' : 'w-60'
       } bg-[#2774AE] dark:bg-[#001628] border-r border-white/10 transition-[width] duration-200`}
     >
       {/* Header — clicking brand navigates home */}
-      <div className={`h-14 flex items-center flex-shrink-0 px-3 border-b border-white/10 ${
+      <div className={`h-16 flex items-center flex-shrink-0 px-4 border-b border-white/10 ${
         collapsed ? 'justify-center' : 'justify-between'
       }`}>
         {!collapsed && (
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-sm font-semibold tracking-tight text-white/90 hover:text-white transition-colors"
+            className="text-base font-semibold tracking-tight text-white/90 hover:text-white transition-colors"
           >
             LAMT PROSE
           </button>
@@ -93,13 +93,13 @@ const Sidebar = ({ dark, toggleDark }) => {
             <Link
               key={link.to}
               to={link.to}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded text-sm transition-colors ${
+              className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded text-sm transition-colors ${
                 isActive
                   ? 'bg-white/15 text-white'
                   : 'text-white/55 hover:bg-white/8 hover:text-white/90'
               }`}
             >
-              <Icon size={16} className="flex-shrink-0" />
+              <Icon size={18} className="flex-shrink-0" />
               {!collapsed && <span>{link.label}</span>}
             </Link>
           );
@@ -112,14 +112,14 @@ const Sidebar = ({ dark, toggleDark }) => {
           onClick={toggleDark}
           className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded text-sm text-white/50 hover:bg-white/8 hover:text-white/90 transition-colors"
         >
-          {dark ? <Sun size={16} className="flex-shrink-0" /> : <Moon size={16} className="flex-shrink-0" />}
+          {dark ? <Sun size={18} className="flex-shrink-0" /> : <Moon size={18} className="flex-shrink-0" />}
           {!collapsed && <span>{dark ? 'Light mode' : 'Dark mode'}</span>}
         </button>
         <button
           onClick={handleLogout}
           className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded text-sm text-white/50 hover:bg-red-500/20 hover:text-red-300 transition-colors"
         >
-          <LogOut size={16} className="flex-shrink-0" />
+          <LogOut size={18} className="flex-shrink-0" />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>
@@ -134,7 +134,7 @@ const Layout = ({ children }) => {
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
         <main className="flex-1 overflow-y-auto bg-[#F4F7FB] dark:bg-[#030d17]">
-          <div className="p-6">
+          <div className="p-8">
             {children}
           </div>
         </main>

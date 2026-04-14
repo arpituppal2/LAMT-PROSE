@@ -104,7 +104,7 @@ const NotificationsPanel = ({ notifications, onClose, onMarkRead, onNavigate }) 
 };
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, checkAuth } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -234,34 +234,32 @@ export default function Dashboard() {
   };
 
   // ── Profile update ───────────────────────────────────────────────────────
-  const [formData, setFormData] = useState({
-    firstName: '', lastName: '', initials: '', mathExperience: ''
-  });
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileMsg, setProfileMsg]       = useState('');
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', mathExp: '' });
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
 
   useEffect(() => {
     if (user) {
       setFormData({
-        firstName:      user.firstName || '',
-        lastName:       user.lastName  || '',
-        initials:       user.initials  || '',
-        mathExperience: user.mathExperience || '',
+        firstName: user.firstName || '',
+        lastName:  user.lastName  || '',
+        mathExp:   user.mathExp   || '',
       });
     }
   }, [user]);
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    setProfileSaving(true);
+    setProfileSubmitting(true);
+    setProfileMessage('');
     try {
-      await api.put('/auth/profile', formData);
-      setProfileMsg('Saved!');
-      setTimeout(() => setProfileMsg(''), 3000);
-    } catch (err) {
-      setProfileMsg('Failed to save.');
+      await api.put('/user/profile', formData);
+      await checkAuth();
+      setProfileMessage('Saved.');
+    } catch (error) {
+      setProfileMessage('Failed to save changes.');
     } finally {
-      setProfileSaving(false);
+      setProfileSubmitting(false);
     }
   };
 
@@ -395,7 +393,7 @@ export default function Dashboard() {
             { key: 'problems', label: 'My Problems', icon: <LayoutDashboard size={14} /> },
             { key: 'myreviews', label: 'My Reviews', icon: <MessageSquare size={14} /> },
             { key: 'review', label: 'Review Feedback', icon: <ClipboardEdit size={14} />, badge: needsReviewCount },
-            { key: 'settings', label: 'Account', icon: <User size={14} /> },
+            { key: 'settings', label: 'Settings', icon: <User size={14} /> },
           ].map(tab => (
             <button
               key={tab.key}
@@ -858,52 +856,81 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── ACCOUNT TAB ── */}
+        {/* ── SETTINGS TAB ── */}
         {activeTab === 'settings' && (
-          <div className="max-w-md space-y-6">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Account</h2>
+          <div className="max-w-xl">
+            <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-6">
+              <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-5">Account settings</h2>
 
-            <form onSubmit={handleProfileSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">First Name</label>
-                <input value={formData.firstName} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Last Name</label>
-                <input value={formData.lastName} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Initials</label>
-                <input
-                  value={formData.initials}
-                  onChange={e => setFormData(f => ({ ...f, initials: e.target.value }))}
-                  maxLength={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Math Experience</label>
-                <select
-                  value={formData.mathExperience}
-                  onChange={e => setFormData(f => ({ ...f, mathExperience: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+              {profileMessage && (
+                <p className={`mb-4 text-sm ${
+                  profileMessage === 'Saved.'
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-500 dark:text-red-400'
+                }`}>
+                  {profileMessage}
+                </p>
+              )}
+
+              <form onSubmit={handleProfileSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={user?.email || ''}
+                      disabled
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Initials</label>
+                    <input
+                      type="text"
+                      value={user?.initials || ''}
+                      disabled
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">First name</label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Last name</label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Math experience</label>
+                  <textarea
+                    value={formData.mathExp}
+                    onChange={e => setFormData(prev => ({ ...prev, mathExp: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={profileSubmitting}
+                  className="px-4 py-2 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
-                  <option value="">Select level</option>
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                  <option value="expert">Expert</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                disabled={profileSaving}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#2774AE] hover:bg-[#1a5a8a] dark:bg-[#FFD100] dark:hover:bg-[#e6bc00] text-white dark:text-slate-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-              >
-                <Save size={14} />{profileSaving ? 'Saving…' : 'Save'}
-              </button>
-              {profileMsg && <p className="text-sm text-green-600 dark:text-green-400">{profileMsg}</p>}
-            </form>
+                  {profileSubmitting ? 'Saving…' : 'Save changes'}
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </div>

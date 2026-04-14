@@ -3,13 +3,210 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Star, LayoutDashboard, MessageSquare, Trash2, User,
   Eye, X, ChevronDown, ChevronUp, CheckCircle,
-  ClipboardEdit, Save, ArrowLeft, AlertCircle
+  ClipboardEdit, Save, ArrowLeft, AlertCircle, Bell, PenTool
 } from 'lucide-react';
 import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
+// ── Shared diff label (NO bar ever) ──────────────────────────────────────────
+const DiffLabel = ({ quality, className = '' }) => {
+  const d = parseInt(quality);
+  if (!d) return <span className="text-gray-300 dark:text-white/20">—</span>;
+  return (
+    <span className={`tabular-nums font-semibold text-xs text-[#2774AE] dark:text-[#FFD100] ${className}`}>
+      {d}/10
+    </span>
+  );
+};
+
+// ── Status badge ─────────────────────────────────────────────────────────────
+const StatusBadge = ({ status, stage }) => {
+  const isNR = status === 'needs_review' || status === 'Needs Review';
+  const isEnd = status === 'Endorsed' || status === 'endorsed';
+  const label = isNR ? 'Needs Review' : isEnd ? 'Endorsed' : (stage || status);
+  const cls = isEnd
+    ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
+    : isNR
+    ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+    : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400';
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded font-medium ${cls}`}>
+      {isNR && <AlertCircle size={10} />}
+      {isEnd && <Star size={10} className="fill-current" />}
+      {label}
+    </span>
+  );
+};
+
+// ── Exam-style Preview Modal ──────────────────────────────────────────────────
+const PreviewModal = ({ problem, onClose, onNavigate }) => {
+  const [showSol, setShowSol] = useState(false);
+  if (!problem) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4 bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-[#0d1b2a] border border-slate-200 dark:border-white/10 w-full sm:max-w-2xl max-h-[92dvh] sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 dark:border-white/8 flex-shrink-0">
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="font-mono text-base font-bold text-slate-900 dark:text-white">{problem.id}</span>
+              <StatusBadge status={problem._displayStatus} stage={problem.stage} />
+              {problem.quality && (
+                <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
+                  Difficulty {problem.quality}/10
+                </span>
+              )}
+            </div>
+            {problem.topics?.length > 0 && (
+              <p className="text-xs text-slate-400 mt-0.5">{problem.topics.join(' · ')}</p>
+            )}
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Problem Statement</p>
+            <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm">
+              <KatexRenderer latex={problem.latex} />
+            </div>
+          </div>
+
+          {problem.answer && (
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
+              <span className="px-3 py-1.5 bg-slate-100 dark:bg-white/8 border border-slate-200 dark:border-white/10 rounded-lg font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">
+                <KatexRenderer latex={problem.answer} />
+              </span>
+            </div>
+          )}
+
+          {problem.topics?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {problem.topics.map(t => (
+                <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-white/8 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-white/10">{t}</span>
+              ))}
+            </div>
+          )}
+
+          {problem.solution && (
+            <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowSol(!showSol)}
+                className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-white/4 hover:bg-slate-100 dark:hover:bg-white/8 transition-colors"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
+                  <CheckCircle size={14} /> {showSol ? 'Hide' : 'Show'} Solution
+                </div>
+                {showSol ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+              </button>
+              {showSol && (
+                <div className="p-4 border-t border-slate-100 dark:border-white/8 prose-math text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                  <KatexRenderer latex={problem.solution} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {problem.notes && (
+            <div className="p-4 bg-slate-50 dark:bg-white/4 rounded-xl border border-slate-200 dark:border-white/10">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
+              <div className="text-sm text-slate-700 dark:text-slate-300 prose-math leading-relaxed">
+                <KatexRenderer latex={problem.notes} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-slate-100 dark:border-white/8 flex-shrink-0 bg-slate-50/80 dark:bg-white/2 flex justify-between items-center gap-3">
+          <button onClick={() => onNavigate(`/problem/${problem.id}`)} className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors font-medium">
+            Open full page →
+          </button>
+          <button onClick={() => onNavigate(`/problem/${problem.id}/feedback`)} className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors font-medium">
+            Leave feedback →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Notifications panel ───────────────────────────────────────────────────────
+const NotificationsPanel = ({ notifications, onClose, onMarkRead, onNavigate }) => {
+  const unread = notifications.filter(n => !n.read);
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      <div
+        className="w-full max-w-sm h-full bg-white dark:bg-[#0d1b2a] border-l border-slate-200 dark:border-white/10 shadow-2xl flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/8">
+          <div className="flex items-center gap-2">
+            <Bell size={16} className="text-[#2774AE] dark:text-[#FFD100]" />
+            <span className="font-semibold text-sm text-slate-900 dark:text-white">Notifications</span>
+            {unread.length > 0 && (
+              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 rounded-full">{unread.length}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {unread.length > 0 && (
+              <button onClick={() => onMarkRead('all')} className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors">Mark all read</button>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-white/8 text-slate-400 transition-colors">
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Bell size={32} className="text-slate-200 dark:text-white/10 mb-3" />
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No notifications yet</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Replies and feedback updates will appear here</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-50 dark:divide-white/5">
+              {notifications.map(n => (
+                <div
+                  key={n.id}
+                  onClick={() => { onMarkRead(n.id); onNavigate(n.link); }}
+                  className={`px-5 py-4 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-white/3 ${
+                    !n.read ? 'bg-[#2774AE]/4 dark:bg-[#FFD100]/4' : ''
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                      !n.read ? 'bg-[#2774AE] dark:bg-[#FFD100]' : 'bg-transparent'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-800 dark:text-slate-200 leading-snug">{n.message}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{n.time}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -41,10 +238,14 @@ const Dashboard = () => {
   const [myFeedback, setMyFeedback] = useState([]);
   const [dashboardLoading, setDashboardLoading] = useState(true);
 
-  // Preview panel state
+  // Preview
   const [previewProblem, setPreviewProblem] = useState(null);
 
-  // Review Feedback tab state
+  // Notifications
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // Review tab
   const [reviewProblems, setReviewProblems] = useState([]);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [editingProblem, setEditingProblem] = useState(null);
@@ -52,6 +253,8 @@ const Dashboard = () => {
   const [editSaving, setEditSaving] = useState(false);
   const [editMessage, setEditMessage] = useState('');
   const [editPreviewShowSolution, setEditPreviewShowSolution] = useState(false);
+  // Reviewer comments for a needs-review problem
+  const [reviewComments, setReviewComments] = useState([]);
 
   const [formData, setFormData] = useState({ firstName: '', lastName: '', mathExp: '' });
   const [profileSubmitting, setProfileSubmitting] = useState(false);
@@ -93,6 +296,13 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Failed to fetch my feedback', error);
     }
+    // Notifications: replies/comments on problems I own or feedback I wrote
+    try {
+      const notifRes = await api.get('/notifications');
+      setNotifications(notifRes.data || []);
+    } catch (_) {
+      // notifications endpoint may not exist yet — silently skip
+    }
   };
 
   const fetchReviewProblems = async () => {
@@ -126,6 +336,13 @@ const Dashboard = () => {
       });
       setEditMessage('');
       setEditPreviewShowSolution(false);
+      // Load reviewer feedback comments for this problem
+      try {
+        const fbRes = await api.get(`/feedback/problem/${problem.id}`);
+        setReviewComments(fbRes.data || []);
+      } catch (_) {
+        setReviewComments(full.feedbacks || []);
+      }
     } catch (e) {
       console.error('Failed to load problem detail', e);
     }
@@ -194,6 +411,19 @@ const Dashboard = () => {
     }
   };
 
+  const handleMarkRead = (id) => {
+    if (id === 'all') {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } else {
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    }
+  };
+
+  const handleNotifNavigate = (link) => {
+    setShowNotifications(false);
+    navigate(link);
+  };
+
   const filteredProblems = problems.filter((p) => {
     if (filter === 'all') return true;
     if (filter === 'needs_review') return p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review';
@@ -202,6 +432,8 @@ const Dashboard = () => {
   });
 
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
+  const needsReviewCount = problems.filter(p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review').length;
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   if (dashboardLoading) {
     return (
@@ -213,184 +445,82 @@ const Dashboard = () => {
     );
   }
 
-  // ── Exam-style Preview Modal ──
-  const PreviewPanel = ({ problem, onClose }) => {
-    const [showSol, setShowSol] = useState(false);
-    if (!problem) return null;
-    const diff = parseInt(problem.quality) || null;
-    const statusLabel =
-      problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review' ? 'Needs Review'
-      : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed' ? 'Endorsed'
-      : problem.stage;
-    const statusClass =
-      problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-        ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-        : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-        ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
-        : 'bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-gray-300';
-
-    return (
-      <div
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        <div
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 w-full sm:max-w-2xl max-h-[92dvh] sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden"
-          onClick={e => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="font-mono text-base font-bold text-slate-900 dark:text-white">{problem.id}</span>
-                <span className={`px-2.5 py-0.5 text-xs rounded font-semibold flex items-center gap-1 ${statusClass}`}>
-                  {(problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review') && <AlertCircle size={10} />}
-                  {(problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed') && <Star size={10} className="fill-current" />}
-                  {statusLabel}
-                </span>
-              </div>
-              {problem.topics?.length > 0 && (
-                <p className="text-xs text-slate-400 mt-0.5">{problem.topics.join(' · ')}</p>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          {/* Scrollable body */}
-          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-            {/* Problem Statement */}
-            <div>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Problem Statement</p>
-              <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm">
-                <KatexRenderer latex={problem.latex} />
-              </div>
-            </div>
-
-            {/* Answer pill */}
-            {problem.answer && (
-              <div className="flex items-center gap-2.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
-                <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  <KatexRenderer latex={problem.answer} />
-                </span>
-              </div>
-            )}
-
-            {/* Difficulty bar + Topics */}
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
-                {diff ? (
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-[#2774AE] dark:bg-[#FFD100] h-full transition-all duration-500"
-                        style={{ width: `${diff * 10}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{diff}/10</span>
-                  </div>
-                ) : (
-                  <span className="text-sm text-slate-300 dark:text-slate-600">—</span>
-                )}
-              </div>
-              {problem.topics?.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {problem.topics.map(t => (
-                    <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">{t}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Solution toggle */}
-            {problem.solution && (
-              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-                <button
-                  onClick={() => setShowSol(!showSol)}
-                  className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
-                    <CheckCircle size={14} /> {showSol ? 'Hide' : 'Show'} Solution
-                  </div>
-                  {showSol ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
-                </button>
-                {showSol && (
-                  <div className="p-4 border-t border-slate-100 dark:border-slate-800 prose-math text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
-                    <KatexRenderer latex={problem.solution} />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Author Notes */}
-            {problem.notes && (
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
-                <div className="text-sm text-slate-700 dark:text-slate-300 prose-math leading-relaxed">
-                  <KatexRenderer latex={problem.notes} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 bg-slate-50/80 dark:bg-slate-900/80 flex justify-between items-center gap-3">
-            <button
-              onClick={() => navigate(`/problem/${problem.id}`)}
-              className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors font-medium"
-            >
-              Open full page →
-            </button>
-            <button
-              onClick={() => { onClose(); navigate(`/problem/${problem.id}/feedback`); }}
-              className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors font-medium"
-            >
-              Leave feedback →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <Layout>
-      {previewProblem && <PreviewPanel problem={previewProblem} onClose={() => setPreviewProblem(null)} />}
+      {previewProblem && (
+        <PreviewModal
+          problem={previewProblem}
+          onClose={() => setPreviewProblem(null)}
+          onNavigate={(path) => { setPreviewProblem(null); navigate(path); }}
+        />
+      )}
+      {showNotifications && (
+        <NotificationsPanel
+          notifications={notifications}
+          onClose={() => setShowNotifications(false)}
+          onMarkRead={handleMarkRead}
+          onNavigate={handleNotifNavigate}
+        />
+      )}
 
       <div className="max-w-5xl mx-auto px-4 py-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <LayoutDashboard size={20} className="text-[#2774AE] dark:text-[#FFD100]" />
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">My Dashboard</h1>
-          <span className="text-sm text-gray-400 dark:text-gray-500">
-            {user?.firstName} {user?.lastName}
-          </span>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <LayoutDashboard size={20} className="text-[#2774AE] dark:text-[#FFD100]" />
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">My Dashboard</h1>
+            <span className="text-sm text-gray-400 dark:text-gray-500">{user?.firstName} {user?.lastName}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/write')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] dark:bg-[#FFD100]/10 text-white dark:text-[#FFD100] rounded-lg text-xs font-semibold hover:bg-[#1a5a8a] dark:hover:bg-[#FFD100]/20 transition-colors"
+            >
+              <PenTool size={12} /> New Problem
+            </button>
+            <button
+              onClick={() => setShowNotifications(true)}
+              className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/8 text-gray-400 dark:text-gray-500 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+              title="Notifications"
+            >
+              <Bell size={16} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 rounded-full">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Tab bar */}
         <div className="flex border border-gray-200 dark:border-white/10 rounded overflow-hidden text-base mb-6">
           {[
             { key: 'overview', label: 'Overview', icon: <LayoutDashboard size={14} /> },
-            { key: 'review',   label: 'Review Feedback', icon: <ClipboardEdit size={14} /> },
-            { key: 'settings', label: 'Settings', icon: <User size={14} /> },
+            { key: 'myreviews', label: 'My Reviews', icon: <MessageSquare size={14} /> },
+            { key: 'review', label: 'Review Feedback', icon: <ClipboardEdit size={14} />, badge: needsReviewCount },
+            { key: 'settings', label: 'Account', icon: <User size={14} /> },
           ].map((tab, i) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors flex-1 justify-center ${i > 0 ? 'border-l border-gray-200 dark:border-white/10' : ''} ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors flex-1 justify-center relative ${
+                i > 0 ? 'border-l border-gray-200 dark:border-white/10' : ''
+              } ${
                 activeTab === tab.key
                   ? 'bg-[#2774AE] dark:bg-[#FFD100]/10 text-white dark:text-[#FFD100]'
                   : 'bg-white dark:bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/3'
               }`}
             >
               {tab.icon} {tab.label}
+              {tab.badge > 0 && (
+                <span className={`ml-1 px-1.5 py-0.5 text-[9px] font-bold rounded-full ${
+                  activeTab === tab.key
+                    ? 'bg-white/20 text-white dark:bg-black/20 dark:text-[#FFD100]'
+                    : 'bg-red-500 text-white'
+                }`}>{tab.badge}</span>
+              )}
             </button>
           ))}
         </div>
@@ -398,22 +528,26 @@ const Dashboard = () => {
         {/* ── OVERVIEW TAB ── */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-
-            {/* Stat cards */}
+            {/* Stat cards — clickable to filter */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-4">
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">My Problems</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.totalProblems || 0}</p>
-              </div>
-              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-4">
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1"><Star size={11} /> Endorsed</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.totalEndorsements || 0}</p>
-              </div>
-              {['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'].slice(0, 2).map(topic => (
-                <div key={topic} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-4">
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{topic}</p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.topicCounts?.[topic] || 0}</p>
-                </div>
+              {[
+                { label: 'My Problems', value: stats?.totalProblems || 0, filterVal: 'all', icon: null },
+                { label: 'Endorsed', value: stats?.totalEndorsements || 0, filterVal: 'Endorsed', icon: <Star size={11} /> },
+                { label: 'Needs Review', value: needsReviewCount, filterVal: 'needs_review', icon: <AlertCircle size={11} /> },
+                { label: 'Algebra', value: stats?.topicCounts?.Algebra || 0, filterVal: 'all', icon: null },
+              ].map((card, i) => (
+                <button
+                  key={i}
+                  onClick={() => setFilter(card.filterVal)}
+                  className={`text-left bg-white dark:bg-white/5 border rounded-lg p-4 transition-all hover:shadow-md hover:border-[#2774AE]/30 dark:hover:border-[#FFD100]/30 ${
+                    filter === card.filterVal
+                      ? 'border-[#2774AE] dark:border-[#FFD100] ring-1 ring-[#2774AE]/20 dark:ring-[#FFD100]/20'
+                      : 'border-gray-200 dark:border-white/8'
+                  }`}
+                >
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1">{card.icon}{card.label}</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{card.value}</p>
+                </button>
               ))}
             </div>
 
@@ -435,6 +569,9 @@ const Dashboard = () => {
                   }`}
                 >
                   {f.label}
+                  {f.val === 'needs_review' && needsReviewCount > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-bold bg-red-500 text-white rounded-full">{needsReviewCount}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -444,11 +581,11 @@ const Dashboard = () => {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-white/8">
-                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Problem</th>
-                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Topics</th>
-                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Difficulty</th>
-                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Stage</th>
-                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500 w-10"></th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Stage</th>
+                    <th className="px-4 py-2.5 w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-white/5">
@@ -458,109 +595,92 @@ const Dashboard = () => {
                         No problems match this filter.
                       </td>
                     </tr>
-                  ) : filteredProblems.map(problem => {
-                    const diff = parseInt(problem.quality) || null;
-                    return (
-                      <tr key={problem.id}
-                        onClick={() => navigate(`/problem/${problem.id}`)}
-                        className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors">
-                        <td className="px-4 py-3.5">
-                          <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">
-                            {problem.latex?.replace(/[$#\\]/g, '').slice(0, 60) || ''}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex flex-wrap gap-1">
-                            {(problem.topics || []).map(t => (
-                              <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          {diff ? (
-                            <div className="flex items-center gap-1.5 min-w-[80px]">
-                              <div className="w-14 bg-slate-100 dark:bg-white/10 h-1.5 rounded-full overflow-hidden flex-shrink-0">
-                                <div
-                                  className="bg-[#2774AE] dark:bg-[#FFD100] h-full"
-                                  style={{ width: `${diff * 10}%` }}
-                                />
-                              </div>
-                              <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{diff}/10</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-300 dark:text-white/20">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className={`inline-block px-2 py-0.5 text-xs rounded font-medium ${
-                            problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                              ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
-                              : problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                              ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                              : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400'
-                          }`}>
-                            {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                              ? 'Needs Review'
-                              : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                              ? 'Endorsed'
-                              : problem.stage}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => setPreviewProblem(problem)}
-                            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
-                            title="Preview"
-                          >
-                            <Eye size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  ) : filteredProblems.map(problem => (
+                    <tr key={problem.id}
+                      onClick={() => navigate(`/problem/${problem.id}`)}
+                      className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors">
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[220px] mt-0.5">
+                          {problem.latex?.replace(/[$#\\]/g, '').slice(0, 70) || ''}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex flex-wrap gap-1">
+                          {(problem.topics || []).map(t => (
+                            <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <DiffLabel quality={problem.quality} />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <StatusBadge status={problem._displayStatus} stage={problem.stage} />
+                      </td>
+                      <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setPreviewProblem(problem)}
+                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+                          title="Preview"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
 
-            {/* My feedback section */}
-            <div>
-              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                <MessageSquare size={14} /> My Reviews
-              </h2>
-              {myFeedback.length === 0 ? (
-                <p className="text-sm text-gray-400 dark:text-gray-500 italic">You haven't left any reviews yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {myFeedback.map(fb => (
-                    <div
-                      key={fb.id}
-                      className="cursor-pointer border-l-2 border-gray-100 dark:border-white/10 pl-3 py-1.5 mb-2.5 hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors group"
-                      onClick={() => navigate(`/problem/${fb.problemId}`)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-mono text-xs text-[#2774AE] dark:text-[#FFD100] font-semibold group-hover:underline">
-                            {fb.problemId}
-                          </span>
-                          {fb.isEndorsement && (
-                            <span className="ml-2 text-[10px] text-yellow-600 dark:text-yellow-400 font-medium">★ Endorsement</span>
-                          )}
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 italic line-clamp-1">{fb.feedback}</p>
-                        </div>
-                        <button
-                          onClick={(e) => handleDeleteFeedback(e, fb.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 dark:text-gray-600 hover:text-red-500 transition-all"
-                          title="Remove review"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+        {/* ── MY REVIEWS TAB ── */}
+        {activeTab === 'myreviews' && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Reviews you've written on others' problems.</p>
+            {myFeedback.length === 0 ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <MessageSquare size={36} className="text-gray-200 dark:text-white/10 mb-3" />
+                <p className="text-base font-semibold text-gray-700 dark:text-gray-300">No reviews yet</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Head to Feedback to start reviewing problems.</p>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
+                {myFeedback.map(fb => (
+                  <div
+                    key={fb.id}
+                    className="flex items-start gap-4 px-5 py-4 border-b border-gray-50 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors group"
+                    onClick={() => navigate(`/problem/${fb.problemId}`)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100] group-hover:underline">{fb.problemId}</span>
+                        {fb.isEndorsement && (
+                          <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-medium">★ Endorsement</span>
+                        )}
+                        {fb.timeTaken > 0 && (
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">⏱ {Math.floor(fb.timeTaken / 60)}m {fb.timeTaken % 60}s</span>
+                        )}
                       </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic line-clamp-2">{fb.feedback}</p>
+                      {fb.answer && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                          Ans: <span className="font-mono"><KatexRenderer latex={fb.answer} inline /></span>
+                        </p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <button
+                      onClick={(e) => handleDeleteFeedback(e, fb.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 dark:text-gray-600 hover:text-red-500 transition-all flex-shrink-0"
+                      title="Remove review"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -568,10 +688,9 @@ const Dashboard = () => {
         {activeTab === 'review' && (
           <div>
             {editingProblem ? (
-              /* ── EDIT PANE ── */
               <div>
                 <button
-                  onClick={() => setEditingProblem(null)}
+                  onClick={() => { setEditingProblem(null); setReviewComments([]); }}
                   className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] mb-5 transition-colors"
                 >
                   <ArrowLeft size={14} /> Back to review list
@@ -579,10 +698,36 @@ const Dashboard = () => {
 
                 <div className="flex items-center gap-3 mb-5">
                   <span className="font-mono text-base font-bold text-[#2774AE] dark:text-[#FFD100]">{editingProblem.id}</span>
-                  <span className="px-2 py-0.5 text-xs rounded font-medium bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                    Needs Review
+                  <span className="px-2 py-0.5 text-xs rounded font-medium bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 flex items-center gap-1">
+                    <AlertCircle size={10} /> Needs Review
                   </span>
                 </div>
+
+                {/* ── REVIEWER COMMENTS (the actual issue to resolve) ── */}
+                {reviewComments.length > 0 && (
+                  <div className="mb-6 space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reviewer Comments</p>
+                    {reviewComments.map(fb => (
+                      <div key={fb.id} className="p-4 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50/60 dark:bg-red-900/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-semibold text-red-600 dark:text-red-400">{fb.reviewerName || fb.author || 'Reviewer'}</span>
+                          {fb.timeTaken > 0 && (
+                            <span className="text-[10px] text-gray-400 font-mono">⏱ {Math.floor(fb.timeTaken / 60)}m {fb.timeTaken % 60}s</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">{fb.feedback}</p>
+                        {fb.answer && (
+                          <div className="mt-2 flex items-center gap-1.5">
+                            <span className="text-xs text-slate-400">Their answer:</span>
+                            <span className="font-mono text-xs bg-white dark:bg-white/8 px-2 py-0.5 rounded border border-slate-200 dark:border-white/10">
+                              <KatexRenderer latex={fb.answer} inline />
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {editMessage && (
                   <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
@@ -597,7 +742,6 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                   {/* LEFT: edit form */}
                   <div className="lg:col-span-7 space-y-5">
-
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Problem Statement</label>
                       <textarea
@@ -688,25 +832,17 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* RIGHT: live preview */}
+                  {/* RIGHT: live preview — NO bar */}
                   <div className="lg:col-span-5 lg:sticky lg:top-8">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                      <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
+                    <div className="bg-white dark:bg-[#0d1b2a] rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+                      <div className="px-5 py-3 border-b border-slate-100 dark:border-white/8 bg-slate-50 dark:bg-white/3 flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</p>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-16 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-[#2774AE] dark:bg-[#FFD100] h-full transition-all"
-                              style={{ width: `${(parseInt(editForm.quality) || 5) * 10}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
-                        </div>
+                        <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                       </div>
                       <div className="p-5 space-y-5 max-h-[calc(100vh-280px)] overflow-y-auto">
                         <div>
                           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Problem Statement</p>
-                          <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 min-h-[80px]">
+                          <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm bg-slate-50 dark:bg-white/4 p-4 rounded-lg border border-slate-200 dark:border-white/10 min-h-[80px]">
                             {editForm.latex
                               ? <KatexRenderer latex={editForm.latex} />
                               : <span className="text-slate-400 italic text-xs">Waiting for input...</span>}
@@ -716,7 +852,7 @@ const Dashboard = () => {
                         {editForm.answer && (
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
-                            <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm font-semibold">
+                            <span className="px-3 py-1.5 bg-slate-100 dark:bg-white/8 border border-slate-200 dark:border-white/10 rounded-lg font-mono text-sm font-semibold">
                               <KatexRenderer latex={editForm.answer} />
                             </span>
                           </div>
@@ -725,16 +861,16 @@ const Dashboard = () => {
                         {(editForm.topics || []).length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {editForm.topics.map(t => (
-                              <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">{t}</span>
+                              <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-white/8 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-white/10">{t}</span>
                             ))}
                           </div>
                         )}
 
                         {editForm.solution && (
-                          <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                          <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
                             <button
                               onClick={() => setEditPreviewShowSolution(!editPreviewShowSolution)}
-                              className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-white/3 hover:bg-slate-100 dark:hover:bg-white/8 transition-colors"
                             >
                               <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
                                 <CheckCircle size={14} /> {editPreviewShowSolution ? 'Hide' : 'Show'} Solution
@@ -742,7 +878,7 @@ const Dashboard = () => {
                               {editPreviewShowSolution ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                             </button>
                             {editPreviewShowSolution && (
-                              <div className="p-4 border-t border-slate-100 dark:border-slate-800 prose-math text-sm text-slate-800 dark:text-slate-200">
+                              <div className="p-4 border-t border-slate-100 dark:border-white/8 prose-math text-sm text-slate-800 dark:text-slate-200">
                                 <KatexRenderer latex={editForm.solution} />
                               </div>
                             )}
@@ -754,7 +890,6 @@ const Dashboard = () => {
                 </div>
               </div>
             ) : (
-              /* ── REVIEW LIST ── */
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Problems marked <span className="font-semibold text-red-500 dark:text-red-400">Needs Review</span> — edit and resubmit directly here.
@@ -773,65 +908,50 @@ const Dashboard = () => {
                     <table className="w-full text-left">
                       <thead>
                         <tr className="border-b border-gray-100 dark:border-white/8">
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Problem</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Topics</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Difficulty</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500 w-20"></th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
+                          <th className="px-4 py-2.5 w-24"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                        {reviewProblems.map(problem => {
-                          const diff = parseInt(problem.quality) || null;
-                          return (
-                            <tr key={problem.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors">
-                              <td className="px-4 py-3.5">
-                                <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">
-                                  {problem.latex?.replace(/[$#\\]/g, '').slice(0, 60) || ''}
-                                </p>
-                              </td>
-                              <td className="px-4 py-3.5">
-                                <div className="flex flex-wrap gap-1">
-                                  {(problem.topics || []).map(t => (
-                                    <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3.5">
-                                {diff ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-14 bg-slate-100 dark:bg-white/10 h-1.5 rounded-full overflow-hidden flex-shrink-0">
-                                      <div
-                                        className="bg-[#2774AE] dark:bg-[#FFD100] h-full"
-                                        style={{ width: `${diff * 10}%` }}
-                                      />
-                                    </div>
-                                    <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{diff}/10</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-gray-300 dark:text-white/20">—</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3.5 text-right">
-                                <div className="flex items-center gap-2 justify-end">
-                                  <button
-                                    onClick={() => setPreviewProblem(problem)}
-                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
-                                    title="Preview"
-                                  >
-                                    <Eye size={14} />
-                                  </button>
-                                  <button
-                                    onClick={() => openEditProblem(problem)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors"
-                                  >
-                                    <ClipboardEdit size={12} /> Edit
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {reviewProblems.map(problem => (
+                          <tr key={problem.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors">
+                            <td className="px-4 py-3.5">
+                              <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[220px] mt-0.5">
+                                {problem.latex?.replace(/[$#\\]/g, '').slice(0, 70) || ''}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex flex-wrap gap-1">
+                                {(problem.topics || []).map(t => (
+                                  <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <DiffLabel quality={problem.quality} />
+                            </td>
+                            <td className="px-4 py-3.5 text-right">
+                              <div className="flex items-center gap-2 justify-end">
+                                <button
+                                  onClick={() => setPreviewProblem(problem)}
+                                  className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+                                  title="Preview"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
+                                  onClick={() => openEditProblem(problem)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors"
+                                >
+                                  <ClipboardEdit size={12} /> Edit
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -841,35 +961,23 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* ── SETTINGS TAB ── */}
+        {/* ── ACCOUNT TAB ── */}
         {activeTab === 'settings' && (
           <div className="max-w-md space-y-6">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Profile Settings</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Account</h2>
 
             <form onSubmit={handleProfileSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">First Name</label>
-                <input
-                  value={formData.firstName}
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                />
+                <input value={formData.firstName} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Last Name</label>
-                <input
-                  value={formData.lastName}
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                />
+                <input value={formData.lastName} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Email</label>
-                <input
-                  value={user?.email || ''}
-                  disabled
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                />
+                <input value={user?.email || ''} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Math Experience</label>
@@ -882,12 +990,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Role</label>
-                <textarea
-                  value={user?.role || ''}
-                  disabled
-                  rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed resize-none"
-                />
+                <textarea value={user?.role || ''} disabled rows={2} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed resize-none" />
               </div>
 
               {profileMessage && (

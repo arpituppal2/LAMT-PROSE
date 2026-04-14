@@ -271,19 +271,13 @@ const Dashboard = () => {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#2774AE] dark:bg-[#FFD100] h-full transition-all"
-                      style={{ width: `${(parseInt(problem.quality) || 5) * 10}%` }}
-                    />
-                  </div>
                   <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
                     {parseInt(problem.quality) || '?'}/10
                   </span>
                 </div>
               </div>
               {problem.topics?.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex flex-wrap gap-1.5">
                   {problem.topics.map(t => (
                     <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">{t}</span>
                   ))}
@@ -294,7 +288,7 @@ const Dashboard = () => {
             {problem.solution && (
               <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                 <button
-                  onClick={() => setShowSol(s => !s)}
+                  onClick={() => setShowSol(!showSol)}
                   className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
@@ -320,15 +314,18 @@ const Dashboard = () => {
             )}
           </div>
 
-          <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex-shrink-0 bg-slate-50/80 dark:bg-slate-900/80 flex items-center gap-2">
+          <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 flex justify-between items-center">
             <button
-              onClick={() => { onClose(); navigate(`/problem/${problem.id}`); }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#2774AE] text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
+              onClick={() => navigate(`/problem/${problem.id}`)}
+              className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors font-medium"
             >
-              Full Page
+              Open full page →
             </button>
-            <button onClick={onClose} className="ml-auto text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors px-2 py-2">
-              Close
+            <button
+              onClick={() => { onClose(); navigate(`/problem/${problem.id}/feedback`); }}
+              className="text-xs text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors font-medium"
+            >
+              Leave feedback →
             </button>
           </div>
         </div>
@@ -338,294 +335,249 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
+      {previewProblem && <PreviewPanel problem={previewProblem} onClose={() => setPreviewProblem(null)} />}
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              {user?.firstName} {user?.lastName}
-            </h1>
-            <p className="text-base text-gray-400 dark:text-gray-500 mt-0.5">{user?.email}</p>
-          </div>
+      <div className="max-w-5xl mx-auto px-4 py-6">
 
-          <div className="flex border border-gray-200 dark:border-white/10 rounded overflow-hidden text-base">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`flex items-center gap-1.5 px-3 py-2 transition-colors ${
-                activeTab === 'overview'
-                  ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-              }`}
-            >
-              <LayoutDashboard size={15} />
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('review')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-l border-gray-200 dark:border-white/10 transition-colors ${
-                activeTab === 'review'
-                  ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-              }`}
-            >
-              <ClipboardEdit size={15} />
-              Review Feedback
-            </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-l border-gray-200 dark:border-white/10 transition-colors ${
-                activeTab === 'profile'
-                  ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-              }`}
-            >
-              <User size={15} />
-              Settings
-            </button>
-          </div>
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <LayoutDashboard size={20} className="text-[#2774AE] dark:text-[#FFD100]" />
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">My Dashboard</h1>
+          <span className="text-sm text-gray-400 dark:text-gray-500">
+            {user?.firstName} {user?.lastName}
+          </span>
         </div>
 
+        {/* Tab bar */}
+        <div className="flex border border-gray-200 dark:border-white/10 rounded overflow-hidden text-base mb-6">
+          {[
+            { key: 'overview', label: 'Overview', icon: <LayoutDashboard size={14} /> },
+            { key: 'review',   label: 'Review Feedback', icon: <ClipboardEdit size={14} /> },
+            { key: 'settings', label: 'Settings', icon: <User size={14} /> },
+          ].map((tab, i) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors flex-1 justify-center ${i > 0 ? 'border-l border-gray-200 dark:border-white/10' : ''} ${
+                activeTab === tab.key
+                  ? 'bg-[#2774AE] dark:bg-[#FFD100]/10 text-white dark:text-[#FFD100]'
+                  : 'bg-white dark:bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/3'
+              }`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── OVERVIEW TAB ── */}
         {activeTab === 'overview' && (
-          <div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-              <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4">
-                <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">Total</p>
+          <div className="space-y-6">
+
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-4">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">My Problems</p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.totalProblems || 0}</p>
               </div>
-              <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4">
-                <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">Endorsed</p>
-                <div className="flex items-baseline gap-1.5">
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.totalEndorsements || 0}</p>
-                  <Star size={12} className="text-[#FFD100] fill-[#FFD100] mb-0.5" />
-                </div>
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-4">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1"><Star size={11} /> Endorsed</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.totalEndorsements || 0}</p>
               </div>
-              {topicOptions.map((topic) => (
-                <div key={topic} className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4">
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">{topic}</p>
+              {['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'].slice(0, 2).map(topic => (
+                <div key={topic} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{topic}</p>
                   <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.topicCounts?.[topic] || 0}</p>
                 </div>
               ))}
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex-1 min-w-0">
-                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
-                  <div className="flex gap-1 p-3 border-b border-gray-100 dark:border-white/8">
-                    {[
-                      { value: 'all', label: 'All' },
-                      { value: 'needs_review', label: 'Needs Review' },
-                      { value: 'Idea', label: 'Idea' },
-                      { value: 'Published', label: 'Published' },
-                      { value: 'Endorsed', label: 'Endorsed' },
-                    ].map(({ value, label }) => (
-                      <button
-                        key={value}
-                        onClick={() => setFilter(value)}
-                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                          filter === value
-                            ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/8 dark:hover:text-white'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+            {/* Filter tabs */}
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { val: 'all', label: 'All' },
+                { val: 'Idea', label: 'Idea' },
+                { val: 'needs_review', label: 'Needs Review' },
+                { val: 'Endorsed', label: 'Endorsed' },
+              ].map(f => (
+                <button
+                  key={f.val}
+                  onClick={() => setFilter(f.val)}
+                  className={`px-3 py-1.5 text-xs rounded font-medium transition-colors ${
+                    filter === f.val
+                      ? 'bg-[#2774AE] dark:bg-[#FFD100]/10 text-white dark:text-[#FFD100]'
+                      : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-gray-100 dark:border-white/8">
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">ID</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Topics</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Difficulty</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Status</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Stars</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Date</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                        {filteredProblems.length === 0 ? (
-                          <tr>
-                            <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-500">
-                              No problems in this category.
-                            </td>
-                          </tr>
-                        ) : filteredProblems.map((problem) => (
-                          <tr
-                            key={problem.id}
-                            onClick={() => navigate(`/problem/${problem.id}`)}
-                            className="hover:bg-gray-50 dark:hover:bg-white/4 cursor-pointer transition-colors"
-                          >
-                            <td className="px-4 py-3.5 font-mono text-sm font-medium text-gray-900 dark:text-white">{problem.id}</td>
-                            <td className="px-4 py-3.5">
-                              <div className="flex flex-wrap gap-1">
-                                {problem.topics.map(t => (
-                                  <span key={t} className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded">
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              {problem.quality ? (
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-14 bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-                                    <div
-                                      className="bg-[#2774AE] dark:bg-[#FFD100] h-full"
-                                      style={{ width: `${(parseInt(problem.quality) || 0) * 10}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                                    {parseInt(problem.quality)}/10
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-gray-300 dark:text-gray-600">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                                problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                                  ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                                  : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                                  ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
-                                  : 'bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-gray-300'
-                              }`}>
-                                {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                                  ? 'Needs Review'
-                                  : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                                  ? 'Endorsed'
-                                  : problem.stage}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              {problem.endorsements > 0 ? (
-                                <span className="flex items-center gap-1 text-[#FFD100] text-sm">
-                                  <Star size={12} fill="currentColor" /> {problem.endorsements}
-                                </span>
-                              ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
-                            </td>
-                            <td className="px-4 py-3.5 text-xs text-gray-400 dark:text-gray-500">
-                              {new Date(problem.createdAt).toLocaleDateString()}
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <button
-                                onClick={e => { e.stopPropagation(); setPreviewProblem(problem); }}
-                                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/8 text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
-                                title="Preview"
-                              >
-                                <Eye size={13} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+            {/* Problems table */}
+            <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-white/8">
+                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Problem</th>
+                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Topics</th>
+                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Difficulty</th>
+                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Stage</th>
+                    <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                  {filteredProblems.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400 dark:text-gray-500">
+                        No problems match this filter.
+                      </td>
+                    </tr>
+                  ) : filteredProblems.map(problem => (
+                    <tr key={problem.id}
+                      onClick={() => navigate(`/problem/${problem.id}`)}
+                      className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors">
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">
+                          {problem.latex?.replace(/[$#\\]/g, '').slice(0, 60) || ''}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex flex-wrap gap-1">
+                          {(problem.topics || []).map(t => (
+                            <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {problem.quality
+                          ? <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
+                          : <span className="text-gray-300 dark:text-white/20">—</span>}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`inline-block px-2 py-0.5 text-xs rounded font-medium ${
+                          problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+                            ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
+                            : problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+                            ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                            : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400'
+                        }`}>
+                          {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+                            ? 'Needs Review'
+                            : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+                            ? 'Endorsed'
+                            : problem.stage}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setPreviewProblem(problem)}
+                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+                          title="Preview"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              <div className="w-full lg:w-72 flex-shrink-0">
-                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4">
-                  <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                    <MessageSquare size={14} className="text-gray-400" />
-                    Your reviews
-                  </h2>
-                  {myFeedback.length === 0 ? (
-                    <p className="text-sm text-gray-400 dark:text-gray-500">No reviews submitted yet.</p>
-                  ) : myFeedback.map((fb) => (
+            {/* My feedback section */}
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <MessageSquare size={14} /> My Reviews
+              </h2>
+              {myFeedback.length === 0 ? (
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">You haven't left any reviews yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {myFeedback.map(fb => (
                     <div
                       key={fb.id}
-                      onClick={() => navigate(`/problem/${fb.problemId}`)}
                       className="cursor-pointer border-l-2 border-gray-100 dark:border-white/10 pl-3 py-1.5 mb-2.5 hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors group"
+                      onClick={() => navigate(`/problem/${fb.problemId}`)}
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-medium text-gray-800 dark:text-white">{fb.problemId}</span>
-                          {!fb.isEndorsement && (
-                            <span className={`text-sm px-1.5 py-0.5 rounded ${
-                              fb.resolved
-                                ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
-                                : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                            }`}>
-                              {fb.resolved ? 'Resolved' : 'Open'}
-                            </span>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-mono text-xs text-[#2774AE] dark:text-[#FFD100] font-semibold group-hover:underline">
+                            {fb.problemId}
+                          </span>
+                          {fb.isEndorsement && (
+                            <span className="ml-2 text-[10px] text-yellow-600 dark:text-yellow-400 font-medium">★ Endorsement</span>
                           )}
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 italic line-clamp-1">{fb.feedback}</p>
                         </div>
                         <button
                           onClick={(e) => handleDeleteFeedback(e, fb.id)}
-                          className="text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 dark:text-gray-600 hover:text-red-500 transition-all"
+                          title="Remove review"
                         >
                           <Trash2 size={12} />
                         </button>
                       </div>
-                      {fb.answer && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                          <span className="text-gray-700 dark:text-gray-300">Ans:</span> {fb.answer}
-                        </p>
-                      )}
-                      {fb.comment && (
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5 truncate">{fb.comment}</p>
-                      )}
-                      <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">
-                        {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}
-                        {fb.isEndorsement && <span className="ml-2 text-[#FFD100]">Endorsed</span>}
-                      </p>
                     </div>
                   ))}
-                  <button
-                    onClick={() => navigate('/feedback')}
-                    className="w-full mt-3 py-1.5 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity"
-                  >
-                    Go to Feedback
-                  </button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
 
+        {/* ── REVIEW FEEDBACK TAB ── */}
         {activeTab === 'review' && (
           <div>
             {editingProblem ? (
-              <div className="max-w-7xl mx-auto">
-                <div className="flex items-center gap-3 mb-6">
-                  <button
-                    onClick={() => { setEditingProblem(null); setEditMessage(''); }}
-                    className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
-                  >
-                    <ArrowLeft size={15} /> Back to list
-                  </button>
-                  <span className="text-gray-300 dark:text-gray-600">·</span>
-                  <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{editingProblem.id}</span>
+              /* ── EDIT PANE ── */
+              <div>
+                <button
+                  onClick={() => setEditingProblem(null)}
+                  className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] mb-5 transition-colors"
+                >
+                  <ArrowLeft size={14} /> Back to review list
+                </button>
+
+                <div className="flex items-center gap-3 mb-5">
+                  <span className="font-mono text-base font-bold text-[#2774AE] dark:text-[#FFD100]">{editingProblem.id}</span>
                   <span className="px-2 py-0.5 text-xs rounded font-medium bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
                     Needs Review
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {editMessage && (
+                  <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                    editMessage.includes('success') || editMessage.includes('Saved')
+                      ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                      : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                  }`}>
+                    {editMessage}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* LEFT: edit form */}
                   <div className="lg:col-span-7 space-y-5">
+
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Problem Statement</label>
                       <textarea
-                        value={editForm.latex}
+                        value={editForm.latex || ''}
                         onChange={e => setEditForm(prev => ({ ...prev, latex: e.target.value }))}
-                        rows={7}
+                        rows={8}
                         className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/20 focus:border-[#2774AE] outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
-                        placeholder="Problem text. Use $...$ for inline math."
+                        placeholder="Enter problem text. Use $...$ for inline math."
                       />
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Solution</label>
                       <textarea
-                        value={editForm.solution}
+                        value={editForm.solution || ''}
                         onChange={e => setEditForm(prev => ({ ...prev, solution: e.target.value }))}
-                        rows={5}
+                        rows={6}
                         className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/20 focus:border-[#2774AE] outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
-                        placeholder="Solution explanation..."
+                        placeholder="Explain the solution..."
                       />
                     </div>
 
@@ -633,7 +585,7 @@ const Dashboard = () => {
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Answer</label>
                       <input
                         type="text"
-                        value={editForm.answer}
+                        value={editForm.answer || ''}
                         onChange={e => setEditForm(prev => ({ ...prev, answer: e.target.value }))}
                         placeholder="e.g. 42 or 1/2"
                         className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/20 focus:border-[#2774AE] outline-none text-slate-900 dark:text-white shadow-sm"
@@ -643,11 +595,11 @@ const Dashboard = () => {
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Author Notes</label>
                       <textarea
-                        value={editForm.notes}
+                        value={editForm.notes || ''}
                         onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
                         rows={3}
                         className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/20 focus:border-[#2774AE] outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
-                        placeholder="Notes for reviewers..."
+                        placeholder="Optional notes for reviewers..."
                       />
                     </div>
 
@@ -665,18 +617,18 @@ const Dashboard = () => {
                           <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                         </div>
                       </div>
+
                       <div className="space-y-2">
                         <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Topics</label>
                         <div className="flex flex-wrap gap-2">
                           {topicOptions.map(topic => (
                             <button
-                              key={topic}
-                              type="button"
+                              key={topic} type="button"
                               onClick={() => toggleEditTopic(topic)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                                editForm.topics?.includes(topic)
-                                  ? 'bg-[#2774AE] border-[#2774AE] text-white dark:bg-[#FFD100] dark:border-[#FFD100] dark:text-[#001628]'
-                                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-[#2774AE] hover:text-[#2774AE] dark:hover:border-[#FFD100] dark:hover:text-[#FFD100]'
+                                (editForm.topics || []).includes(topic)
+                                  ? 'bg-[#2774AE] border-[#2774AE] text-white'
+                                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-[#2774AE]'
                               }`}
                             >
                               {topic}
@@ -686,76 +638,49 @@ const Dashboard = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Exam Type</label>
-                      <select
-                        value={editForm.examType}
-                        onChange={e => setEditForm(prev => ({ ...prev, examType: e.target.value }))}
-                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-[#2774AE]/20 focus:border-[#2774AE] outline-none shadow-sm"
-                      >
-                        <option value="Numerical Answer">Numerical Answer</option>
-                        <option value="Multiple Choice">Multiple Choice</option>
-                        <option value="Proof">Proof</option>
-                        <option value="Short Answer">Short Answer</option>
-                      </select>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2">
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                       <button
                         onClick={handleEditSave}
                         disabled={editSaving}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                        className="w-full bg-[#2774AE] hover:bg-[#1a5a8a] text-white py-3 rounded-xl transition-all disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2"
                       >
-                        <Save size={14} />
-                        {editSaving ? 'Saving…' : 'Save Changes'}
+                        {editSaving ? 'Saving...' : <><Save size={15} /> Save Changes</>}
                       </button>
-                      <button
-                        onClick={() => navigate(`/problem/${editingProblem.id}`)}
-                        className="px-4 py-2.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
-                      >
-                        Full Page →
-                      </button>
-                      {editMessage && (
-                        <p className={`text-sm ${editMessage === 'Saved successfully.' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                          {editMessage}
-                        </p>
-                      )}
                     </div>
                   </div>
 
-                  <div className="lg:col-span-5 lg:sticky lg:top-6">
-                    <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
-                      <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
+                  {/* RIGHT: live preview */}
+                  <div className="lg:col-span-5 lg:sticky lg:top-8">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                      <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</p>
                         <div className="flex items-center gap-1.5">
-                          <div className="w-16 bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
-                            <div className="bg-[#2774AE] dark:bg-[#FFD100] h-full" style={{ width: `${(parseInt(editForm.quality) || 5) * 10}%` }} />
-                          </div>
                           <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                         </div>
                       </div>
-
-                      <div className="px-5 py-5 space-y-4 overflow-y-auto max-h-[70vh]">
+                      <div className="p-5 space-y-5 max-h-[calc(100vh-280px)] overflow-y-auto">
                         <div>
                           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Problem Statement</p>
-                          <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm min-h-[2rem]">
-                            {editForm.latex ? <KatexRenderer latex={editForm.latex} /> : <span className="text-slate-300 dark:text-slate-600 italic">Start typing your problem…</span>}
+                          <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 min-h-[80px]">
+                            {editForm.latex
+                              ? <KatexRenderer latex={editForm.latex} />
+                              : <span className="text-slate-400 italic text-xs">Waiting for input...</span>}
                           </div>
                         </div>
 
                         {editForm.answer && (
-                          <div className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-2">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
-                            <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">
+                            <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm font-semibold">
                               <KatexRenderer latex={editForm.answer} />
                             </span>
                           </div>
                         )}
 
-                        {editForm.topics?.length > 0 && (
+                        {(editForm.topics || []).length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {editForm.topics.map(t => (
-                              <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-600">{t}</span>
+                              <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">{t}</span>
                             ))}
                           </div>
                         )}
@@ -763,28 +688,19 @@ const Dashboard = () => {
                         {editForm.solution && (
                           <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                             <button
-                              onClick={() => setEditPreviewShowSolution(s => !s)}
+                              onClick={() => setEditPreviewShowSolution(!editPreviewShowSolution)}
                               className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
                               <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
-                                <CheckCircle size={13} /> {editPreviewShowSolution ? 'Hide' : 'Show'} Solution
+                                <CheckCircle size={14} /> {editPreviewShowSolution ? 'Hide' : 'Show'} Solution
                               </div>
-                              {editPreviewShowSolution ? <ChevronUp size={15} className="text-slate-400" /> : <ChevronDown size={15} className="text-slate-400" />}
+                              {editPreviewShowSolution ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                             </button>
                             {editPreviewShowSolution && (
-                              <div className="p-4 border-t border-slate-100 dark:border-slate-800 prose-math text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                              <div className="p-4 border-t border-slate-100 dark:border-slate-800 prose-math text-sm text-slate-800 dark:text-slate-200">
                                 <KatexRenderer latex={editForm.solution} />
                               </div>
                             )}
-                          </div>
-                        )}
-
-                        {editForm.notes && (
-                          <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
-                            <div className="text-sm text-slate-700 dark:text-slate-300 prose-math leading-relaxed">
-                              <KatexRenderer latex={editForm.notes} />
-                            </div>
                           </div>
                         )}
                       </div>
@@ -793,78 +709,73 @@ const Dashboard = () => {
                 </div>
               </div>
             ) : (
+              /* ── REVIEW LIST ── */
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                  Problems flagged <span className="font-medium text-red-500 dark:text-red-400">Needs Review</span> — edit them inline to address reviewer feedback.
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Problems marked <span className="font-semibold text-red-500 dark:text-red-400">Needs Review</span> — edit and resubmit directly here.
                 </p>
 
                 {reviewLoading ? (
-                  <div className="flex items-center justify-center h-40 text-gray-400 dark:text-gray-500 text-sm">Loading…</div>
+                  <div className="flex items-center justify-center py-12 text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
                 ) : reviewProblems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <CheckCircle size={36} className="text-green-400 dark:text-green-500 mb-3" />
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">You're all caught up!</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">None of your problems currently need revision.</p>
+                  <div className="flex flex-col items-center py-16 text-center">
+                    <CheckCircle size={40} className="text-green-400 dark:text-green-500 mb-3" />
+                    <p className="text-base font-semibold text-gray-700 dark:text-gray-300">You're all caught up!</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">No problems are marked Needs Review.</p>
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-gray-100 dark:border-white/8">
-                            <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">ID</th>
-                            <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Topics</th>
-                            <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Difficulty</th>
-                            <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Date</th>
-                            <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500"></th>
+                  <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-gray-100 dark:border-white/8">
+                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Problem</th>
+                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Topics</th>
+                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Difficulty</th>
+                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500 w-20"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                        {reviewProblems.map(problem => (
+                          <tr key={problem.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors">
+                            <td className="px-4 py-3.5">
+                              <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">
+                                {problem.latex?.replace(/[$#\\]/g, '').slice(0, 60) || ''}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex flex-wrap gap-1">
+                                {(problem.topics || []).map(t => (
+                                  <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              {problem.quality
+                                ? <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
+                                : null}
+                            </td>
+                            <td className="px-4 py-3.5 text-right">
+                              <div className="flex items-center gap-2 justify-end">
+                                <button
+                                  onClick={() => setPreviewProblem(problem)}
+                                  className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-300 dark:text-gray-600 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+                                  title="Preview"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
+                                  onClick={() => openEditProblem(problem)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors"
+                                >
+                                  <ClipboardEdit size={12} /> Edit
+                                </button>
+                              </div>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                          {reviewProblems.map(problem => (
-                            <tr key={problem.id} className="hover:bg-gray-50 dark:hover:bg-white/4 transition-colors">
-                              <td className="px-4 py-3.5 font-mono text-sm font-medium text-gray-900 dark:text-white">{problem.id}</td>
-                              <td className="px-4 py-3.5">
-                                <div className="flex flex-wrap gap-1">
-                                  {problem.topics.map(t => (
-                                    <span key={t} className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded">{t}</span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3.5">
-                                {problem.quality ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-14 bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-                                      <div className="bg-[#2774AE] dark:bg-[#FFD100] h-full" style={{ width: `${(parseInt(problem.quality) || 0) * 10}%` }} />
-                                    </div>
-                                    <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
-                                  </div>
-                                ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
-                              </td>
-                              <td className="px-4 py-3.5 text-xs text-gray-400 dark:text-gray-500">
-                                {new Date(problem.createdAt).toLocaleDateString()}
-                              </td>
-                              <td className="px-4 py-3.5">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => openEditProblem(problem)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded text-xs font-semibold hover:opacity-90 transition-opacity"
-                                  >
-                                    <ClipboardEdit size={12} /> Edit
-                                  </button>
-                                  <button
-                                    onClick={() => setPreviewProblem(problem)}
-                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                                    title="Preview"
-                                  >
-                                    <Eye size={13} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -872,87 +783,73 @@ const Dashboard = () => {
           </div>
         )}
 
-        {activeTab === 'profile' && (
-          <div className="max-w-xl">
-            <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-6">
-              <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-5">Account settings</h2>
+        {/* ── SETTINGS TAB ── */}
+        {activeTab === 'settings' && (
+          <div className="max-w-md space-y-6">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Profile Settings</h2>
+
+            <form onSubmit={handleProfileSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">First Name</label>
+                <input
+                  value={formData.firstName}
+                  disabled
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Last Name</label>
+                <input
+                  value={formData.lastName}
+                  disabled
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Email</label>
+                <input
+                  value={user?.email || ''}
+                  disabled
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Math Experience</label>
+                <input
+                  value={formData.mathExp}
+                  onChange={e => setFormData(prev => ({ ...prev, mathExp: e.target.value }))}
+                  placeholder="e.g. AIME, AMC 12, etc."
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Role</label>
+                <textarea
+                  value={user?.role || ''}
+                  disabled
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed resize-none"
+                />
+              </div>
 
               {profileMessage && (
-                <p className={`mb-4 text-sm ${
-                  profileMessage === 'Saved.'
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-red-500 dark:text-red-400'
-                }`}>
-                  {profileMessage}
-                </p>
+                <p className={`text-sm font-medium ${
+                  profileMessage === 'Saved.' ? 'text-green-500' : 'text-red-500'
+                }`}>{profileMessage}</p>
               )}
 
-              <form onSubmit={handleProfileSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={user?.email || ''}
-                      disabled
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Initials</label>
-                    <input
-                      type="text"
-                      value={user?.initials || ''}
-                      disabled
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">First name</label>
-                    <input
-                      type="text"
-                      value={formData.firstName}
-                      onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Last name</label>
-                    <input
-                      type="text"
-                      value={formData.lastName}
-                      onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Math experience</label>
-                  <textarea
-                    value={formData.mathExp}
-                    onChange={e => setFormData(prev => ({ ...prev, mathExp: e.target.value }))}
-                    rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={profileSubmitting}
-                  className="px-4 py-2 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {profileSubmitting ? 'Saving…' : 'Save changes'}
-                </button>
-              </form>
-            </div>
+              <button
+                type="submit"
+                disabled={profileSubmitting}
+                className="w-full bg-[#2774AE] hover:bg-[#1a5a8a] text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {profileSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            </form>
           </div>
         )}
-      </div>
 
-      {previewProblem && (
-        <PreviewPanel problem={previewProblem} onClose={() => setPreviewProblem(null)} />
-      )}
+      </div>
     </Layout>
   );
 };

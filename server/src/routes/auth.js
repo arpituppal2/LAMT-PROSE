@@ -143,4 +143,26 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// TEMPORARY DEBUG — shows your JWT userId, all users, and all problem authorIds
+// Remove this route once the ID mismatch is resolved
+router.get('/debug', authenticate, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, email: true, firstName: true, lastName: true, initials: true },
+    });
+    const problems = await prisma.problem.findMany({
+      select: { id: true, authorId: true, stage: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({
+      yourUserId: req.userId,
+      users,
+      problems,
+      yourProblems: problems.filter(p => p.authorId === req.userId),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

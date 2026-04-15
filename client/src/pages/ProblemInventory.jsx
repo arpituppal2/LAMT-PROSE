@@ -6,6 +6,57 @@ import {
 import { Search, MessageSquare } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
+import KatexRenderer from '../components/KatexRenderer';
+
+/* ── Shimmer skeleton ─────────────────────────────────────────── */
+const shimmerBase = [
+  'bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100',
+  'dark:from-white/5 dark:via-white/10 dark:to-white/5',
+  'bg-[length:200%_100%] animate-[shimmer_1.5s_ease-in-out_infinite]',
+  'rounded',
+].join(' ');
+
+const SkeletonBox = ({ className = '' }) => (
+  <div className={`${shimmerBase} ${className}`} />
+);
+
+const InventorySkeleton = () => (
+  <Layout>
+    <style>{`@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}`}</style>
+    <div className="max-w-7xl mx-auto">
+      {/* Stat + chart skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 mb-6">
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-6 space-y-3">
+          <SkeletonBox className="h-3 w-24" />
+          <SkeletonBox className="h-12 w-16" />
+          <SkeletonBox className="h-3 w-28" />
+        </div>
+        <div className="lg:col-span-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-6">
+          <SkeletonBox className="h-3 w-32 mb-4" />
+          <SkeletonBox className="h-36 w-full" />
+        </div>
+      </div>
+      {/* Filter bar skeleton */}
+      <div className="flex gap-3 p-4 mb-5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg">
+        <SkeletonBox className="h-9 flex-1 min-w-[220px]" />
+        {[1,2,3,4].map(i => <SkeletonBox key={i} className="h-9 w-32" />)}
+      </div>
+      {/* Table rows skeleton */}
+      <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
+        {[1,2,3,4,5].map(i => (
+          <div key={i} className="flex gap-4 px-5 py-4 border-b border-gray-50 dark:border-white/5">
+            <div className="flex-1 space-y-2">
+              <SkeletonBox className="h-3 w-24" />
+              <SkeletonBox className="h-3 w-64" />
+            </div>
+            <SkeletonBox className="h-3 w-40 self-center" />
+            <SkeletonBox className="h-5 w-16 self-center rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </Layout>
+);
 
 const ProblemInventory = () => {
   const navigate = useNavigate();
@@ -86,13 +137,7 @@ const ProblemInventory = () => {
     tooltip: { bg: dark ? '#111827' : '#fff', border: dark ? 'rgba(255,255,255,0.08)' : '#e5e7eb', text: dark ? '#d1d5db' : '#111827' },
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64 text-sm text-gray-400 dark:text-gray-500">Loading...</div>
-      </Layout>
-    );
-  }
+  if (loading) return <InventorySkeleton />;
 
   return (
     <Layout>
@@ -110,10 +155,22 @@ const ProblemInventory = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Growth over time</p>
             <div className="h-36">
               <ResponsiveContainer width="100%" height="100%" key={String(dark)}>
-                <LineChart data={chartData}>
+                <LineChart data={chartData} margin={{ left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColor.grid} />
                   <XAxis dataKey="date" stroke={chartColor.axis} fontSize={11} tickLine={false} axisLine={false} dy={6} />
-                  <YAxis stroke={chartColor.axis} fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis
+                    stroke={chartColor.axis}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    label={{
+                      value: 'Number of Problems',
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: -2,
+                      style: { fontSize: 10, fill: chartColor.axis },
+                    }}
+                  />
                   <Tooltip contentStyle={{
                     backgroundColor: chartColor.tooltip.bg,
                     border: `1px solid ${chartColor.tooltip.border}`,
@@ -150,8 +207,12 @@ const ProblemInventory = () => {
             { val: topicFilter,      fn: setTopicFilter,      opts: [['all','All topics'],['Algebra','Algebra'],['Geometry','Geometry'],['Combinatorics','Combinatorics'],['Number Theory','Number Theory']] },
             { val: difficultyFilter, fn: setDifficultyFilter, opts: [['all','All difficulties'],...Array.from({length:10},(_,i)=>[(i+1).toString(),`${i+1}/10`])] },
           ].map((sel, i) => (
-            <select key={i} value={sel.val} onChange={e => sel.fn(e.target.value)}
-              className="px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer">
+            <select
+              key={i}
+              value={sel.val}
+              onChange={e => sel.fn(e.target.value)}
+              className="px-3 py-2 text-sm appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 cursor-pointer transition"
+            >
               {sel.opts.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           ))}
@@ -187,9 +248,10 @@ const ProblemInventory = () => {
                         ))}
                       </div>
                     </div>
-                    <p className="text-sm text-gray-400 dark:text-gray-500 truncate max-w-md">
-                      {problem.latex?.replace(/[$#\\\\]/g, '') || ''}
-                    </p>
+                    {/* LaTeX preview — truncated to avoid long renders */}
+                    <div className="text-sm text-gray-400 dark:text-gray-500 max-w-md overflow-hidden" style={{ maxHeight: '2.5em' }}>
+                      <KatexRenderer latex={(problem.latex || '').slice(0, 150)} />
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-start gap-2 max-w-xs">

@@ -8,21 +8,15 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/leaderboard')
+    // Route is mounted at /stats/leaderboard in the Express app
+    api.get('/stats/leaderboard')
       .then(res => setUsers(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const scoreOf = (u) =>
-    (u.endorsedCount || 0) * 5 +
-    (u.ideaCount || 0) * 3 -
-    (u.needsReviewCount || 0) * 2 +
-    (u.reviewsGiven || 0) * 0.25;
-
-  const sorted = [...users]
-    .filter(u => scoreOf(u) > 0)
-    .sort((a, b) => scoreOf(b) - scoreOf(a));
+  // Server already computes and returns the correct score — use it directly
+  const sorted = [...users].sort((a, b) => b.score - a.score);
 
   const icons = [Trophy, Medal, Award];
 
@@ -63,9 +57,8 @@ export default function Leaderboard() {
               <tbody className="divide-y divide-gray-50 dark:divide-white/5">
                 {sorted.map((u, i) => {
                   const Icon = icons[i] || null;
-                  const score = scoreOf(u);
                   return (
-                    <tr key={u.id} className={`transition-colors ${
+                    <tr key={u.userId} className={`transition-colors ${
                       i === 0 ? 'bg-yellow-50/50 dark:bg-yellow-900/10' :
                       i === 1 ? 'bg-gray-50/50 dark:bg-white/2' :
                       i === 2 ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''
@@ -85,16 +78,16 @@ export default function Leaderboard() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        <span className="text-sm font-bold tabular-nums text-[#2774AE] dark:text-[#FFD100]">{score.toFixed(2)}</span>
+                        <span className="text-sm font-bold tabular-nums text-[#2774AE] dark:text-[#FFD100]">{u.score.toFixed(2)}</span>
                       </td>
                       <td className="px-5 py-3.5 text-right hidden sm:table-cell">
-                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.endorsedCount || 0}</span>
+                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.badges?.endorsed ?? 0}</span>
                       </td>
                       <td className="px-5 py-3.5 text-right hidden sm:table-cell">
-                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.ideaCount || 0}</span>
+                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.badges?.idea ?? 0}</span>
                       </td>
                       <td className="px-5 py-3.5 text-right hidden md:table-cell">
-                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.reviewsGiven || 0}</span>
+                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.reviewsGiven ?? 0}</span>
                       </td>
                     </tr>
                   );

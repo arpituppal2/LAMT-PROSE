@@ -57,7 +57,10 @@ router.get('/leaderboard', authenticate, async (req, res) => {
       score = Math.round(score * 100) / 100;
       return {
         userId: user.id,
+        // Expose both author string AND firstName/lastName for the frontend
         author: `${user.firstName} ${user.lastName}`,
+        firstName: user.firstName,
+        lastName: user.lastName,
         initials: user.initials,
         badges,
         score,
@@ -105,7 +108,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
   }
 });
 
-// Tournament progress (cumulative, for charts)
+// Tournament progress (cumulative totals, for charts)
 router.get('/tournament-progress', authenticate, async (req, res) => {
   try {
     const problems = await prisma.problem.findMany({
@@ -113,7 +116,8 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
         stage: true,
         topics: true,
         createdAt: true,
-        feedbacks: { select: { needsReview: true, resolved: true, isEndorsement: true } },
+        // Do NOT select needsReview — that field does not exist on Feedback
+        feedbacks: { select: { resolved: true, isEndorsement: true } },
         endorsements: true,
       },
       orderBy: { createdAt: 'asc' },

@@ -50,7 +50,7 @@ router.post('/register', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         initials: user.initials,
-        mathExp: user.mathExp
+        mathExperience: user.mathExp
       }
     });
   } catch (error) {
@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         initials: user.initials,
-        mathExp: user.mathExp
+        mathExperience: user.mathExp
       }
     });
   } catch (error) {
@@ -109,9 +109,38 @@ router.get('/me', authenticate, async (req, res) => {
         mathExp: true
       }
     });
-    res.json({ user });
+    // Expose as mathExperience so the frontend Dashboard/Account tab can read it
+    res.json({
+      user: {
+        ...user,
+        mathExperience: user.mathExp,
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// Update profile (initials + mathExperience)
+router.put('/profile', authenticate, async (req, res) => {
+  try {
+    const { initials, mathExperience } = req.body;
+    const updateData = {};
+    if (initials !== undefined) updateData.initials = initials;
+    if (mathExperience !== undefined) updateData.mathExp = mathExperience;
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: updateData,
+      select: {
+        id: true, email: true, firstName: true, lastName: true,
+        initials: true, mathExp: true
+      },
+    });
+    res.json({
+      user: { ...user, mathExperience: user.mathExp },
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update profile', details: error.message });
   }
 });
 
@@ -143,7 +172,5 @@ router.post('/reset-password', async (req, res) => {
     res.status(500).json({ error: error.message || 'Failed to reset password' });
   }
 });
-
-
 
 export default router;

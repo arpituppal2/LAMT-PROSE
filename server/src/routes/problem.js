@@ -132,7 +132,10 @@ router.get('/my', authenticate, async (req, res) => {
   try {
     const problems = await prisma.problem.findMany({
       where: { authorId: req.userId },
-      include: { feedbacks: true },
+      include: {
+        author: { select: { firstName: true, lastName: true, initials: true } },
+        feedbacks: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
     const result = problems.map((p) => ({

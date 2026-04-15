@@ -167,7 +167,7 @@ const Dashboard = () => {
 
   const handleDeleteFeedback = async (e, feedbackId) => {
     e.stopPropagation();
-    if (!window.confirm('Remove this review?')) return;
+    if (!window.confirm('Do you want to remove this review?')) return;
     try {
       await api.delete(`/feedback/${feedbackId}`);
       setMyFeedback(prev => prev.filter(fb => fb.id !== feedbackId));

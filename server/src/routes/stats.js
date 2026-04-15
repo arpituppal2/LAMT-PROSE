@@ -4,17 +4,13 @@ import { authenticate } from '../middleware/auth.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Classify problem using 3-stage system: Idea, Needs Review, Endorsed
+// Classify problem — uses the actual needsReview boolean on Feedback
 const classifyProblem = (problem) => {
   const feedbacks = problem.feedbacks || [];
   const pendingNeedsReview = feedbacks.some(
-    (fb) => (!fb.isEndorsement && !fb.resolved)
+    (fb) => fb.needsReview === true && !fb.resolved
   );
-  // Needs Review: has pending unresolved feedback (-2 pts)
-  if (pendingNeedsReview) {
-    return { category: 'needsReview', points: -2 };
-  }
-  // Stage-based classification
+  if (pendingNeedsReview) return { category: 'needsReview', points: -2 };
   const stage = problem.stage || 'Idea';
   if ((problem.endorsements || 0) >= 1 || stage === 'Endorsed') return { category: 'endorsed', points: 5 };
   return { category: 'idea', points: 3 };
@@ -26,17 +22,12 @@ router.get('/leaderboard', authenticate, async (req, res) => {
     const users = await prisma.user.findMany({
       include: {
         problems: {
-          include: {
-            feedbacks: true,
-          },
+          include: { feedbacks: true },
         },
         feedbacks: {
           select: {
-            id: true,
-            problemId: true,
-            isEndorsement: true,
-            resolved: true,
-            createdAt: true,
+            id: true, problemId: true, isEndorsement: true,
+            resolved: true, needsReview: true, createdAt: true,
           },
         },
       },
@@ -45,19 +36,16 @@ router.get('/leaderboard', authenticate, async (req, res) => {
       const badges = { endorsed: 0, idea: 0, needsReview: 0 };
       let score = 0;
       user.problems.forEach((p) => {
-        // Skip archived problems from scoring
         if (p.stage === 'Archived') return;
         const { category, points } = classifyProblem(p);
         score += points;
         badges[category] = (badges[category] || 0) + 1;
       });
-      // +0.25 pts per review given
       const reviewsGiven = user.feedbacks.length;
       score += reviewsGiven * 0.25;
       score = Math.round(score * 100) / 100;
       return {
         userId: user.id,
-        // Expose both author string AND firstName/lastName for the frontend
         author: `${user.firstName} ${user.lastName}`,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -116,8 +104,7 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
         stage: true,
         topics: true,
         createdAt: true,
-        // Do NOT select needsReview — that field does not exist on Feedback
-        feedbacks: { select: { resolved: true, isEndorsement: true } },
+        feedbacks: { select: { resolved: true, isEndorsement: true, needsReview: true } },
         endorsements: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -150,7 +137,7 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
       totals.Geometry += progressByDate[date].Geometry;
       totals.Combinatorics += progressByDate[date].Combinatorics;
       totals['Number Theory'] += progressByDate[date]['Number Theory'];
-      cumulative.push({ date, idea: totals.idea, endorsed: totals.endorsed, needsReview: totals.needsReview, count: totals.count, Algebra: totals.Algebra, Geometry: totals.Geometry, Combinatorics: totals.Combinatorics, 'Number Theory': totals['Number Theory'] });
+      cumulative.push({ date, ...totals });
     });
     res.json(cumulative);
   } catch (error) {

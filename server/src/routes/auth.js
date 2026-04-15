@@ -31,26 +31,17 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
     const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        initials,
-        mathExp
-      }
+      data: { email, password: hashedPassword, firstName, lastName, initials, mathExp }
     });
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, COOKIE_OPTS);
     res.json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        initials: user.initials,
-        mathExperience: user.mathExp
+        id: user.id, email: user.email,
+        firstName: user.firstName, lastName: user.lastName,
+        initials: user.initials, isAdmin: user.isAdmin,
+        mathExperience: user.mathExp,
       }
     });
   } catch (error) {
@@ -64,24 +55,18 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
+    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
+    if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, COOKIE_OPTS);
     res.json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        initials: user.initials,
-        mathExperience: user.mathExp
+        id: user.id, email: user.email,
+        firstName: user.firstName, lastName: user.lastName,
+        initials: user.initials, isAdmin: user.isAdmin,
+        mathExperience: user.mathExp,
       }
     });
   } catch (error) {
@@ -101,20 +86,12 @@ router.get('/me', authenticate, async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        initials: true,
-        mathExp: true
+        id: true, email: true, firstName: true, lastName: true,
+        initials: true, mathExp: true, isAdmin: true,
       }
     });
-    // Expose as mathExperience so the frontend Dashboard/Account tab can read it
     res.json({
-      user: {
-        ...user,
-        mathExperience: user.mathExp,
-      }
+      user: { ...user, mathExperience: user.mathExp },
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch user' });
@@ -133,18 +110,16 @@ router.put('/profile', authenticate, async (req, res) => {
       data: updateData,
       select: {
         id: true, email: true, firstName: true, lastName: true,
-        initials: true, mathExp: true
+        initials: true, mathExp: true, isAdmin: true,
       },
     });
-    res.json({
-      user: { ...user, mathExperience: user.mathExp },
-    });
+    res.json({ user: { ...user, mathExperience: user.mathExp } });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update profile', details: error.message });
   }
 });
 
-// Reset Password - requires admin-provided reset code
+// Reset Password
 router.post('/reset-password', async (req, res) => {
   try {
     const { email, resetCode, newPassword } = req.body;
@@ -155,17 +130,12 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Invalid reset code' });
     }
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(400).json({ error: 'No account found with that email' });
-    }
+    if (!user) return res.status(400).json({ error: 'No account found with that email' });
     if (newPassword.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { email },
-      data: { password: hashedPassword }
-    });
+    await prisma.user.update({ where: { email }, data: { password: hashedPassword } });
     res.json({ message: 'Password reset successfully. You can now log in.' });
   } catch (error) {
     console.error('Reset password error:', error);

@@ -15,11 +15,12 @@ const ADMIN_EMAILS = [
 // Consolidated 3-stage system (Archived is a soft-delete stage)
 const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed', 'Archived'];
 
-// Compute display status: unresolved feedback > endorsed > stage
+// Compute display status using the actual needsReview boolean field on Feedback.
+// Priority: Archived > has unresolved needsReview feedback > endorsed > stage
 function computeDisplayStatus(problem) {
   if (problem.stage === 'Archived') return 'Archived';
   const hasUnresolvedFeedback = problem.feedbacks?.some(
-    (f) => !f.resolved && !f.isEndorsement
+    (f) => f.needsReview === true && !f.resolved
   );
   if (hasUnresolvedFeedback) return 'Needs Review';
   if (problem.endorsements > 0) return 'Endorsed';

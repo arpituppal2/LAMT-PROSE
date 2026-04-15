@@ -8,14 +8,14 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Route is mounted at /stats/leaderboard in the Express app
     api.get('/stats/leaderboard')
       .then(res => setUsers(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  // Server already computes and returns the correct score — use it directly
+  // Server computes and returns the correct score — use it directly.
+  // Show everyone (no filter) so users with 0 score still appear.
   const sorted = [...users].sort((a, b) => b.score - a.score);
 
   const icons = [Trophy, Medal, Award];
@@ -50,6 +50,7 @@ export default function Leaderboard() {
                   <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Writer</th>
                   <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Score</th>
                   <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide hidden sm:table-cell">Endorsed</th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide hidden sm:table-cell">Needs Review</th>
                   <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide hidden sm:table-cell">Ideas</th>
                   <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide hidden md:table-cell">Reviews Given</th>
                 </tr>
@@ -81,7 +82,10 @@ export default function Leaderboard() {
                         <span className="text-sm font-bold tabular-nums text-[#2774AE] dark:text-[#FFD100]">{u.score.toFixed(2)}</span>
                       </td>
                       <td className="px-5 py-3.5 text-right hidden sm:table-cell">
-                        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.badges?.endorsed ?? 0}</span>
+                        <span className="text-sm tabular-nums text-yellow-600 dark:text-yellow-400 font-medium">{u.badges?.endorsed ?? 0}</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right hidden sm:table-cell">
+                        <span className="text-sm tabular-nums text-red-500 font-medium">{u.badges?.needsReview ?? 0}</span>
                       </td>
                       <td className="px-5 py-3.5 text-right hidden sm:table-cell">
                         <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">{u.badges?.idea ?? 0}</span>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Clock, Search, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Clock, Search, CheckCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { useNavigate, useParams, useBlocker } from 'react-router-dom';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
@@ -30,6 +30,33 @@ const GiveFeedback = () => {
 
   const topics = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
   const stages = ['Idea', 'Review', 'Live/Ready for Review', 'Endorsed'];
+
+  // Unsaved warning: block in-app navigation if mid-review
+  const isDirty = !!(problem && hasSubmittedAnswer && (answer || feedback));
+  const shouldBlock = useCallback(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && currentLocation.pathname !== nextLocation.pathname,
+    [isDirty]
+  );
+  const blocker = useBlocker(shouldBlock);
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      const ok = window.confirm('You have an unsaved review in progress. Leave anyway?');
+      if (ok) blocker.proceed();
+      else blocker.reset();
+    }
+  }, [blocker]);
+
+  // Warn on browser refresh/close
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   useEffect(() => {
     if (routeProblemId) loadSpecificProblem(routeProblemId);
@@ -123,11 +150,6 @@ const GiveFeedback = () => {
     }
   };
 
-  const stripFormatting = (text) => {
-    if (!text) return '';
-    return text.replace(/\\$[^$]+\\$/g, '').replace(/[#*`\\\\]/g, '').substring(0, 80) + (text.length > 80 ? '...' : '');
-  };
-
   const filteredProblems = reviewableProblems.filter(p => {
     if (filterDifficulty && parseInt(p.quality) !== parseInt(filterDifficulty)) return false;
     if (!searchQuery) return true;
@@ -148,12 +170,12 @@ const GiveFeedback = () => {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Solve a problem, then review and endorse it — or flag it for revision.</p>
         </div>
 
-        {/* Mode toggle */}
+        {/* Mode toggle — fixed-width tabs to prevent jitter */}
         {!routeProblemId && (
           <div className="flex border border-gray-200 dark:border-white/10 rounded-md overflow-hidden text-sm w-fit mb-6">
             <button
               onClick={() => { if (mode !== 'random') { setMode('random'); setProblem(null); setMessage(''); } }}
-              className={`px-5 py-2 transition-colors font-medium ${
+              className={`w-36 py-2 transition-colors font-medium text-center ${
                 mode === 'random'
                   ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
                   : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
@@ -163,7 +185,7 @@ const GiveFeedback = () => {
             </button>
             <button
               onClick={() => { setMode('targeted'); setProblem(null); setMessage(''); }}
-              className={`px-5 py-2 border-l border-gray-200 dark:border-white/10 transition-colors font-medium ${
+              className={`w-36 py-2 border-l border-gray-200 dark:border-white/10 transition-colors font-medium text-center ${
                 mode === 'targeted'
                   ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
                   : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
@@ -189,17 +211,17 @@ const GiveFeedback = () => {
                 />
               </div>
               <select value={filterDifficulty} onChange={e => setFilterDifficulty(e.target.value)}
-                className="px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none">
+                className="px-3 py-2 text-sm appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer">
                 <option value="">All difficulties</option>
                 {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}/10</option>)}
               </select>
               <select value={filterTopic} onChange={e => setFilterTopic(e.target.value)}
-                className="px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none">
+                className="px-3 py-2 text-sm appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer">
                 <option value="">All topics</option>
                 {topics.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               <select value={filterStage} onChange={e => setFilterStage(e.target.value)}
-                className="px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none">
+                className="px-3 py-2 text-sm appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer">
                 <option value="">All stages</option>
                 {stages.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -218,7 +240,7 @@ const GiveFeedback = () => {
                     className="w-full text-left flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors"
                   >
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1.5">
                         <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{p.id}</span>
                         <div className="flex gap-1.5">
                           {(p.topics || []).map(t => (
@@ -226,7 +248,10 @@ const GiveFeedback = () => {
                           ))}
                         </div>
                       </div>
-                      <p className="text-sm text-gray-400 dark:text-gray-500 truncate">{stripFormatting(p.latex)}</p>
+                      {/* LaTeX-rendered preview */}
+                      <div className="text-sm text-gray-500 dark:text-gray-400 overflow-hidden" style={{ maxHeight: '2.6em' }}>
+                        <KatexRenderer latex={(p.latex || '').slice(0, 120)} />
+                      </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0 text-sm text-gray-400 dark:text-gray-500">
                       {p.quality && <span className="tabular-nums">{p.quality}/10</span>}
@@ -264,9 +289,14 @@ const GiveFeedback = () => {
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                <div className="flex items-center gap-1.5 font-mono text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-3 py-1.5 rounded border border-gray-200 dark:border-white/10">
+                {/* Timer with tooltip */}
+                <div className="relative group flex items-center gap-1.5 font-mono text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-3 py-1.5 rounded border border-gray-200 dark:border-white/10 cursor-default">
                   <Clock size={13} />
                   {minutes}:{seconds.toString().padStart(2, '0')}
+                  <Info size={11} className="text-gray-300 dark:text-gray-600 ml-0.5" />
+                  <span className="pointer-events-none absolute bottom-9 right-0 z-20 hidden group-hover:block w-56 rounded-lg px-3 py-2 text-xs leading-relaxed bg-gray-900 dark:bg-gray-800 text-white shadow-xl whitespace-normal">
+                    Time elapsed since the problem loaded. This is recorded with your feedback to help calibrate difficulty estimates.
+                  </span>
                 </div>
                 <button onClick={handleSkip} className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                   Skip problem

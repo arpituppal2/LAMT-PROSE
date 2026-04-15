@@ -48,20 +48,20 @@ const Sidebar = ({ dark, toggleDark }) => {
   };
 
   const links = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/write', icon: PenTool, label: 'Write' },
-    { to: '/inventory', icon: List, label: 'Inventory' },
-    { to: '/exams', icon: ClipboardList, label: 'Exams' },
-    { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
-    { to: '/feedback', icon: MessageSquare, label: 'Feedback' },
-    { to: '/archive', icon: Archive, label: 'Archive' },
+    { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/write',       icon: PenTool,          label: 'Write' },
+    { to: '/inventory',   icon: List,             label: 'Inventory' },
+    { to: '/exams',       icon: ClipboardList,    label: 'Exams' },
+    { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard' },
+    { to: '/feedback',    icon: MessageSquare,    label: 'Feedback' },
+    { to: '/archive',     icon: Archive,          label: 'Archive' },
   ];
 
   return (
     <div
       className={`h-screen text-white flex flex-col flex-shrink-0 ${
         collapsed ? 'w-14' : 'w-60'
-      } bg-[#2774AE] dark:bg-[#001628] border-r border-white/10 transition-[width] duration-200`}
+      } bg-ucla-blue dark:bg-ucla-navy border-r border-white/10 transition-[width] duration-200`}
     >
       {/* Header — clicking brand navigates home */}
       <div className={`h-16 flex items-center flex-shrink-0 px-4 border-b border-white/10 ${
@@ -133,7 +133,7 @@ const Layout = ({ children }) => {
     <ThemeContext.Provider value={{ dark }}>
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
-        <main className="flex-1 overflow-y-auto bg-[#F4F7FB] dark:bg-[#030d17]">
+        <main className="flex-1 overflow-y-auto bg-[#F5F8FC] dark:bg-[#030d17]">
           <div className="p-8">
             {children}
           </div>

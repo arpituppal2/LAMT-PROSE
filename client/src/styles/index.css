@@ -4,33 +4,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ══════════════════════════════════════════════════════════════
+ *  UCLA BRAND PALETTE — CSS VARIABLES
+ *  Source: UCLA Brand Guidelines (brand.ucla.edu)
+ *  Rule: Blue is dominant. Gold is an accent, never the field.
+ *  Rule: Tertiary/vibrant colors for graphics only — never text.
+ * ══════════════════════════════════════════════════════════════
+ *
+ *  Primary
+ *    --ucla-blue           #2774AE   PANTONE 2383C  RGB 39 116 174
+ *    --ucla-gold           #FFD100   PANTONE 109C   RGB 255 209 0
+ *
+ *  Secondary Blues (dark → light)
+ *    --ucla-darkest-blue   #003B5C   PANTONE 302C
+ *    --ucla-darker-blue    #005587   PANTONE 7692C
+ *    --ucla-lighter-blue   #8BB8E8   PANTONE 278C
+ *    --ucla-lightest-blue  #DAEBFE   PANTONE 2707C
+ *
+ *  Secondary Golds (dark → light)
+ *    --ucla-darkest-gold   #FFB81C   PANTONE 1235C
+ *    --ucla-darker-gold    #FFC72C   PANTONE 123C
+ *
+ *  Dark-mode surface
+ *    --ucla-navy           #001628   (deep blue-black sidebar/bg)
+ * ══════════════════════════════════════════════════════════════
+ */
+:root {
+  /* Primary */
+  --ucla-blue:           #2774AE;
+  --ucla-gold:           #FFD100;
+
+  /* Secondary blues */
+  --ucla-darkest-blue:   #003B5C;
+  --ucla-darker-blue:    #005587;
+  --ucla-lighter-blue:   #8BB8E8;
+  --ucla-lightest-blue:  #DAEBFE;
+
+  /* Secondary golds */
+  --ucla-darkest-gold:   #FFB81C;
+  --ucla-darker-gold:    #FFC72C;
+
+  /* Dark-mode surface blue */
+  --ucla-navy:           #001628;
+
+  /* Semantic hover/active aliases */
+  --ucla-blue-hover:     #005587;
+  --ucla-blue-active:    #003B5C;
+  --ucla-gold-hover:     #FFC72C;
+  --ucla-gold-active:    #FFB81C;
+
+  /* App surfaces (light mode) */
+  --app-bg:              #F5F8FC;
+  --app-surface:         #FFFFFF;
+}
+
+.dark {
+  --app-bg:      #030d17;
+  --app-surface: #001628;
+}
+
 @layer base {
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply bg-[#F4F7FB] text-gray-900 dark:bg-[#030d17] dark:text-gray-100;
+    @apply bg-[#F5F8FC] text-gray-900 dark:bg-[#030d17] dark:text-gray-100;
   }
 }
 
 @layer utilities {
-  .hover\:bg-white\/8:hover { background-color: rgba(255,255,255,0.08); }
-  .hover\:bg-white\/4:hover { background-color: rgba(255,255,255,0.04); }
-  .hover\:bg-white\/3:hover { background-color: rgba(255,255,255,0.03); }
+  .hover\:bg-white\/8:hover  { background-color: rgba(255,255,255,0.08); }
+  .hover\:bg-white\/4:hover  { background-color: rgba(255,255,255,0.04); }
+  .hover\:bg-white\/3:hover  { background-color: rgba(255,255,255,0.03); }
   .dark\:hover\:bg-white\/3:hover { background-color: rgba(255,255,255,0.03); }
   .dark\:hover\:bg-white\/4:hover { background-color: rgba(255,255,255,0.04); }
   .dark\:hover\:bg-white\/8:hover { background-color: rgba(255,255,255,0.08); }
-  .bg-white\/3 { background-color: rgba(255,255,255,0.03); }
-  .bg-white\/4 { background-color: rgba(255,255,255,0.04); }
-  .bg-white\/8 { background-color: rgba(255,255,255,0.08); }
+  .bg-white\/3  { background-color: rgba(255,255,255,0.03); }
+  .bg-white\/4  { background-color: rgba(255,255,255,0.04); }
+  .bg-white\/8  { background-color: rgba(255,255,255,0.08); }
   .dark\:bg-white\/3 { background-color: rgba(255,255,255,0.03); }
   .dark\:bg-white\/4 { background-color: rgba(255,255,255,0.04); }
   .dark\:bg-white\/5 { background-color: rgba(255,255,255,0.05); }
   .dark\:bg-white\/8 { background-color: rgba(255,255,255,0.08); }
-  .border-white\/8 { border-color: rgba(255,255,255,0.08); }
+  .border-white\/8   { border-color: rgba(255,255,255,0.08); }
   .dark\:border-white\/8 { border-color: rgba(255,255,255,0.08); }
   .dark\:divide-white\/5 > * + * { border-color: rgba(255,255,255,0.05); }
+
+  /* UCLA Blue gradient — for enlivening fields of color (brand-approved) */
+  .bg-ucla-gradient {
+    background: linear-gradient(135deg, var(--ucla-darkest-blue) 0%, var(--ucla-blue) 60%, var(--ucla-lighter-blue) 100%);
+  }
+  .bg-ucla-gradient-subtle {
+    background: linear-gradient(135deg, var(--ucla-darker-blue) 0%, var(--ucla-blue) 100%);
+  }
 }
 
 @layer components {
@@ -60,5 +128,5 @@ code {
 
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--ucla-blue); border-radius: 2px; }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,209,0,0.4); }

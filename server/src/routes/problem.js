@@ -12,26 +12,19 @@ const ADMIN_EMAILS = [
   'tomwu@g.ucla.edu',
 ];
 
-// Consolidated 3-stage system (Archived is a soft-delete stage)
 const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed', 'Archived'];
 
-// Compute display status.
-// Priority: Archived > has unresolved needsReview feedback > has endorsements > stage fallback
 function computeDisplayStatus(problem) {
   if (problem.stage === 'Archived') return 'Archived';
-  // Check for unresolved feedback that flagged the problem as Needs Review.
-  // The Feedback model has a `needsReview` boolean field — use it directly.
   const hasUnresolvedFeedback = problem.feedbacks?.some(
     (f) => f.needsReview === true && !f.resolved
   );
   if (hasUnresolvedFeedback) return 'Needs Review';
   if ((problem.endorsements || 0) > 0) return 'Endorsed';
-  // Fall back to the stored stage if it's a meaningful value, else 'Idea'
   if (problem.stage && problem.stage !== 'Idea') return problem.stage;
   return 'Idea';
 }
 
-// Atomically assign the next problem ID using a GLOBAL counter.
 async function assignProblemId(userInitials) {
   return await prisma.$transaction(async (tx) => {
     const allProblems = await tx.problem.findMany({ select: { id: true } });
@@ -54,13 +47,13 @@ router.post('/', authenticate, async (req, res) => {
     if (!latex || !topics || topics.length === 0 || !quality) {
       return res.status(400).json({ error: 'Missing required fields: latex, topics, quality' });
     }
-    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    const user = await prisma.user.findUnique({ where: { id: String(req.userId) } });
     if (!user) return res.status(404).json({ error: 'User not found' });
     const problemId = await assignProblemId(user.initials);
     const problem = await prisma.problem.create({
       data: {
         id: problemId,
-        authorId: req.userId,
+        authorId: String(req.userId),
         latex,
         solution: solution || '',
         answer: answer || '',
@@ -85,13 +78,13 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const { stage, topic, author, search, reviewable } = req.query;
     const currentUser = await prisma.user.findUnique({
-      where: { id: req.userId },
+      where: { id: String(req.userId) },
       select: { isAdmin: true, email: true },
     });
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
     const where = {};
     if (reviewable === 'true') {
-      where.authorId = { not: req.userId };
+      where.authorId = { not: String(req.userId) };
       where.stage = { not: 'Archived' };
     } else {
       if (stage && stage !== 'all') where.stage = stage;
@@ -135,8 +128,9 @@ router.get('/', authenticate, async (req, res) => {
 // Get my problems
 router.get('/my', authenticate, async (req, res) => {
   try {
+    const userId = String(req.userId);
     const problems = await prisma.problem.findMany({
-      where: { authorId: req.userId },
+      where: { authorId: userId },
       include: {
         author: { select: { firstName: true, lastName: true, initials: true } },
         feedbacks: true,
@@ -147,7 +141,7 @@ router.get('/my', authenticate, async (req, res) => {
       ...p,
       _displayStatus: computeDisplayStatus(p),
       _isAuthor: true,
-      _userId: req.userId,
+      _userId: userId,
     }));
     res.json(result);
   } catch (error) {
@@ -159,7 +153,7 @@ router.get('/my', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({
-      where: { id: req.userId },
+      where: { id: String(req.userId) },
       select: { isAdmin: true, email: true },
     });
     const problem = await prisma.problem.findUnique({
@@ -192,7 +186,7 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const { latex, topics, quality, stage, solution, answer, notes, examType } = req.body;
     const currentUser = await prisma.user.findUnique({
-      where: { id: req.userId },
+      where: { id: String(req.userId) },
       select: { isAdmin: true, email: true },
     });
     const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
@@ -234,7 +228,7 @@ router.put('/:id', authenticate, async (req, res) => {
 router.put('/:id/archive', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({
-      where: { id: req.userId },
+      where: { id: String(req.userId) },
       select: { isAdmin: true, email: true },
     });
     const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
@@ -257,7 +251,7 @@ router.put('/:id/archive', authenticate, async (req, res) => {
 router.put('/:id/unarchive', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({
-      where: { id: req.userId },
+      where: { id: String(req.userId) },
       select: { isAdmin: true, email: true },
     });
     const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
@@ -280,7 +274,7 @@ router.put('/:id/unarchive', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({
-      where: { id: req.userId },
+      where: { id: String(req.userId) },
       select: { isAdmin: true, email: true },
     });
     const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });

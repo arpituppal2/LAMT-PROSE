@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon, X, ArrowRightLeft, Send, FlaskConical } from 'lucide-react';
 import api from '../utils/api';
@@ -16,9 +16,23 @@ const WriteProblem = () => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [submitted, setSubmitted] = useState(false);
   const navigate = useNavigate();
 
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
+
+  const isDirty = !submitted && (latex || solution || answer || notes || topics.length > 0 || images.length > 0);
+
+  // Warn on browser refresh/close
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   const handleTopicToggle = (topic) => {
     setTopics(prev =>
@@ -83,6 +97,7 @@ const WriteProblem = () => {
         examType,
       });
 
+      setSubmitted(true);
       setMessage(`Problem ${response.data.id} submitted.`);
       setTimeout(() => navigate('/inventory'), 1500);
     } catch (error) {
@@ -182,6 +197,18 @@ const WriteProblem = () => {
                   placeholder="e.g. 42 or 1/2"
                   className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none text-slate-900 dark:text-white shadow-sm"
                   required
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Author Notes <span className="normal-case font-normal text-slate-400">(optional)</span></label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
+                  placeholder="Notes for reviewers..."
                 />
               </div>
 

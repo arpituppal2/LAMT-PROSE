@@ -270,17 +270,9 @@ const Dashboard = () => {
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#2774AE] dark:bg-[#FFD100] h-full transition-all"
-                      style={{ width: `${(parseInt(problem.quality) || 5) * 10}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                    {parseInt(problem.quality) || '?'}/10
-                  </span>
-                </div>
+                <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
+                  {parseInt(problem.quality) || '?'}/10
+                </span>
               </div>
               {problem.topics?.length > 0 && (
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -442,13 +434,12 @@ const Dashboard = () => {
                           <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Status</th>
                           <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Stars</th>
                           <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Date</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50 dark:divide-white/5">
                         {filteredProblems.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-500">
+                            <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-500">
                               No problems in this category.
                             </td>
                           </tr>
@@ -470,17 +461,9 @@ const Dashboard = () => {
                             </td>
                             <td className="px-4 py-3.5">
                               {problem.quality ? (
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-14 bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-                                    <div
-                                      className="bg-[#2774AE] dark:bg-[#FFD100] h-full"
-                                      style={{ width: `${(parseInt(problem.quality) || 0) * 10}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                                    {parseInt(problem.quality)}/10
-                                  </span>
-                                </div>
+                                <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
+                                  {parseInt(problem.quality)}/10
+                                </span>
                               ) : (
                                 <span className="text-gray-300 dark:text-gray-600">—</span>
                               )}
@@ -509,15 +492,6 @@ const Dashboard = () => {
                             </td>
                             <td className="px-4 py-3.5 text-xs text-gray-400 dark:text-gray-500">
                               {new Date(problem.createdAt).toLocaleDateString()}
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <button
-                                onClick={e => { e.stopPropagation(); setPreviewProblem(problem); }}
-                                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/8 text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
-                                title="Preview"
-                              >
-                                <Eye size={13} />
-                              </button>
                             </td>
                           </tr>
                         ))}
@@ -727,12 +701,7 @@ const Dashboard = () => {
                     <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
                       <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</p>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-16 bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
-                            <div className="bg-[#2774AE] dark:bg-[#FFD100] h-full" style={{ width: `${(parseInt(editForm.quality) || 5) * 10}%` }} />
-                          </div>
-                          <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
-                        </div>
+                        <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                       </div>
 
                       <div className="px-5 py-5 space-y-4 overflow-y-auto max-h-[70vh]">
@@ -832,12 +801,9 @@ const Dashboard = () => {
                               </td>
                               <td className="px-4 py-3.5">
                                 {problem.quality ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-14 bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-                                      <div className="bg-[#2774AE] dark:bg-[#FFD100] h-full" style={{ width: `${(parseInt(problem.quality) || 0) * 10}%` }} />
-                                    </div>
-                                    <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
-                                  </div>
+                                  <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
+                                    {parseInt(problem.quality)}/10
+                                  </span>
                                 ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                               </td>
                               <td className="px-4 py-3.5 text-xs text-gray-400 dark:text-gray-500">

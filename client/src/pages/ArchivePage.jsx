@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Archive, ArchiveRestore, Search, Filter } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
+import KatexRenderer from '../components/KatexRenderer';
 
 const ArchivePage = () => {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ const ArchivePage = () => {
   const [search, setSearch] = useState('');
   const [unarchiving, setUnarchiving] = useState(null);
   const [message, setMessage] = useState('');
+  // Confirmation modal state
+  const [confirmId, setConfirmId] = useState(null);
 
   useEffect(() => {
     fetchArchived();
@@ -27,9 +30,9 @@ const ArchivePage = () => {
     }
   };
 
-  const handleUnarchive = async (id, e) => {
-    e.stopPropagation();
+  const handleUnarchive = async (id) => {
     setUnarchiving(id);
+    setConfirmId(null);
     try {
       await api.put(`/problems/${id}/unarchive`);
       setMessage(`Problem ${id} restored to Idea.`);
@@ -47,6 +50,9 @@ const ArchivePage = () => {
     (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
     (p.latex || '').toLowerCase().includes(search.toLowerCase())
   );
+
+  // The problem being confirmed (for displaying in the modal)
+  const confirmProblem = confirmId ? problems.find(p => p.id === confirmId) : null;
 
   if (loading) {
     return (
@@ -129,9 +135,14 @@ const ArchivePage = () => {
                         <span className="text-ucla-blue dark:text-ucla-gold font-semibold text-sm">
                           {problem.id}
                         </span>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1 max-w-xl">
-                          {problem.latex?.replace(/[$#\\\\]/g, '') || 'Click to view...'}
-                        </p>
+                        {/* LaTeX-rendered snippet */}
+                        <div
+                          className="text-sm text-slate-600 dark:text-slate-400 max-w-xl overflow-hidden"
+                          style={{ maxHeight: '2.8em' }}
+                          onClick={e => e.stopPropagation()} // prevent nav when clicking math
+                        >
+                          <KatexRenderer latex={(problem.latex || 'Click to view...').slice(0, 160)} />
+                        </div>
                         <div className="flex gap-1.5 flex-wrap">
                           <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-700">
                             {problem.quality ? `${problem.quality}/10` : '?'}
@@ -149,7 +160,7 @@ const ArchivePage = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
-                        onClick={(e) => handleUnarchive(problem.id, e)}
+                        onClick={(e) => { e.stopPropagation(); setConfirmId(problem.id); }}
                         disabled={unarchiving === problem.id}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-ucla-blue/10 text-ucla-blue dark:bg-ucla-blue/20 dark:text-blue-300 hover:bg-ucla-blue hover:text-white transition-all disabled:opacity-50"
                       >
@@ -164,6 +175,47 @@ const ArchivePage = () => {
           )}
         </div>
       </div>
+
+      {/* ── Restore confirmation modal ───────────────────────────────── */}
+      {confirmId && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={() => setConfirmId(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 max-w-sm w-full mx-4 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">
+              Restore this problem?
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+              <span className="font-mono font-semibold text-[#2774AE] dark:text-[#FFD100]">{confirmId}</span>{' '}
+              will be moved back to <strong>Idea</strong> stage and become visible in the inventory.
+            </p>
+            {/* LaTeX preview in modal */}
+            {confirmProblem?.latex && (
+              <div className="mb-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300 overflow-hidden" style={{ maxHeight: '4em' }}>
+                <KatexRenderer latex={confirmProblem.latex.slice(0, 200)} />
+              </div>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmId(null)}
+                className="px-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleUnarchive(confirmId)}
+                className="px-4 py-2 text-sm rounded-lg bg-[#2774AE] hover:bg-[#005587] text-white font-semibold transition"
+              >
+                Restore to Idea
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

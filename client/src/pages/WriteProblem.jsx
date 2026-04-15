@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useBlocker } from 'react-router-dom';
 import { Image as ImageIcon, X, ArrowRightLeft, Send, FlaskConical } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -22,6 +22,21 @@ const WriteProblem = () => {
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
   const isDirty = !submitted && (latex || solution || answer || notes || topics.length > 0 || images.length > 0);
+
+  // Block in-app navigation when form has unsaved data
+  const shouldBlock = useCallback(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && currentLocation.pathname !== nextLocation.pathname,
+    [isDirty]
+  );
+  const blocker = useBlocker(shouldBlock);
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      const ok = window.confirm('You have unsaved changes. Leave anyway?');
+      if (ok) blocker.proceed();
+      else blocker.reset();
+    }
+  }, [blocker]);
 
   // Warn on browser refresh/close
   useEffect(() => {
@@ -141,7 +156,7 @@ const WriteProblem = () => {
                 />
               </div>
 
-              {/* Image Gallery */}
+              {/* Attachments */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Attachments</label>
                 <div className="flex flex-wrap gap-3">
@@ -246,6 +261,20 @@ const WriteProblem = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Exam Type */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Exam Type</label>
+                <select
+                  value={examType}
+                  onChange={(e) => setExamType(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none text-slate-900 dark:text-white appearance-none cursor-pointer"
+                >
+                  <option>Numerical Answer</option>
+                  <option>Multiple Choice</option>
+                  <option>Free Response</option>
+                </select>
               </div>
 
               {/* Submit */}

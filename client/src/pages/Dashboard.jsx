@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Star, LayoutDashboard, MessageSquare, Trash2, User,
-  Eye, X, ChevronDown, ChevronUp, CheckCircle,
-  ClipboardEdit, Save, ArrowLeft, ArrowRightLeft
+  Star, LayoutDashboard, MessageSquare, Trash2, User, Eye, X,
+  ChevronDown, ChevronUp, CheckCircle, ClipboardEdit, Save,
+  ArrowLeft, ArrowRightLeft, PenTool
 } from 'lucide-react';
 import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
+
+// Strip LaTeX delimiters for a plain-text snippet preview
+const stripLatex = (str = '') =>
+  str
+    .replace(/\$\$[\s\S]*?\$\$/g, '[…]')
+    .replace(/\$[^$]*?\$/g, (m) => m.slice(1, -1))
+    .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')
+    .replace(/[\\{}]/g, '')
+    .trim()
+    .slice(0, 90);
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -21,8 +31,7 @@ const Dashboard = () => {
   const setActiveTab = (tab) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
-      if (tab === 'overview') next.delete('view');
-      else next.set('view', tab);
+      if (tab === 'overview') next.delete('view'); else next.set('view', tab);
       return next;
     }, { replace: false });
   };
@@ -30,8 +39,7 @@ const Dashboard = () => {
   const setFilter = (value) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
-      if (value === 'all') next.delete('filter');
-      else next.set('filter', value);
+      if (value === 'all') next.delete('filter'); else next.set('filter', value);
       return next;
     }, { replace: false });
   };
@@ -53,23 +61,16 @@ const Dashboard = () => {
   const [editMessage, setEditMessage] = useState('');
   const [editPreviewShowSolution, setEditPreviewShowSolution] = useState(false);
 
+  // Account tab state
   const [formData, setFormData] = useState({ firstName: '', lastName: '', mathExp: '' });
   const [profileSubmitting, setProfileSubmitting] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
 
   useEffect(() => { fetchDashboardData(); }, []);
-
-  useEffect(() => {
-    if (activeTab === 'review') fetchReviewProblems();
-  }, [activeTab]);
-
+  useEffect(() => { if (activeTab === 'review') fetchReviewProblems(); }, [activeTab]);
   useEffect(() => {
     if (user) {
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        mathExp: user.mathExp || ''
-      });
+      setFormData({ firstName: user.firstName || '', lastName: user.lastName || '', mathExp: user.mathExp || '' });
     }
   }, [user]);
 
@@ -161,7 +162,7 @@ const Dashboard = () => {
       ...prev,
       topics: prev.topics.includes(topic)
         ? prev.topics.filter(t => t !== topic)
-        : [...prev.topics, topic]
+        : [...prev.topics, topic],
     }));
   };
 
@@ -194,6 +195,11 @@ const Dashboard = () => {
     }
   };
 
+  // Derived counts for stat cards
+  const needsReviewCount = problems.filter(
+    p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
+  ).length;
+
   const filteredProblems = problems.filter((p) => {
     if (filter === 'all') return true;
     if (filter === 'needs_review') return p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review';
@@ -213,89 +219,89 @@ const Dashboard = () => {
     );
   }
 
+  // ── Preview Panel (used by both eye icon and inline preview) ──────────────
   const PreviewPanel = ({ problem, onClose }) => {
     const [showSol, setShowSol] = useState(false);
     if (!problem) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      >
         <div
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0d1e2e] rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10"
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">{problem.id}</span>
-                <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                  problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                    ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                    : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                    ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
-                    : 'bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-gray-300'
-                }`}>
-                  {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                    ? 'Needs Review'
-                    : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                    ? 'Endorsed'
-                    : problem.stage}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">{problem.topics?.join(' · ')}</p>
+          {/* Dark header with ID + status badge */}
+          <div className="flex items-center justify-between px-5 py-3.5 bg-[#2774AE] dark:bg-ucla-navy rounded-t-2xl">
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-sm font-bold text-white">{problem.id}</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-white/20 text-white">
+                {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+                  ? 'Needs Review'
+                  : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+                  ? 'Endorsed'
+                  : problem.stage}
+              </span>
+              {problem.topics?.length > 0 && (
+                <span className="text-xs text-white/60">{problem.topics.join(' · ')}</span>
+              )}
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              className="p-1 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             >
               <X size={16} />
             </button>
           </div>
 
-          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          <div className="px-6 py-5 space-y-5">
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Problem Statement</p>
-              <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm">
-                <KatexRenderer latex={problem.latex} />
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Problem Statement
+              </p>
+              <div className="prose-math text-gray-900 dark:text-gray-100 leading-relaxed text-sm">
+                <KatexRenderer latex={problem.latex || ''} />
               </div>
             </div>
 
             {problem.answer && (
               <div className="flex items-center gap-2.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Answer</span>
-                <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Answer</span>
+                <span className="px-3 py-1.5 bg-gray-100 dark:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">
                   <KatexRenderer latex={problem.answer} />
                 </span>
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Difficulty</span>
-                <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                Difficulty&nbsp;&nbsp;
+                <span className="text-[#2774AE] dark:text-[#FFD100] text-xs font-bold">
                   {parseInt(problem.quality) || '?'}/10
                 </span>
-              </div>
-              {problem.topics?.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {problem.topics.map(t => (
-                    <span key={t} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700">{t}</span>
-                  ))}
-                </div>
-              )}
+              </span>
+              {problem.topics?.map(t => (
+                <span key={t} className="px-2 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded border border-gray-200 dark:border-white/10">
+                  {t}
+                </span>
+              ))}
             </div>
 
             {problem.solution && (
-              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+              <div className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setShowSol(s => !s)}
-                  className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="w-full flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/8 transition-colors"
                 >
                   <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
-                    <CheckCircle size={14} /> {showSol ? 'Hide' : 'Show'} Solution
+                    <CheckCircle size={13} />
+                    {showSol ? 'Hide' : 'Show'} Solution
                   </div>
-                  {showSol ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                  {showSol ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
                 </button>
                 {showSol && (
-                  <div className="p-4 border-t border-slate-100 dark:border-slate-800 prose-math text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                  <div className="p-4 border-t border-gray-100 dark:border-white/8 prose-math text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
                     <KatexRenderer latex={problem.solution} />
                   </div>
                 )}
@@ -303,25 +309,28 @@ const Dashboard = () => {
             )}
 
             {problem.notes && (
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
-                <div className="text-sm text-slate-700 dark:text-slate-300 prose-math leading-relaxed">
+              <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Author Notes</p>
+                <div className="text-sm text-gray-700 dark:text-gray-300 prose-math leading-relaxed">
                   <KatexRenderer latex={problem.notes} />
                 </div>
               </div>
             )}
-          </div>
 
-          <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex-shrink-0 bg-slate-50/80 dark:bg-slate-900/80 flex items-center gap-2">
-            <button
-              onClick={() => { onClose(); navigate(`/problem/${problem.id}`); }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#2774AE] text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
-            >
-              Full Page
-            </button>
-            <button onClick={onClose} className="ml-auto text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors px-2 py-2">
-              Close
-            </button>
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={() => { onClose(); navigate(`/problem/${problem.id}`); }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-[#2774AE] text-white rounded-lg text-xs font-semibold hover:bg-[#005587] transition-colors"
+              >
+                Full Page
+              </button>
+              <button
+                onClick={onClose}
+                className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -331,255 +340,340 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        {/* ── Page header ─────────────────────────────────────── */}
+        <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               {user?.firstName} {user?.lastName}
             </h1>
-            <p className="text-base text-gray-400 dark:text-gray-500 mt-0.5">{user?.email}</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{user?.email}</p>
           </div>
-
-          <div className="flex border border-gray-200 dark:border-white/10 rounded overflow-hidden text-base">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`flex items-center gap-1.5 px-3 py-2 transition-colors ${
-                activeTab === 'overview'
-                  ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-              }`}
-            >
-              <LayoutDashboard size={15} />
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('review')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-l border-gray-200 dark:border-white/10 transition-colors ${
-                activeTab === 'review'
-                  ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-              }`}
-            >
-              <ClipboardEdit size={15} />
-              Review Feedback
-            </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-l border-gray-200 dark:border-white/10 transition-colors ${
-                activeTab === 'profile'
-                  ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
-              }`}
-            >
-              <User size={15} />
-              Settings
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/write')}
+            className="flex items-center gap-2 px-4 py-2 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] transition-colors shadow-sm"
+          >
+            <PenTool size={15} />
+            New Problem
+          </button>
         </div>
 
+        {/* ── Tab bar ─────────────────────────────────────────── */}
+        <div className="flex items-center border-b border-gray-200 dark:border-white/10 mb-6 text-sm font-medium">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'review',   label: 'Review Feedback' },
+            { id: 'profile',  label: 'Account' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 border-b-2 transition-colors -mb-px ${
+                activeTab === tab.id
+                  ? 'border-[#2774AE] text-[#2774AE] dark:border-[#FFD100] dark:text-[#FFD100]'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ══ OVERVIEW TAB ═══════════════════════════════════════ */}
         {activeTab === 'overview' && (
-          <div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-              <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4">
-                <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">Total</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.totalProblems || 0}</p>
+          <div className="flex gap-6">
+            {/* Left column: stats + problem list */}
+            <div className="flex-1 min-w-0">
+
+              {/* ── Stat cards (clickable → filter) ──────────── */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+                {/* Total */}
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`text-left p-4 rounded-xl border transition-all ${
+                    filter === 'all'
+                      ? 'bg-[#2774AE] border-[#2774AE] dark:bg-[#FFD100] dark:border-[#FFD100]'
+                      : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/8 hover:border-[#2774AE] dark:hover:border-[#FFD100] hover:shadow-sm'
+                  }`}
+                >
+                  <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${filter === 'all' ? 'text-white/70 dark:text-[#001628]/70' : 'text-gray-400 dark:text-gray-500'}`}>
+                    Total
+                  </p>
+                  <p className={`text-2xl font-bold tabular-nums ${filter === 'all' ? 'text-white dark:text-[#001628]' : 'text-gray-900 dark:text-white'}`}>
+                    {stats?.totalProblems || 0}
+                  </p>
+                </button>
+
+                {/* Endorsed */}
+                <button
+                  onClick={() => setFilter('Endorsed')}
+                  className={`text-left p-4 rounded-xl border transition-all ${
+                    filter === 'Endorsed'
+                      ? 'bg-[#2774AE] border-[#2774AE] dark:bg-[#FFD100] dark:border-[#FFD100]'
+                      : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/8 hover:border-[#2774AE] dark:hover:border-[#FFD100] hover:shadow-sm'
+                  }`}
+                >
+                  <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${filter === 'Endorsed' ? 'text-white/70 dark:text-[#001628]/70' : 'text-gray-400 dark:text-gray-500'}`}>
+                    Endorsed
+                  </p>
+                  <p className={`text-2xl font-bold tabular-nums ${filter === 'Endorsed' ? 'text-white dark:text-[#001628]' : 'text-gray-900 dark:text-white'}`}>
+                    {stats?.totalEndorsements || 0}
+                  </p>
+                </button>
+
+                {/* Needs Review */}
+                <button
+                  onClick={() => setFilter('needs_review')}
+                  className={`text-left p-4 rounded-xl border transition-all ${
+                    filter === 'needs_review'
+                      ? 'bg-amber-500 border-amber-500 dark:bg-amber-400 dark:border-amber-400'
+                      : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/8 hover:border-amber-400 dark:hover:border-amber-400 hover:shadow-sm'
+                  }`}
+                >
+                  <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${filter === 'needs_review' ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
+                    Needs Review
+                  </p>
+                  <p className={`text-2xl font-bold tabular-nums ${filter === 'needs_review' ? 'text-white' : needsReviewCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-white'}`}>
+                    {needsReviewCount}
+                  </p>
+                </button>
+
+                {/* Per-topic cards */}
+                {topicOptions.map((topic) => (
+                  <button
+                    key={topic}
+                    onClick={() => setFilter(topic)}
+                    className={`text-left p-4 rounded-xl border transition-all ${
+                      filter === topic
+                        ? 'bg-[#2774AE] border-[#2774AE] dark:bg-[#FFD100] dark:border-[#FFD100]'
+                        : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/8 hover:border-[#2774AE] dark:hover:border-[#FFD100] hover:shadow-sm'
+                    }`}
+                  >
+                    <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${filter === topic ? 'text-white/70 dark:text-[#001628]/70' : 'text-gray-400 dark:text-gray-500'}`}>
+                      {topic}
+                    </p>
+                    <p className={`text-2xl font-bold tabular-nums ${filter === topic ? 'text-white dark:text-[#001628]' : 'text-gray-900 dark:text-white'}`}>
+                      {stats?.topicCounts?.[topic] || 0}
+                    </p>
+                  </button>
+                ))}
               </div>
-              <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4">
-                <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">Endorsed</p>
-                <div className="flex items-baseline gap-1.5">
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.totalEndorsements || 0}</p>
-                  <Star size={12} className="text-[#FFD100] fill-[#FFD100] mb-0.5" />
+
+              {/* ── Filter tabs (no 'Published') ─────────────── */}
+              <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+                {[
+                  { value: 'all',          label: 'All' },
+                  { value: 'needs_review', label: 'Needs Review' },
+                  { value: 'Idea',         label: 'Idea' },
+                  { value: 'Endorsed',     label: 'Endorsed' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setFilter(value)}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      filter === value
+                        ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
+                        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/8 dark:hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Problem list table ────────────────────────── */}
+              <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-white/8">
+                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">ID</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Status</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Stars</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Date</th>
+                        <th className="px-4 py-2.5"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                      {filteredProblems.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-400 dark:text-gray-500">
+                            No problems found.
+                          </td>
+                        </tr>
+                      ) : filteredProblems.map((problem) => (
+                        <tr
+                          key={problem.id}
+                          onClick={() => navigate(`/problem/${problem.id}`)}
+                          className="hover:bg-gray-50 dark:hover:bg-white/4 cursor-pointer transition-colors"
+                        >
+                          <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                            {problem.id}
+                          </td>
+                          {/* ── Snippet column ── */}
+                          <td className="px-4 py-3 max-w-[220px]">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                              {problem.latex ? stripLatex(problem.latex) + (problem.latex.length > 90 ? '…' : '') : '—'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1">
+                              {problem.topics.map(t => (
+                                <span key={t} className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {problem.quality ? (
+                              <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
+                                {parseInt(problem.quality)}/10
+                              </span>
+                            ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                              (problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review')
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
+                                : (problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed')
+                                ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
+                                : 'bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-gray-400'
+                            }`}>
+                              {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+                                ? 'Needs Review'
+                                : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+                                ? 'Endorsed'
+                                : problem.stage}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {problem.endorsements > 0 ? (
+                              <span className="flex items-center gap-1 text-xs text-[#2774AE] dark:text-[#FFD100] font-semibold">
+                                <Star size={11} fill="currentColor" /> {problem.endorsements}
+                              </span>
+                            ) : <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                            {new Date(problem.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => setPreviewProblem(problem)}
+                              className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/8 text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
+                              title="Preview"
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-              {topicOptions.map((topic) => (
-                <div key={topic} className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4">
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">{topic}</p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white tabular-nums">{stats?.topicCounts?.[topic] || 0}</p>
-                </div>
-              ))}
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex-1 min-w-0">
-                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
-                  <div className="flex gap-1 p-3 border-b border-gray-100 dark:border-white/8">
-                    {[
-                      { value: 'all', label: 'All' },
-                      { value: 'needs_review', label: 'Needs Review' },
-                      { value: 'Idea', label: 'Idea' },
-                      { value: 'Published', label: 'Published' },
-                      { value: 'Endorsed', label: 'Endorsed' },
-                    ].map(({ value, label }) => (
-                      <button
-                        key={value}
-                        onClick={() => setFilter(value)}
-                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                          filter === value
-                            ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/8 dark:hover:text-white'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+            {/* ── Right column: Your reviews sidebar ───────── */}
+            <div className="w-72 flex-shrink-0">
+              <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4 sticky top-0">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
+                  Your reviews
+                </h3>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-gray-100 dark:border-white/8">
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">ID</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Topics</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Difficulty</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Status</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Stars</th>
-                          <th className="px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                        {filteredProblems.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-500">
-                              No problems in this category.
-                            </td>
-                          </tr>
-                        ) : filteredProblems.map((problem) => (
-                          <tr
-                            key={problem.id}
-                            onClick={() => navigate(`/problem/${problem.id}`)}
-                            className="hover:bg-gray-50 dark:hover:bg-white/4 cursor-pointer transition-colors"
-                          >
-                            <td className="px-4 py-3.5 font-mono text-sm font-medium text-gray-900 dark:text-white">{problem.id}</td>
-                            <td className="px-4 py-3.5">
-                              <div className="flex flex-wrap gap-1">
-                                {problem.topics.map(t => (
-                                  <span key={t} className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded">
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              {problem.quality ? (
-                                <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                                  {parseInt(problem.quality)}/10
-                                </span>
-                              ) : (
-                                <span className="text-gray-300 dark:text-gray-600">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                                problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                                  ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                                  : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                                  ? 'bg-yellow-50 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]'
-                                  : 'bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-gray-300'
-                              }`}>
-                                {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                                  ? 'Needs Review'
-                                  : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                                  ? 'Endorsed'
-                                  : problem.stage}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              {problem.endorsements > 0 ? (
-                                <span className="flex items-center gap-1 text-[#FFD100] text-sm">
-                                  <Star size={12} fill="currentColor" /> {problem.endorsements}
-                                </span>
-                              ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
-                            </td>
-                            <td className="px-4 py-3.5 text-xs text-gray-400 dark:text-gray-500">
-                              {new Date(problem.createdAt).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full lg:w-72 flex-shrink-0">
-                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4">
-                  <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                    <MessageSquare size={14} className="text-gray-400" />
-                    Your reviews
-                  </h2>
-                  {myFeedback.length === 0 ? (
-                    <p className="text-sm text-gray-400 dark:text-gray-500">No reviews submitted yet.</p>
-                  ) : myFeedback.map((fb) => (
-                    <div
-                      key={fb.id}
-                      onClick={() => navigate(`/problem/${fb.problemId}`)}
-                      className="cursor-pointer border-l-2 border-gray-100 dark:border-white/10 pl-3 py-1.5 mb-2.5 hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors group"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-medium text-gray-800 dark:text-white">{fb.problemId}</span>
-                          {!fb.isEndorsement && (
-                            <span className={`text-sm px-1.5 py-0.5 rounded ${
-                              fb.resolved
-                                ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
-                                : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                            }`}>
-                              {fb.resolved ? 'Resolved' : 'Open'}
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          onClick={(e) => handleDeleteFeedback(e, fb.id)}
-                          className="text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                      {fb.answer && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                          <span className="text-gray-700 dark:text-gray-300">Ans:</span> {fb.answer}
-                        </p>
-                      )}
-                      {fb.comment && (
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5 truncate">{fb.comment}</p>
-                      )}
-                      <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">
-                        {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}
-                        {fb.isEndorsement && <span className="ml-2 text-[#FFD100]">Endorsed</span>}
-                      </p>
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => navigate('/feedback')}
-                    className="w-full mt-3 py-1.5 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity"
+                {myFeedback.length === 0 ? (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">
+                    No reviews submitted yet.
+                  </p>
+                ) : myFeedback.map((fb) => (
+                  <div
+                    key={fb.id}
+                    onClick={() => navigate(`/problem/${fb.problemId}`)}
+                    className="cursor-pointer border-l-2 border-gray-100 dark:border-white/10 pl-3 py-1.5 mb-2.5 hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors group"
                   >
-                    Go to Feedback
-                  </button>
-                </div>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          {fb.problemId}
+                        </span>
+                        {!fb.isEndorsement && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                            fb.resolved
+                              ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
+                              : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400'
+                          }`}>
+                            {fb.resolved ? 'Resolved' : 'Open'}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={e => handleDeleteFeedback(e, fb.id)}
+                        className="text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+
+                    {/* Answer — rendered LaTeX, not raw string */}
+                    {fb.answer && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-baseline gap-1 flex-wrap">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Ans:</span>
+                        <span className="font-mono">
+                          <KatexRenderer latex={fb.answer} />
+                        </span>
+                      </div>
+                    )}
+
+                    {fb.comment && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">
+                        {fb.comment}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-gray-300 dark:text-gray-600">
+                        {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}
+                      </span>
+                      {fb.isEndorsement && (
+                        <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">✓ Endorsed</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  onClick={() => navigate('/feedback')}
+                  className="w-full mt-3 py-1.5 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity"
+                >
+                  Go to Feedback
+                </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* ══ REVIEW FEEDBACK TAB ════════════════════════════════ */}
         {activeTab === 'review' && (
           <div>
             {editingProblem ? (
-              <div className="max-w-7xl mx-auto">
+              <div>
                 <div className="flex items-center gap-3 mb-6">
                   <button
                     onClick={() => { setEditingProblem(null); setEditMessage(''); }}
                     className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
                   >
-                    <ArrowLeft size={15} /> Back to list
+                    <ArrowLeft size={14} /> Back to list
                   </button>
                   <span className="text-gray-300 dark:text-gray-600">·</span>
-                  <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{editingProblem.id}</span>
-                  <span className="px-2 py-0.5 text-xs rounded font-medium bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                  <span className="font-mono text-sm font-semibold text-gray-700 dark:text-gray-300">{editingProblem.id}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
                     Needs Review
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                   <div className="lg:col-span-7 space-y-5">
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Problem Statement</label>
@@ -591,7 +685,6 @@ const Dashboard = () => {
                         placeholder="Problem text. Use $...$ for inline math."
                       />
                     </div>
-
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Solution</label>
                       <textarea
@@ -602,7 +695,6 @@ const Dashboard = () => {
                         placeholder="Solution explanation..."
                       />
                     </div>
-
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Answer</label>
                       <input
@@ -613,7 +705,6 @@ const Dashboard = () => {
                         className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/20 focus:border-[#2774AE] outline-none text-slate-900 dark:text-white shadow-sm"
                       />
                     </div>
-
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Author Notes</label>
                       <textarea
@@ -624,7 +715,6 @@ const Dashboard = () => {
                         placeholder="Notes for reviewers..."
                       />
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Difficulty</label>
@@ -644,8 +734,7 @@ const Dashboard = () => {
                         <div className="flex flex-wrap gap-2">
                           {topicOptions.map(topic => (
                             <button
-                              key={topic}
-                              type="button"
+                              key={topic} type="button"
                               onClick={() => toggleEditTopic(topic)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                                 editForm.topics?.includes(topic)
@@ -659,7 +748,6 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </div>
-
                     <div className="space-y-1.5">
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Exam Type</label>
                       <select
@@ -673,7 +761,6 @@ const Dashboard = () => {
                         <option value="Short Answer">Short Answer</option>
                       </select>
                     </div>
-
                     <div className="flex items-center gap-3 pt-2">
                       <button
                         onClick={handleEditSave}
@@ -697,21 +784,22 @@ const Dashboard = () => {
                     </div>
                   </div>
 
+                  {/* Live preview */}
                   <div className="lg:col-span-5 lg:sticky lg:top-6">
                     <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
                       <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</p>
                         <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                       </div>
-
                       <div className="px-5 py-5 space-y-4 overflow-y-auto max-h-[70vh]">
                         <div>
                           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Problem Statement</p>
                           <div className="prose-math text-slate-900 dark:text-slate-100 leading-relaxed text-sm min-h-[2rem]">
-                            {editForm.latex ? <KatexRenderer latex={editForm.latex} /> : <span className="text-slate-300 dark:text-slate-600 italic">Start typing your problem…</span>}
+                            {editForm.latex
+                              ? <KatexRenderer latex={editForm.latex} />
+                              : <span className="text-slate-300 dark:text-slate-600 italic">Start typing your problem…</span>}
                           </div>
                         </div>
-
                         {editForm.answer && (
                           <div className="flex items-center gap-2.5">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
@@ -720,7 +808,6 @@ const Dashboard = () => {
                             </span>
                           </div>
                         )}
-
                         {editForm.topics?.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {editForm.topics.map(t => (
@@ -728,7 +815,6 @@ const Dashboard = () => {
                             ))}
                           </div>
                         )}
-
                         {editForm.solution && (
                           <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                             <button
@@ -736,7 +822,8 @@ const Dashboard = () => {
                               className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
                               <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
-                                <CheckCircle size={13} /> {editPreviewShowSolution ? 'Hide' : 'Show'} Solution
+                                <CheckCircle size={13} />
+                                {editPreviewShowSolution ? 'Hide' : 'Show'} Solution
                               </div>
                               {editPreviewShowSolution ? <ChevronUp size={15} className="text-slate-400" /> : <ChevronDown size={15} className="text-slate-400" />}
                             </button>
@@ -747,7 +834,6 @@ const Dashboard = () => {
                             )}
                           </div>
                         )}
-
                         {editForm.notes && (
                           <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Author Notes</p>
@@ -764,9 +850,8 @@ const Dashboard = () => {
             ) : (
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                  Problems flagged <span className="font-medium text-red-500 dark:text-red-400">Needs Review</span> — edit them inline to address reviewer feedback.
+                  Problems flagged <span className="font-medium text-amber-600 dark:text-amber-400">Needs Review</span> — edit them inline to address reviewer feedback.
                 </p>
-
                 {reviewLoading ? (
                   <div className="flex items-center justify-center h-40 text-gray-400 dark:text-gray-500 text-sm">Loading…</div>
                 ) : reviewProblems.length === 0 ? (
@@ -801,9 +886,7 @@ const Dashboard = () => {
                               </td>
                               <td className="px-4 py-3.5">
                                 {problem.quality ? (
-                                  <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">
-                                    {parseInt(problem.quality)}/10
-                                  </span>
+                                  <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
                                 ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                               </td>
                               <td className="px-4 py-3.5 text-xs text-gray-400 dark:text-gray-500">
@@ -838,60 +921,41 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* ══ ACCOUNT TAB ════════════════════════════════════════ */}
         {activeTab === 'profile' && (
           <div className="max-w-xl">
             <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-6">
               <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-5">Account settings</h2>
-
               {profileMessage && (
-                <p className={`mb-4 text-sm ${
-                  profileMessage === 'Saved.'
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-red-500 dark:text-red-400'
-                }`}>
+                <p className={`mb-4 text-sm ${profileMessage === 'Saved.' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                   {profileMessage}
                 </p>
               )}
-
               <form onSubmit={handleProfileSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={user?.email || ''}
-                      disabled
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    />
+                    <input type="email" value={user?.email || ''} disabled
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Initials</label>
-                    <input
-                      type="text"
-                      value={user?.initials || ''}
-                      disabled
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    />
+                    <input type="text" value={user?.initials || ''} disabled
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">First name</label>
-                    <input
-                      type="text"
-                      value={formData.firstName}
+                    <input type="text" value={formData.firstName}
                       onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
-                    />
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]" />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Last name</label>
-                    <input
-                      type="text"
-                      value={formData.lastName}
+                    <input type="text" value={formData.lastName}
                       onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
-                    />
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]" />
                   </div>
                 </div>
                 <div>
@@ -903,9 +967,7 @@ const Dashboard = () => {
                     className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={profileSubmitting}
+                <button type="submit" disabled={profileSubmitting}
                   className="px-4 py-2 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   {profileSubmitting ? 'Saving…' : 'Save changes'}
@@ -916,6 +978,7 @@ const Dashboard = () => {
         )}
       </div>
 
+      {/* Preview modal */}
       {previewProblem && (
         <PreviewPanel problem={previewProblem} onClose={() => setPreviewProblem(null)} />
       )}

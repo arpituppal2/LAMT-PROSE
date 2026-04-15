@@ -135,7 +135,13 @@ export default function Dashboard() {
 
   // ── Load data ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!user) return;
+    // Wait until auth has resolved. If still null after a tick, keep waiting.
+    if (user === undefined) return; // auth not yet resolved
+    if (user === null) {
+      // Not logged in — stop the spinner so the page doesn't hang.
+      setLoading(false);
+      return;
+    }
     loadDashboard();
   }, [user]);
 
@@ -449,39 +455,44 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try a different filter or write a new problem.</p>
               </div>
             ) : (
-              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
-                <table className="w-full text-left">
+              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl overflow-hidden">
+                <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-white/8">
-                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
-                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
-                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
-                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Problem</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Topic</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Difficulty</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                    {filteredProblems.map(problem => (
-                      <tr key={problem.id}
-                        onClick={() => navigate(`/problem/${problem.id}`)}
-                        className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors">
-                        <td className="px-4 py-3.5">
-                          <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[220px] mt-0.5">
-                            {problem.latex?.replace(/[$#\\]/g, '').slice(0, 70) || ''}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex flex-wrap gap-1">
-                            {(problem.topics || []).map(t => (
-                              <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
-                            ))}
+                    {filteredProblems.map(p => (
+                      <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors">
+                        <td className="px-4 py-3 max-w-xs">
+                          <div className="text-xs text-gray-400 mb-0.5 font-mono">{p.id}</div>
+                          <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                            <KatexRenderer latex={p.latex} />
                           </div>
                         </td>
-                        <td className="px-4 py-3.5">
-                          <DiffLabel quality={problem.quality} />
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {(p.topics || []).join(', ') || '—'}
+                          </span>
                         </td>
-                        <td className="px-4 py-3.5">
-                          <StatusBadge status={problem._displayStatus} stage={problem.stage} />
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <DiffLabel quality={p.quality} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={p._displayStatus} stage={p.stage} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => openEditProblem(p)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-gray-100 dark:bg-white/8 hover:bg-[#2774AE]/10 dark:hover:bg-[#FFD100]/10 text-gray-600 dark:text-gray-300 hover:text-[#2774AE] dark:hover:text-[#FFD100] rounded-lg transition-colors"
+                          >
+                            <ClipboardEdit size={11} /> Edit
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -494,46 +505,34 @@ export default function Dashboard() {
 
         {/* ── MY REVIEWS TAB ── */}
         {activeTab === 'myreviews' && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Reviews you've written on others' problems.</p>
+          <div>
             {myFeedback.length === 0 ? (
               <div className="flex flex-col items-center py-16 text-center">
                 <MessageSquare size={36} className="text-gray-200 dark:text-white/10 mb-3" />
-                <p className="text-base font-semibold text-gray-700 dark:text-gray-300">No reviews yet</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Head to Feedback to start reviewing problems.</p>
+                <p className="text-base font-semibold text-gray-700 dark:text-gray-300">No reviews given yet</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Reviews you submit will appear here.</p>
               </div>
             ) : (
-              <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
-                {myFeedback.map(fb => (
-                  <div
-                    key={fb.id}
-                    className="flex items-start gap-4 px-5 py-4 border-b border-gray-50 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors group"
-                    onClick={() => navigate(`/problem/${fb.problemId}`)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100] group-hover:underline">{fb.problemId}</span>
-                        {fb.isEndorsement && (
-                          <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-medium">★ Endorsement</span>
+              <div className="space-y-3">
+                {myFeedback.map(f => (
+                  <div key={f.id} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl px-5 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-gray-400 mb-1 font-mono">{f.problemId}</div>
+                        {f.comment && (
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{f.comment}</p>
                         )}
-                        {fb.timeTaken > 0 && (
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">⏱ {Math.floor(fb.timeTaken / 60)}m {fb.timeTaken % 60}s</span>
+                        {f.rating && (
+                          <p className="text-xs text-gray-400 mt-1">Rating: {f.rating}/5</p>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 italic line-clamp-2">{fb.feedback}</p>
-                      {isValidAnswer(fb.answer) && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                          Ans: <span className="font-mono"><KatexRenderer latex={fb.answer} inline /></span>
-                        </p>
-                      )}
+                      <button
+                        onClick={e => handleDeleteFeedback(e, f.id)}
+                        className="p-1.5 text-gray-300 hover:text-red-500 transition-colors rounded"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => handleDeleteFeedback(e, fb.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 dark:text-gray-600 hover:text-red-500 transition-all flex-shrink-0"
-                      title="Remove review"
-                    >
-                      <Trash2 size={13} />
-                    </button>
                   </div>
                 ))}
               </div>
@@ -546,282 +545,220 @@ export default function Dashboard() {
           <div>
             {editingProblem ? (
               <div>
-                <div className="flex items-center gap-3 mb-5">
-                  <button
-                    onClick={() => { setEditingProblem(null); setReviewComments([]); }}
-                    className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
-                  >
-                    <ArrowLeft size={15} /> Back to list
-                  </button>
-                  <span className="text-gray-300 dark:text-white/20">|</span>
-                  <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{editingProblem.id}</span>
-                </div>
+                <button
+                  onClick={() => { setEditingProblem(null); setReviewComments([]); }}
+                  className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-5 transition-colors"
+                >
+                  <ArrowLeft size={14} /> Back to list
+                </button>
 
-                {/* Two-column layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5 mb-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-mono text-gray-400">{editingProblem.id}</span>
+                    <StatusBadge status={editingProblem._displayStatus} stage={editingProblem.stage} />
+                  </div>
 
-                  {/* LEFT: edit form */}
-                  <div className="lg:col-span-7 space-y-4">
-
-                    {/* Review comments */}
-                    {reviewCommentsLoading ? (
-                      <div className="text-center py-8 text-gray-400 text-sm">Loading feedback…</div>
-                    ) : reviewComments.length > 0 ? (
-                      <div className="space-y-3">
-                        {reviewComments.map(fc => (
-                          <div key={fc.id} className={`rounded-xl border p-4 transition-all ${
-                            fc.resolved
-                              ? 'border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-900/10 opacity-60'
-                              : 'border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10'
-                          }`}>
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{fc.reviewerName || 'Reviewer'}</span>
-                                {fc.resolved && <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">✓ Resolved</span>}
-                              </div>
-                              <span className="text-[10px] text-gray-400">{fc.createdAt ? new Date(fc.createdAt).toLocaleDateString() : ''}</span>
-                            </div>
-                            <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{fc.feedback}</p>
-
-                            {/* Replies */}
-                            {fc.replies?.length > 0 && (
-                              <div className="mt-3 space-y-2 pl-3 border-l-2 border-gray-200 dark:border-white/10">
-                                {fc.replies.map((r, idx) => (
-                                  <div key={idx} className="text-xs text-gray-600 dark:text-gray-400">
-                                    <span className="font-semibold text-gray-700 dark:text-gray-300">{r.authorName || 'You'}:</span> {r.body}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Reply box */}
-                            {!fc.resolved && (
-                              <div className="mt-3 flex gap-2">
-                                <input
-                                  type="text"
-                                  value={replyDrafts[fc.id] || ''}
-                                  onChange={e => setReplyDrafts(prev => ({ ...prev, [fc.id]: e.target.value }))}
-                                  onKeyDown={e => { if (e.key === 'Enter') handleSaveReply(fc.id); }}
-                                  placeholder="Reply…"
-                                  className="flex-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
-                                />
-                                <button
-                                  onClick={() => handleSaveReply(fc.id)}
-                                  disabled={replyLoading[fc.id]}
-                                  className="px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
-                                >
-                                  {replyLoading[fc.id] ? '…' : 'Reply'}
-                                </button>
-                                <button
-                                  onClick={() => handleResolveFeedback(fc.id)}
-                                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold transition-colors"
-                                >
-                                  ✓ Resolve
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                  {/* Preview */}
+                  <div className="bg-gray-50 dark:bg-white/4 rounded-lg p-4 mb-4">
+                    <KatexRenderer latex={editForm.latex} />
+                    {editPreviewShowSolution && editForm.solution && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10">
+                        <p className="text-xs text-gray-400 mb-1">Solution</p>
+                        <KatexRenderer latex={editForm.solution} />
                       </div>
-                    ) : (
-                      <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">No feedback comments yet.</div>
                     )}
+                  </div>
+                  <button
+                    onClick={() => setEditPreviewShowSolution(v => !v)}
+                    className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors mb-4"
+                  >
+                    {editPreviewShowSolution ? 'Hide solution' : 'Show solution'}
+                  </button>
 
-                    {/* Edit fields */}
-                    <div className="space-y-3 pt-2">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Problem Statement</label>
-                        <textarea
-                          value={editForm.latex}
-                          onChange={e => handleEditFieldChange('latex', e.target.value)}
-                          rows={5}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Solution</label>
-                        <textarea
-                          value={editForm.solution}
-                          onChange={e => handleEditFieldChange('solution', e.target.value)}
-                          rows={4}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Answer</label>
+                  {/* Edit fields */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Problem (LaTeX)</label>
+                      <textarea
+                        value={editForm.latex}
+                        onChange={e => handleEditFieldChange('latex', e.target.value)}
+                        rows={4}
+                        className="w-full text-sm font-mono bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:text-white resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Solution</label>
+                      <textarea
+                        value={editForm.solution}
+                        onChange={e => handleEditFieldChange('solution', e.target.value)}
+                        rows={3}
+                        className="w-full text-sm font-mono bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:text-white resize-none"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Answer</label>
                         <input
                           value={editForm.answer}
                           onChange={e => handleEditFieldChange('answer', e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                          className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:text-white"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Notes</label>
-                        <textarea
-                          value={editForm.notes}
-                          onChange={e => handleEditFieldChange('notes', e.target.value)}
-                          rows={2}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Difficulty (1–10)</label>
-                        <input
-                          type="range" min="1" max="10"
-                          value={editForm.quality || 5}
-                          onChange={e => handleEditFieldChange('quality', e.target.value)}
-                          className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-[#2774AE]"
-                        />
-                        <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
-                          <span>1</span><span className="font-semibold text-[#2774AE] dark:text-[#FFD100]">{editForm.quality || 5}</span><span>10</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Topics</label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {topicOptions.map(topic => (
-                            <button
-                              key={topic}
-                              type="button"
-                              onClick={() => toggleEditTopic(topic)}
-                              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                (editForm.topics || []).includes(topic)
-                                  ? 'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900'
-                                  : 'bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/12'
-                              }`}
-                            >
-                              {topic}
-                            </button>
-                          ))}
-                        </div>
-                        {(editForm.topics || []).length > 0 && (
-                          <p className="text-[10px] text-gray-400 mt-1">{editForm.topics.join(', ')}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Stage</label>
+                      <div className="w-24">
+                        <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Difficulty</label>
                         <select
-                          value={editForm.stage}
-                          onChange={e => handleEditFieldChange('stage', e.target.value)}
-                          className="px-3 py-1.5 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                          value={editForm.quality}
+                          onChange={e => handleEditFieldChange('quality', e.target.value)}
+                          className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none dark:text-white"
                         >
-                          <option value="Idea">Idea</option>
-                          <option value="Needs Review">Needs Review</option>
-                          <option value="Endorsed">Endorsed</option>
+                          <option value="">—</option>
+                          {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={String(n)}>{n}</option>)}
                         </select>
                       </div>
                     </div>
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Topics</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {topicOptions.map(t => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => toggleEditTopic(t)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              editForm.topics?.includes(t)
+                                ? 'bg-[#2774AE] text-white'
+                                : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Notes</label>
+                      <textarea
+                        value={editForm.notes}
+                        onChange={e => handleEditFieldChange('notes', e.target.value)}
+                        rows={2}
+                        className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:text-white resize-none"
+                      />
+                    </div>
+                  </div>
 
+                  <div className="flex items-center gap-2 mt-4">
                     <button
                       onClick={handleEditSave}
                       disabled={editSaving}
                       className="flex items-center gap-1.5 px-4 py-2 bg-[#2774AE] hover:bg-[#1a5a8a] dark:bg-[#FFD100] dark:hover:bg-[#e6bc00] text-white dark:text-slate-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
                     >
-                      <Save size={14} />{editSaving ? 'Saving…' : 'Save Changes'}
+                      <Save size={13} /> {editSaving ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => { setEditingProblem(null); setReviewComments([]); }}
+                      className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                    >
+                      Cancel
                     </button>
                   </div>
+                </div>
 
-                  {/* RIGHT: live preview */}
-                  <div className="lg:col-span-5">
-                    <div className="sticky top-4 space-y-4">
-                      <div className="bg-white dark:bg-white/4 border border-gray-200 dark:border-white/8 rounded-xl p-5">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</p>
-                        <div className="prose-math text-sm text-slate-800 dark:text-slate-100 leading-relaxed mt-3">
-                          {editForm.latex
-                            ? <KatexRenderer latex={editForm.latex} />
-                            : <span className="text-gray-300 dark:text-white/20 italic">Start typing to preview…</span>
-                          }
-                        </div>
-                        {editForm.answer && (
-                          <div className="mt-3 flex items-center gap-2">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Answer</span>
-                            <span className="font-mono text-sm text-[#2774AE] dark:text-[#FFD100]">
-                              <KatexRenderer latex={editForm.answer} inline />
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Solution preview */}
-                      <div className="border border-gray-200 dark:border-white/8 rounded-xl overflow-hidden">
-                        <button
-                          onClick={() => setEditPreviewShowSolution(!editPreviewShowSolution)}
-                          className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-white/4 hover:bg-slate-100 dark:hover:bg-white/8 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 text-xs font-semibold text-[#2774AE] dark:text-[#FFD100]">
-                            <CheckCircle size={14} /> {editPreviewShowSolution ? 'Hide' : 'Show'} Solution
-                          </div>
-                          {editPreviewShowSolution ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
-                        </button>
-                        {editPreviewShowSolution && (
-                          <div className="p-4 border-t border-slate-100 dark:border-white/8 prose-math text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
-                            {editForm.solution
-                              ? <KatexRenderer latex={editForm.solution} />
-                              : <span className="text-gray-300 dark:text-white/20 italic">No solution yet</span>
-                            }
-                          </div>
-                        )}
-                      </div>
+                {/* Reviewer comments */}
+                <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Review Comments</h3>
+                  {reviewCommentsLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="w-4 h-4 border-2 border-[#2774AE] border-t-transparent rounded-full animate-spin" />
+                      Loading…
                     </div>
-                  </div>
+                  ) : reviewComments.length === 0 ? (
+                    <p className="text-sm text-gray-400">No review comments yet.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviewComments.map(f => (
+                        <div key={f.id} className={`rounded-lg p-4 ${
+                          f.resolved ? 'bg-green-50 dark:bg-green-900/10' : 'bg-gray-50 dark:bg-white/4'
+                        }`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                              {f.user ? `${f.user.firstName} ${f.user.lastName}` : 'Reviewer'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {f.resolved && (
+                                <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                  <CheckCircle size={11} /> Resolved
+                                </span>
+                              )}
+                              {!f.resolved && (
+                                <button
+                                  onClick={() => handleResolveFeedback(f.id)}
+                                  className="text-xs text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                >
+                                  Mark resolved
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {f.comment && <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{f.comment}</p>}
+                          {f.rating && <p className="text-xs text-gray-400">Rating: {f.rating}/5</p>}
+
+                          {/* Reply */}
+                          {!f.resolved && (
+                            <div className="mt-3 flex gap-2">
+                              <input
+                                value={replyDrafts[f.id] || ''}
+                                onChange={e => setReplyDrafts(prev => ({ ...prev, [f.id]: e.target.value }))}
+                                placeholder="Reply…"
+                                className="flex-1 text-xs bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#2774AE]/30 dark:text-white placeholder:text-gray-400"
+                              />
+                              <button
+                                onClick={() => handleSaveReply(f.id)}
+                                disabled={replyLoading[f.id]}
+                                className="px-2.5 py-1 bg-[#2774AE] text-white text-xs rounded hover:bg-[#1a5a8a] transition-colors disabled:opacity-50"
+                              >
+                                {replyLoading[f.id] ? '…' : 'Send'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Problems marked <span className="font-semibold text-red-500 dark:text-red-400">Needs Review</span> — click to view, or edit and resubmit directly here.
+                  Problems marked Needs Review — click to view, or edit and resubmit directly here.
                 </p>
-
                 {reviewLoading ? (
-                  <div className="flex items-center justify-center py-12 text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <div className="w-4 h-4 border-2 border-[#2774AE] border-t-transparent rounded-full animate-spin" />
+                    Loading…
+                  </div>
                 ) : reviewProblems.length === 0 ? (
                   <div className="flex flex-col items-center py-16 text-center">
-                    <CheckCircle size={40} className="text-green-400 dark:text-green-500 mb-3" />
+                    <CheckCircle size={36} className="text-green-400 mb-3" />
                     <p className="text-base font-semibold text-gray-700 dark:text-gray-300">You're all caught up!</p>
                     <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">No problems are marked Needs Review.</p>
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-gray-100 dark:border-white/8">
-                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
-                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
-                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
-                          <th className="px-4 py-2.5 w-24"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                        {reviewProblems.map(problem => (
-                          <tr key={problem.id} className="hover:bg-gray-50 dark:hover:bg-white/3 transition-colors cursor-pointer" onClick={() => navigate(`/problem/${problem.id}`)}>
-                            <td className="px-4 py-3.5">
-                              <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
-                              <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[220px] mt-0.5">
-                                {problem.latex?.replace(/[$#\\]/g, '').slice(0, 70) || ''}
-                              </p>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <div className="flex flex-wrap gap-1">
-                                {(problem.topics || []).map(t => (
-                                  <span key={t} className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <DiffLabel quality={problem.quality} />
-                            </td>
-                            <td className="px-4 py-3.5 text-right">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); openEditProblem(problem); }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] hover:bg-[#1a5a8a] text-white rounded-lg text-xs font-semibold transition-colors ml-auto"
-                              >
-                                <ClipboardEdit size={12} /> Edit
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-3">
+                    {reviewProblems.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => openEditProblem(p)}
+                        className="w-full text-left bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl px-5 py-4 hover:border-[#2774AE]/30 dark:hover:border-[#FFD100]/30 hover:shadow-sm transition-all"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-mono text-gray-400">{p.id}</span>
+                          <StatusBadge status={p._displayStatus} stage={p.stage} />
+                        </div>
+                        <div className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                          <KatexRenderer latex={p.latex} />
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -831,45 +768,61 @@ export default function Dashboard() {
 
         {/* ── ACCOUNT TAB ── */}
         {activeTab === 'settings' && (
-          <div className="max-w-md space-y-6">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Account</h2>
-
+          <div className="max-w-md">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-5">Account Settings</h2>
             <form onSubmit={handleProfileSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">First Name</label>
-                <input value={formData.firstName} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">First Name</label>
+                  <input
+                    value={formData.firstName}
+                    onChange={e => setFormData(p => ({ ...p, firstName: e.target.value }))}
+                    className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Last Name</label>
+                  <input
+                    value={formData.lastName}
+                    onChange={e => setFormData(p => ({ ...p, lastName: e.target.value }))}
+                    className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:text-white"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Last Name</label>
-                <input value={formData.lastName} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-gray-50 dark:bg-white/3 text-gray-400 dark:text-gray-500 cursor-not-allowed" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Initials</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Initials</label>
                 <input
                   value={formData.initials}
-                  onChange={e => setFormData(f => ({ ...f, initials: e.target.value }))}
-                  maxLength={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
+                  onChange={e => setFormData(p => ({ ...p, initials: e.target.value }))}
+                  maxLength={4}
+                  className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Math Experience</label>
-                <textarea
+                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Math Experience</label>
+                <select
                   value={formData.mathExperience}
-                  onChange={e => setFormData(f => ({ ...f, mathExperience: e.target.value }))}
-                  rows={3}
-                  placeholder="Describe your math competition background…"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none"
-                />
+                  onChange={e => setFormData(p => ({ ...p, mathExperience: e.target.value }))}
+                  className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:text-white"
+                >
+                  <option value="">Select…</option>
+                  <option value="AMC 10/12">AMC 10/12</option>
+                  <option value="AIME">AIME</option>
+                  <option value="USAMO/USAJMO">USAMO/USAJMO</option>
+                  <option value="Putnam">Putnam</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
-              <button
-                type="submit"
-                disabled={profileSaving}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#2774AE] hover:bg-[#1a5a8a] dark:bg-[#FFD100] dark:hover:bg-[#e6bc00] text-white dark:text-slate-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-              >
-                <Save size={14} />{profileSaving ? 'Saving…' : 'Save'}
-              </button>
-              {profileMsg && <p className="text-sm text-green-600 dark:text-green-400">{profileMsg}</p>}
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#2774AE] hover:bg-[#1a5a8a] dark:bg-[#FFD100] dark:hover:bg-[#e6bc00] text-white dark:text-slate-900 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  <Save size={13} /> {profileSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+                {profileMsg && <span className="text-xs text-green-600 dark:text-green-400">{profileMsg}</span>}
+              </div>
             </form>
           </div>
         )}

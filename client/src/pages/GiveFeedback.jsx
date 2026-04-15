@@ -63,6 +63,9 @@ function FeedbackCard({ problem, onSubmit }) {
     );
   }
 
+  // Use actual field names from the server: problem.latex, problem.topics
+  const displayTopics = (problem.topics || []).join(', ');
+
   return (
     <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl overflow-hidden">
       {/* Problem header */}
@@ -72,14 +75,14 @@ function FeedbackCard({ problem, onSubmit }) {
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            {problem.topic && (
+            {displayTopics && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                {problem.topic}
+                {displayTopics}
               </span>
             )}
-            {problem.difficulty && (
+            {problem.quality && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400">
-                {problem.difficulty}
+                {parseInt(problem.quality)}/10
               </span>
             )}
             <span className="text-xs text-gray-400 flex items-center gap-1">
@@ -88,7 +91,7 @@ function FeedbackCard({ problem, onSubmit }) {
             </span>
           </div>
           <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
-            <KatexRenderer content={problem.statement} />
+            <KatexRenderer latex={problem.latex} />
           </div>
         </div>
         <div className="flex-shrink-0 mt-1">
@@ -106,7 +109,7 @@ function FeedbackCard({ problem, onSubmit }) {
           <div className="bg-gray-50 dark:bg-white/4 rounded-lg p-4">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Problem</p>
             <div className="text-sm text-gray-800 dark:text-gray-200">
-              <KatexRenderer content={problem.statement} />
+              <KatexRenderer latex={problem.latex} />
             </div>
             {problem.images?.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -222,10 +225,12 @@ export default function GiveFeedback() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const endpoint = id ? `/problems/${id}` : '/problems/needs-review';
+    // When fetching a specific problem by ID, hit /:id directly.
+    // Otherwise, fetch all reviewable problems (not authored by current user, not archived).
     const fetcher = id
-      ? api.get(endpoint).then(r => [r.data])
-      : api.get(endpoint).then(r => r.data);
+      ? api.get(`/problems/${id}`).then(r => [r.data])
+      : api.get('/problems', { params: { reviewable: 'true' } }).then(r => r.data);
+
     fetcher
       .then(setProblems)
       .catch(console.error)
@@ -236,10 +241,11 @@ export default function GiveFeedback() {
     setProblems(prev => prev.filter(p => p.id !== problemId));
   };
 
+  // Filter using actual field names from the API response
   const filtered = problems.filter(p =>
     !search ||
-    p.statement?.toLowerCase().includes(search.toLowerCase()) ||
-    p.topic?.toLowerCase().includes(search.toLowerCase())
+    p.latex?.toLowerCase().includes(search.toLowerCase()) ||
+    (p.topics || []).some(t => t.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (

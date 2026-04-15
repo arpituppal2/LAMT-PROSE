@@ -1,24 +1,33 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { Search, Filter, ChevronDown, TrendingUp, BookOpen, Star, Clock } from 'lucide-react';
 import Layout from '../components/Layout';
+import KatexRenderer from '../components/KatexRenderer';
 import api from '../utils/api';
 
 export default function ProblemInventory() {
   const navigate = useNavigate();
   const [problems, setProblems] = useState([]);
+  const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [topicFilter, setTopicFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [diffFilter, setDiffFilter] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    api.get('/problems')
-      .then(res => setProblems(res.data))
+    Promise.all([
+      api.get('/problems'),
+      api.get('/stats/tournament-progress'),
+    ])
+      .then(([proRes, chartRes]) => {
+        setProblems(proRes.data);
+        setChartData(chartRes.data || []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -29,6 +38,7 @@ export default function ProblemInventory() {
   }, [problems]);
 
   const statuses = ['All', 'Idea', 'Endorsed', 'Needs Review', 'Archived'];
+  const difficulties = ['All', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
   const filtered = useMemo(() => problems.filter(p => {
     const displayStatus = p._displayStatus || p.stage || 'Idea';
@@ -38,27 +48,9 @@ export default function ProblemInventory() {
       `${p.author?.firstName} ${p.author?.lastName}`.toLowerCase().includes(search.toLowerCase());
     const matchTopic = topicFilter === 'All' || (p.topics || []).includes(topicFilter);
     const matchStatus = statusFilter === 'All' || displayStatus === statusFilter;
-    return matchSearch && matchTopic && matchStatus;
-  }), [problems, search, topicFilter, statusFilter]);
-
-  // Build chart data: problems added per day (last 14 days)
-  const chartData = useMemo(() => {
-    const counts = {};
-    const now = new Date();
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      counts[key] = 0;
-    }
-    problems.forEach(p => {
-      if (!p.createdAt) return;
-      const d = new Date(p.createdAt);
-      const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      if (key in counts) counts[key]++;
-    });
-    return Object.entries(counts).map(([date, count]) => ({ date, count }));
-  }, [problems]);
+    const matchDiff = diffFilter === 'All' || p.quality === diffFilter;
+    return matchSearch && matchTopic && matchStatus && matchDiff;
+  }), [problems, search, topicFilter, statusFilter, diffFilter]);
 
   const getDisplayStatus = (p) => p._displayStatus || p.stage || 'Idea';
 
@@ -68,6 +60,13 @@ export default function ProblemInventory() {
     'Idea':         'bg-blue-100  text-blue-700  dark:bg-blue-900/30  dark:text-blue-400',
     'Archived':     'bg-gray-100  text-gray-500  dark:bg-white/5      dark:text-gray-500',
   }[s] || 'bg-gray-100 text-gray-500');
+
+  // Format chart x-axis labels shorter
+  const fmtDate = (d) => {
+    if (!d) return '';
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   return (
     <Layout>
@@ -100,25 +99,33 @@ export default function ProblemInventory() {
           ))}
         </div>
 
-        {/* Chart */}
+        {/* Chart — cumulative totals from /stats/tournament-progress */}
         <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl p-4 mb-6">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Problems Added (Last 14 Days)</h2>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} interval={2} />
-              <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
-              <Tooltip
-                contentStyle={{
-                  background: 'var(--tw-bg-opacity,1)',
-                  border: '1px solid rgba(0,0,0,0.08)',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                }}
-              />
-              <Line type="monotone" dataKey="count" stroke="#2774AE" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Cumulative Problems Over Time</h2>
+          {chartData.length === 0 ? (
+            <div className="h-40 flex items-center justify-center text-sm text-gray-400">No data yet.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+                <XAxis dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip
+                  labelFormatter={fmtDate}
+                  contentStyle={{
+                    background: 'var(--color-surface, #fff)',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                <Line type="monotone" dataKey="endorsed" name="Endorsed" stroke="#22c55e" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="idea" name="Idea" stroke="#2774AE" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="needsReview" name="Needs Review" stroke="#f59e0b" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Search + filters */}
@@ -164,6 +171,16 @@ export default function ProblemInventory() {
                 {statuses.map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
+            <div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Difficulty</label>
+              <select
+                value={diffFilter}
+                onChange={e => setDiffFilter(e.target.value)}
+                className="text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded px-2 py-1 dark:text-white"
+              >
+                {difficulties.map(d => <option key={d}>{d}</option>)}
+              </select>
+            </div>
           </div>
         )}
 
@@ -179,13 +196,14 @@ export default function ProblemInventory() {
                 <tr className="border-b border-gray-100 dark:border-white/8">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Problem</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Topic</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Diff</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Author</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-white/5">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-gray-400">No problems match your filters.</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400">No problems match your filters.</td></tr>
                 ) : filtered.map(p => (
                   <tr
                     key={p.id}
@@ -193,14 +211,19 @@ export default function ProblemInventory() {
                     className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2 max-w-md font-mono">
-                        {p.latex || <span className="text-gray-400 italic font-sans">No statement</span>}
+                      <div className="text-xs text-gray-400 mb-0.5 font-mono">{p.id}</div>
+                      <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2 max-w-md">
+                        <KatexRenderer latex={p.latex} />
                       </div>
-                      <div className="text-xs text-gray-400 mt-0.5">{p.id}</div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         {(p.topics || []).join(', ') || '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <span className="text-sm tabular-nums font-semibold text-[#2774AE] dark:text-[#FFD100]">
+                        {p.quality ? `${parseInt(p.quality)}/10` : '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">

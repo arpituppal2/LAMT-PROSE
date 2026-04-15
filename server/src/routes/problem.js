@@ -15,16 +15,20 @@ const ADMIN_EMAILS = [
 // Consolidated 3-stage system (Archived is a soft-delete stage)
 const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed', 'Archived'];
 
-// Compute display status using the actual needsReview boolean field on Feedback.
-// Priority: Archived > has unresolved needsReview feedback > endorsed > stage
+// Compute display status.
+// Priority: Archived > has unresolved needsReview feedback > has endorsements > stage fallback
 function computeDisplayStatus(problem) {
   if (problem.stage === 'Archived') return 'Archived';
+  // Check for unresolved feedback that flagged the problem as Needs Review.
+  // The Feedback model has a `needsReview` boolean field — use it directly.
   const hasUnresolvedFeedback = problem.feedbacks?.some(
     (f) => f.needsReview === true && !f.resolved
   );
   if (hasUnresolvedFeedback) return 'Needs Review';
-  if (problem.endorsements > 0) return 'Endorsed';
-  return problem.stage || 'Idea';
+  if ((problem.endorsements || 0) > 0) return 'Endorsed';
+  // Fall back to the stored stage if it's a meaningful value, else 'Idea'
+  if (problem.stage && problem.stage !== 'Idea') return problem.stage;
+  return 'Idea';
 }
 
 // Atomically assign the next problem ID using a GLOBAL counter.

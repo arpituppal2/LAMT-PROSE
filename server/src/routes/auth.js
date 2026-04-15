@@ -98,13 +98,15 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
-// Update profile (initials + mathExperience)
+// Update profile
 router.put('/profile', authenticate, async (req, res) => {
   try {
-    const { initials, mathExperience } = req.body;
+    const { firstName, lastName, initials, mathExperience } = req.body;
     const updateData = {};
-    if (initials !== undefined) updateData.initials = initials;
-    if (mathExperience !== undefined) updateData.mathExp = mathExperience;
+    if (firstName     !== undefined) updateData.firstName = firstName;
+    if (lastName      !== undefined) updateData.lastName  = lastName;
+    if (initials      !== undefined) updateData.initials  = initials;
+    if (mathExperience !== undefined) updateData.mathExp  = mathExperience;
     const user = await prisma.user.update({
       where: { id: req.userId },
       data: updateData,

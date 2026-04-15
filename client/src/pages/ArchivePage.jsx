@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archive, Search } from 'lucide-react';
 import Layout from '../components/Layout';
+import KatexRenderer from '../components/KatexRenderer';
 import api from '../utils/api';
 
 export default function ArchivePage() {
@@ -11,7 +12,7 @@ export default function ArchivePage() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    api.get('/problems/archive')
+    api.get('/problems', { params: { stage: 'Archived' } })
       .then(res => setProblems(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -19,11 +20,12 @@ export default function ArchivePage() {
 
   const filtered = problems.filter(p =>
     !search ||
-    p.statement?.toLowerCase().includes(search.toLowerCase()) ||
-    p.topic?.toLowerCase().includes(search.toLowerCase())
+    p.latex?.toLowerCase().includes(search.toLowerCase()) ||
+    (p.topics || []).some(t => t.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const topicColor = (topic) => {
+  const topicColor = (topics) => {
+    const topic = Array.isArray(topics) ? topics[0] : topics;
     const colors = {
       'Algebra':       'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
       'Geometry':      'bg-blue-100   text-blue-700   dark:bg-blue-900/30   dark:text-blue-400',
@@ -85,16 +87,23 @@ export default function ArchivePage() {
                     onClick={() => navigate(`/problem/${p.id}`)}
                     className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
                   >
-                    <td className="px-5 py-3.5">
-                      <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2 max-w-lg">{p.statement}</p>
+                    <td className="px-5 py-3.5 max-w-xs">
+                      <div className="text-xs text-gray-400 mb-0.5 font-mono">{p.id}</div>
+                      <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                        <KatexRenderer latex={p.latex} />
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 hidden sm:table-cell">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${topicColor(p.topic)}`}>
-                        {p.topic || 'Uncategorized'}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        topicColor(p.topics)
+                      }`}>
+                        {(p.topics || []).join(', ') || 'Uncategorized'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 hidden md:table-cell">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{p.author || '—'}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {p.author ? `${p.author.firstName} ${p.author.lastName}` : '—'}
+                      </span>
                     </td>
                   </tr>
                 ))}

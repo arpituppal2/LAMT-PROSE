@@ -35,8 +35,8 @@ router.get('/leaderboard', authenticate, async (req, res) => {
     const leaderboard = users.map((user) => {
       const badges = { endorsed: 0, idea: 0, needsReview: 0 };
       let score = 0;
-      user.problems.forEach((p) => {
-        if (p.stage === 'Archived') return;
+      const activeProblems = user.problems.filter(p => p.stage !== 'Archived');
+      activeProblems.forEach((p) => {
         const { category, points } = classifyProblem(p);
         score += points;
         badges[category] = (badges[category] || 0) + 1;
@@ -52,7 +52,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         initials: user.initials,
         badges,
         score,
-        totalProblems: user.problems.length,
+        totalProblems: activeProblems.length,
         reviewsGiven,
       };
     });
@@ -60,7 +60,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
     res.json(leaderboard);
   } catch (error) {
     console.error('Leaderboard error:', error);
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    res.status(500).json({ error: 'Failed to fetch leaderboard', details: error.message });
   }
 });
 
@@ -92,7 +92,8 @@ router.get('/dashboard', authenticate, async (req, res) => {
       stageCounts,
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard stats', details: error.message });
   }
 });
 
@@ -141,7 +142,8 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
     });
     res.json(cumulative);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch tournament progress' });
+    console.error('Tournament progress error:', error);
+    res.status(500).json({ error: 'Failed to fetch tournament progress', details: error.message });
   }
 });
 

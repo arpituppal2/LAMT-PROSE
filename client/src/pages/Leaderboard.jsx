@@ -1,172 +1,142 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { Trophy, Search } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
-function Leaderboard() {
+const Leaderboard = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('Total');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    api.get('/leaderboard')
-      .then(r => setData(r.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    fetchLeaderboard();
   }, []);
 
-  const stats = useMemo(() => {
-    if (!data) return { Total: 0, Endorsed: 0, 'Needs Review': 0, Ideas: 0 };
-    const problems = data.problems || [];
-    return {
-      Total: problems.length,
-      Endorsed: problems.filter(
-        p => p.stage === 'Endorsed' || p._displayStatus === 'endorsed' || p._displayStatus === 'Endorsed'
-      ).length,
-      'Needs Review': problems.filter(
-        p => p.stage === 'Needs Review' || p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
-      ).length,
-      Ideas: problems.filter(
-        p => p.stage === 'Idea' || p._displayStatus === 'idea' || p._displayStatus === 'Idea'
-      ).length,
-    };
-  }, [data]);
+  const fetchLeaderboard = async () => {
+    try {
+      const response = await api.get('/stats/leaderboard');
+      setLeaderboard(response.data);
+    } catch (error) {
+      console.error('Failed to fetch leaderboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredUsers = useMemo(() => {
-    if (!data) return [];
-    const users = data.users || [];
-    if (activeFilter === 'Total') return users;
+  const getBadgeColor = (type) => {
+    switch (type) {
+      case 'endorsed': return 'bg-green-600 dark:bg-green-700 text-white';
+      case 'idea': return 'bg-ucla-blue dark:bg-blue-700 text-white';
+      case 'needsReview': return 'bg-red-500 dark:bg-red-700 text-white';
+      default: return 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200';
+    }
+  };
 
-    const stageMap = {
-      Endorsed: ['Endorsed', 'endorsed'],
-      'Needs Review': ['Needs Review', 'needs_review'],
-      Ideas: ['Idea', 'idea'],
-    };
+  const filtered = leaderboard.filter(entry =>
+    search === '' ||
+    entry.author.toLowerCase().includes(search.toLowerCase()) ||
+    entry.initials.toLowerCase().includes(search.toLowerCase())
+  );
 
-    const allowed = stageMap[activeFilter] || [];
-    return users.filter(u =>
-      (u.problems || []).some(p => allowed.includes(p.stage) || allowed.includes(p._displayStatus))
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        </div>
+      </Layout>
     );
-  }, [data, activeFilter]);
-
-  const pills = ['Total', 'Endorsed', 'Needs Review', 'Ideas'];
+  }
 
   return (
     <Layout>
-      <div className="w-full px-[5%]">
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-0.5">Leaderboard</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Rankings by contributions</p>
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <Trophy className="text-ucla-gold" size={36} />
+          <h1 className="text-3xl font-bold text-ucla-blue dark:text-ucla-gold">Leaderboard</h1>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          {pills.map(pill => {
-            const active = activeFilter === pill;
-            return (
-              <button
-                key={pill}
-                onClick={() => setActiveFilter(prev => (prev === pill ? 'Total' : pill))}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                  active
-                    ? 'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-black border-[#2774AE] dark:border-[#FFD100]'
-                    : 'bg-white dark:bg-white/5 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-[#2774AE]/40 dark:hover:border-[#FFD100]/30'
-                }`}
-              >
-                <span className="font-semibold tabular-nums">{loading ? '—' : stats[pill]}</span>
-                <span>{pill}</span>
-              </button>
-            );
-          })}
+        {/* Search */}
+        <div className="relative mb-6 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          />
         </div>
 
-        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-xl overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-7 h-7 border-2 border-[#2774AE] border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="py-16 text-center text-sm text-gray-400">No contributors match this filter.</div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-white/8">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide w-10">#</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Name</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Problems</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Endorsed</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Needs Review</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Ideas</th>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rank</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Author</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Endorsed (5 pts)</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Idea (3 pts)</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Needs Review (-2 pts)</th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Score</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {filtered.map((entry, index) => (
+                <tr
+                  key={entry.userId}
+                  onClick={() => navigate(`/users/${entry.userId}`)}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                >
+                  {/* Rank */}
+                  <td className="px-4 py-3">
+                    {index < 3 ? (
+                      <span className="text-xl">
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 dark:text-gray-400 font-mono">{index + 1}</span>
+                    )}
+                  </td>
+                  {/* Author */}
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">{entry.author}</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{entry.initials}</div>
+                  </td>
+                  {/* Endorsed */}
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-full text-sm font-bold ${getBadgeColor('endorsed')}`}>
+                      {entry.badges.endorsed || 0}
+                    </span>
+                  </td>
+                  {/* Idea */}
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-full text-sm font-bold ${getBadgeColor('idea')}`}>
+                      {entry.badges.idea || 0}
+                    </span>
+                  </td>
+                  {/* Needs Review */}
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-full text-sm font-bold ${getBadgeColor('needsReview')}`}>
+                      {entry.badges.needsReview || 0}
+                    </span>
+                  </td>
+                  {/* Total Score */}
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-bold text-lg text-ucla-blue dark:text-ucla-gold">{entry.score}</span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                {filteredUsers.map((u, idx) => {
-                  const problems = u.problems || [];
-                  const endorsed = problems.filter(
-                    p => p.stage === 'Endorsed' || p._displayStatus === 'endorsed' || p._displayStatus === 'Endorsed'
-                  ).length;
-                  const needsReview = problems.filter(
-                    p => p.stage === 'Needs Review' || p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
-                  ).length;
-                  const ideas = problems.filter(
-                    p => p.stage === 'Idea' || p._displayStatus === 'idea' || p._displayStatus === 'Idea'
-                  ).length;
-
-                  return (
-                    <tr
-                      key={u.id}
-                      onClick={() => navigate(`/user/${u.id}`)}
-                      className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-sm font-bold tabular-nums ${
-                            idx === 0
-                              ? 'text-[#FFD100]'
-                              : idx === 1
-                              ? 'text-gray-400'
-                              : idx === 2
-                              ? 'text-orange-500'
-                              : 'text-gray-300 dark:text-gray-600'
-                          }`}
-                        >
-                          {idx + 1}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-[#2774AE] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                            {u.initials || (u.firstName?.[0] || '?')}
-                          </div>
-                          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                            {u.firstName} {u.lastName}
-                          </span>
-                          {idx === 0 && <Star size={12} className="text-[#FFD100]" fill="currentColor" />}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-gray-700 dark:text-gray-200">
-                        {problems.length}
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm tabular-nums text-green-600 dark:text-green-400 font-medium hidden sm:table-cell">
-                        {endorsed}
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm tabular-nums text-amber-600 dark:text-amber-400 hidden md:table-cell">
-                        {needsReview}
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm tabular-nums text-blue-600 dark:text-blue-400 hidden md:table-cell">
-                        {ideas}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-gray-400 dark:text-gray-500">No results found</div>
           )}
         </div>
       </div>
     </Layout>
   );
-}
+};
 
 export default Leaderboard;

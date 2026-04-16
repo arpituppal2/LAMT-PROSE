@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import {
   LayoutDashboard, PenTool, List, Trophy,
-  MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList, Archive, User
+  MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList, Archive
 } from 'lucide-react';
 
 export const ThemeContext = createContext({ dark: false });
@@ -55,7 +55,6 @@ const Sidebar = ({ dark, toggleDark }) => {
     { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard' },
     { to: '/feedback',    icon: MessageSquare,    label: 'Feedback' },
     { to: '/archive',     icon: Archive,          label: 'Archive' },
-    { to: '/profile',     icon: User,             label: 'Account' },
   ];
 
   return (
@@ -89,8 +88,7 @@ const Sidebar = ({ dark, toggleDark }) => {
         {links.map(link => {
           const Icon = link.icon;
           const isActive = location.pathname === link.to ||
-            (link.to === '/dashboard' && location.pathname === '/') ||
-            (link.to === '/profile' && location.pathname.startsWith('/users'));
+            (link.to === '/dashboard' && location.pathname === '/');
           return (
             <Link
               key={link.to}

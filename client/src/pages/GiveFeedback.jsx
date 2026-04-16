@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Clock, Search, CheckCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
-import { useNavigate, useParams, useBlocker } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
@@ -31,31 +31,19 @@ const GiveFeedback = () => {
   const topics = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
   const stages = ['Idea', 'Review', 'Needs Review', 'Endorsed'];
 
-  const isDirty = !!(problem && hasSubmittedAnswer && (answer || feedback));
-
-  // Stable ref to avoid useBlocker re-render loop
+  // beforeunload guard only (no useBlocker to avoid render loops)
   const isDirtyRef = useRef(false);
-  useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      isDirtyRef.current && currentLocation.pathname !== nextLocation.pathname
-  );
   useEffect(() => {
-    if (blocker.state === 'blocked') {
-      const ok = window.confirm('You have an unsaved review in progress. Leave anyway?');
-      if (ok) blocker.proceed();
-      else blocker.reset();
-    }
-  }, [blocker]);
-
+    isDirtyRef.current = !!(problem && hasSubmittedAnswer && (answer || feedback));
+  });
   useEffect(() => {
-    const handleBeforeUnload = (e) => {
+    const handler = (e) => {
       if (!isDirtyRef.current) return;
       e.preventDefault();
       e.returnValue = '';
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
   useEffect(() => {
@@ -86,7 +74,6 @@ const GiveFeedback = () => {
       setProblem(res.data);
       setMessage('');
     } catch (error) {
-      console.error('Failed to load problem:', error);
       setMessage('Problem not found or unavailable for review.');
     } finally {
       setLoading(false);
@@ -97,15 +84,9 @@ const GiveFeedback = () => {
     setLoading(true);
     try {
       const res = await api.get('/problems/review/random');
-      if (res.data) {
-        setProblem(res.data);
-        setMessage('');
-      } else {
-        setProblem(null);
-        setMessage('No problems available for review right now.');
-      }
+      if (res.data) { setProblem(res.data); setMessage(''); }
+      else { setProblem(null); setMessage('No problems available for review right now.'); }
     } catch (error) {
-      console.error('Failed to load next problem:', error);
       setProblem(null);
       setMessage('No problems available for review right now.');
     } finally {
@@ -124,7 +105,6 @@ const GiveFeedback = () => {
       const res = await api.get(`/problems/reviewable?${params}`);
       setReviewableProblems(res.data || []);
     } catch (error) {
-      console.error('Failed to load reviewable problems:', error);
       setReviewableProblems([]);
     } finally {
       setReviewableLoading(false);
@@ -138,10 +118,7 @@ const GiveFeedback = () => {
     }
   }, [searchQuery, filterTopic, filterStage, filterDifficulty]);
 
-  const submitAnswer = () => {
-    setHasSubmittedAnswer(true);
-    setShowSolution(true);
-  };
+  const submitAnswer = () => { setHasSubmittedAnswer(true); setShowSolution(true); };
 
   const submitFeedback = async (isEndorsement = false) => {
     if (!problem) return;
@@ -160,6 +137,7 @@ const GiveFeedback = () => {
       setReviewType(null);
       setHasSubmittedAnswer(false);
       setShowSolution(false);
+      isDirtyRef.current = false;
       if (routeProblemId) {
         setTimeout(() => navigate(`/problem/${problem.id}`), 1200);
       } else if (mode === 'random') {
@@ -169,7 +147,6 @@ const GiveFeedback = () => {
         setProblem(null);
       }
     } catch (error) {
-      console.error('Failed to submit feedback:', error);
       setMessage(error.response?.data?.error || 'Failed to submit feedback.');
     } finally {
       setLoading(false);
@@ -182,12 +159,11 @@ const GiveFeedback = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const selectProblem = async (selectedProblem) => {
-    await loadSpecificProblem(selectedProblem.id);
+  const selectProblem = async (selected) => {
+    await loadSpecificProblem(selected.id);
     setMode('targeted');
   };
 
-  // Shared input/label tokens
   const inputCls = 'w-full px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 transition';
 
   if (loading && !problem) {
@@ -204,7 +180,6 @@ const GiveFeedback = () => {
     <Layout>
       <div className="max-w-4xl mx-auto">
 
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Give Feedback</h1>
@@ -212,15 +187,12 @@ const GiveFeedback = () => {
           </div>
           <div className="flex items-center gap-2">
             {['random', 'browse'].map(m => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
+              <button key={m} onClick={() => setMode(m)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   mode === m
                     ? 'bg-[#2774AE] text-white'
                     : 'bg-white dark:bg-white/5 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/8'
-                }`}
-              >
+                }`}>
                 {m === 'random' ? 'Random Problem' : 'Browse Problems'}
               </button>
             ))}
@@ -232,9 +204,7 @@ const GiveFeedback = () => {
             message.includes('successfully') || message.includes('endorsed')
               ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
               : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
-          }`}>
-            {message}
-          </div>
+          }`}>{message}</div>
         )}
 
         {/* Browse mode */}
@@ -262,23 +232,17 @@ const GiveFeedback = () => {
                 ))}
               </select>
             </div>
-
             {reviewableLoading ? (
               <div className="flex items-center justify-center py-10">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2774AE] dark:border-[#FFD100]" />
               </div>
             ) : reviewableProblems.length === 0 ? (
-              <div className="text-center py-10 text-sm text-gray-400 dark:text-gray-500">
-                No problems found matching your criteria.
-              </div>
+              <div className="text-center py-10 text-sm text-gray-400 dark:text-gray-500">No problems found matching your criteria.</div>
             ) : (
               <div className="space-y-2">
                 {reviewableProblems.map(rp => (
-                  <div
-                    key={rp.id}
-                    onClick={() => selectProblem(rp)}
-                    className="p-4 border border-gray-100 dark:border-white/8 rounded-lg hover:border-[#2774AE] dark:hover:border-[#FFD100]/40 cursor-pointer transition-colors bg-gray-50 dark:bg-white/3 hover:bg-white dark:hover:bg-white/8"
-                  >
+                  <div key={rp.id} onClick={() => selectProblem(rp)}
+                    className="p-4 border border-gray-100 dark:border-white/8 rounded-lg hover:border-[#2774AE] dark:hover:border-[#FFD100]/40 cursor-pointer transition-colors bg-gray-50 dark:bg-white/3 hover:bg-white dark:hover:bg-white/8">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2.5 mb-2">
@@ -287,7 +251,7 @@ const GiveFeedback = () => {
                           {rp.quality && <span className="text-xs text-gray-400">{rp.quality}/10</span>}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                          <KatexRenderer latex={rp.latex || ''} />
+                          {rp.latex ? <KatexRenderer latex={rp.latex} /> : null}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {(rp.topics || []).map(t => (
@@ -297,9 +261,7 @@ const GiveFeedback = () => {
                       </div>
                       <div className="text-right text-xs text-gray-400 dark:text-gray-500 shrink-0">
                         <div>{rp.feedbackCount || 0} reviews</div>
-                        {rp.latestFeedback && (
-                          <div className="mt-1">{new Date(rp.latestFeedback).toLocaleDateString()}</div>
-                        )}
+                        {rp.latestFeedback && <div className="mt-1">{new Date(rp.latestFeedback).toLocaleDateString()}</div>}
                       </div>
                     </div>
                   </div>
@@ -329,7 +291,7 @@ const GiveFeedback = () => {
                 ))}
               </div>
               <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-                <KatexRenderer latex={problem.latex || ''} />
+                {problem.latex ? <KatexRenderer latex={problem.latex} /> : null}
               </div>
             </div>
 
@@ -338,17 +300,11 @@ const GiveFeedback = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Your Answer</label>
-                    <input
-                      type="text" value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      placeholder="Enter your answer..."
-                      className={inputCls}
-                    />
+                    <input type="text" value={answer} onChange={(e) => setAnswer(e.target.value)}
+                      placeholder="Enter your answer..." className={inputCls} />
                   </div>
-                  <button
-                    onClick={submitAnswer} disabled={!answer.trim()}
-                    className="px-5 py-2.5 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
+                  <button onClick={submitAnswer} disabled={!answer.trim()}
+                    className="px-5 py-2.5 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                     Submit Answer
                   </button>
                 </div>
@@ -359,10 +315,8 @@ const GiveFeedback = () => {
                       <CheckCircle className="text-green-600 dark:text-green-400" size={16} />
                       <span className="text-sm font-medium text-gray-900 dark:text-white">Your Answer: {answer}</span>
                     </div>
-                    <button
-                      onClick={() => setShowSolution(!showSolution)}
-                      className="flex items-center gap-1.5 text-sm text-[#2774AE] dark:text-[#FFD100] hover:underline"
-                    >
+                    <button onClick={() => setShowSolution(!showSolution)}
+                      className="flex items-center gap-1.5 text-sm text-[#2774AE] dark:text-[#FFD100] hover:underline">
                       {showSolution ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       {showSolution ? 'Hide' : 'Show'} Solution
                     </button>
@@ -379,25 +333,21 @@ const GiveFeedback = () => {
                   <div>
                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Review Type</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button
-                        onClick={() => setReviewType('feedback')}
+                      <button onClick={() => setReviewType('feedback')}
                         className={`p-4 rounded-lg border-2 text-left transition-colors ${
                           reviewType === 'feedback'
                             ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
                             : 'border-gray-200 dark:border-white/10 hover:border-amber-300 dark:hover:border-amber-600'
-                        }`}
-                      >
+                        }`}>
                         <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Needs Improvement</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">Provide constructive feedback</div>
                       </button>
-                      <button
-                        onClick={() => setReviewType('endorse')}
+                      <button onClick={() => setReviewType('endorse')}
                         className={`p-4 rounded-lg border-2 text-left transition-colors ${
                           reviewType === 'endorse'
                             ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                             : 'border-gray-200 dark:border-white/10 hover:border-green-400 dark:hover:border-green-600'
-                        }`}
-                      >
+                        }`}>
                         <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Endorse</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">Problem is ready as-is</div>
                       </button>
@@ -407,12 +357,9 @@ const GiveFeedback = () => {
                   {reviewType === 'feedback' && (
                     <div>
                       <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Your Feedback</label>
-                      <textarea
-                        value={feedback} onChange={(e) => setFeedback(e.target.value)}
-                        rows={5}
+                      <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={5}
                         placeholder="What should be improved about this problem?"
-                        className={`${inputCls} resize-vertical`}
-                      />
+                        className={`${inputCls} resize-vertical`} />
                     </div>
                   )}
 
@@ -422,11 +369,8 @@ const GiveFeedback = () => {
                         onClick={() => submitFeedback(reviewType === 'endorse')}
                         disabled={loading || (reviewType === 'feedback' && !feedback.trim())}
                         className={`px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                          reviewType === 'endorse'
-                            ? 'bg-green-600 hover:bg-green-700'
-                            : 'bg-amber-600 hover:bg-amber-700'
-                        }`}
-                      >
+                          reviewType === 'endorse' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'
+                        }`}>
                         {loading ? 'Submitting...' : reviewType === 'endorse' ? 'Endorse Problem' : 'Submit Feedback'}
                       </button>
                     </div>
@@ -442,10 +386,8 @@ const GiveFeedback = () => {
             <Info className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={40} />
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No Problem Available</h3>
             <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">There are no problems available for review right now.</p>
-            <button
-              onClick={loadNextProblem}
-              className="px-5 py-2.5 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] transition-colors"
-            >
+            <button onClick={loadNextProblem}
+              className="px-5 py-2.5 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] transition-colors">
               Try Again
             </button>
           </div>

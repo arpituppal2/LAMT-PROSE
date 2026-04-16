@@ -1,698 +1,614 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ChevronLeft, Plus, Trash2, GripVertical, Eye, EyeOff,
-  ArrowLeft, Copy, Check, X, ChevronDown, ChevronUp,
-  AlertCircle, Loader2, MessageSquare, Send, Download,
-  AlertTriangle, ClipboardCheck
-} from 'lucide-react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { ArrowLeft, Download, X, Search, Loader2, MessageSquare, Send, Eye, Save, Copy, ChevronDown } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-/* ── helpers ──────────────────────────────────────────────────────────────── */
-const topicAbbr = t => ({ Algebra:'A', Geometry:'G', Combinatorics:'C', 'Number Theory':'N' }[t] ?? t[0]);
-
-const STAGE_COLORS = {
-  Idea:          { pill:'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800', dot:'bg-yellow-400', bar:'border-l-yellow-400' },
-  Review:        { pill:'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800', dot:'bg-blue-400', bar:'border-l-blue-400' },
-  Endorsed:      { pill:'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800', dot:'bg-amber-400', bar:'border-l-amber-400' },
-  'Needs Review':{ pill:'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800', dot:'bg-red-400', bar:'border-l-red-400' },
-  Archived:      { pill:'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700', dot:'bg-slate-400', bar:'border-l-slate-400' },
+// ── Slot config ───────────────────────────────────────────────────────────────
+const buildSlots = (type) => {
+  if (type === 'guts') {
+    const s = [];
+    for (let set = 1; set <= 8; set++)
+      for (let q = 1; q <= 4; q++)
+        s.push({ key:`G${set}-${q}`, label:`Set ${set} Problem ${q}`, short:`S${set}P${q}`, section:`Set ${set}`, multi:false });
+    s.push({ key:'EST', label:'Estimation', short:'Est.', section:'Estimation', multi:false });
+    return s;
+  }
+  if (type === 'shopping') {
+    return [
+      ...Array.from({length:24},(_,i)=>({ key:`SQ${i+1}`, label:`Question ${i+1}`, short:`Q${i+1}`, section:'Questions', multi:false })),
+      { key:'SEST', label:'Estimation', short:'Est.', section:'Estimation', multi:false },
+      { key:'SALT', label:'Alternate Questions', short:'Alt', section:'Alternates', multi:true },
+    ];
+  }
+  if (type === 'team') {
+    return [
+      ...Array.from({length:15},(_,i)=>({ key:`T${i+1}`, label:`Question ${i+1}`, short:`Q${i+1}`, section:'Questions', multi:false })),
+      { key:'TEST', label:'Tiebreak / Estimation', short:'TB', section:'Tiebreak', multi:false },
+      { key:'TALT', label:'Alternate Questions', short:'Alt', section:'Alternates', multi:true },
+    ];
+  }
+  return [
+    ...Array.from({length:10},(_,i)=>({ key:`Q${i+1}`, label:`Question ${i+1}`, short:`Q${i+1}`, section:'Questions', multi:false })),
+    { key:'TB',  label:'Tiebreak / Estimation', short:'TB',  section:'Tiebreak',  multi:false },
+    { key:'ALT', label:'Alternate Questions',   short:'Alt', section:'Alternates', multi:true  },
+  ];
 };
 
-const stagePill = (stage) => {
-  const s = STAGE_COLORS[stage] ?? STAGE_COLORS.Idea;
-  return `inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${s.pill}`;
+const examTopicFilter = (type) => ({
+  'indiv-alg-nt': ['Algebra','Number Theory'],
+  'indiv-geo':    ['Geometry'],
+  'indiv-combo':  ['Combinatorics'],
+}[type] || null);
+
+const TEMPLATE_LABELS = {
+  'indiv-alg-nt':'Individual · Algebra & Number Theory',
+  'indiv-geo':'Individual · Geometry',
+  'indiv-combo':'Individual · Combinatorics',
+  'guts':'Guts Round','shopping':'Shopping Round','team':'Team Round',
 };
 
-const diffBadge = q => {
-  const n = parseInt(q) || 0;
-  if (n >= 8) return 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800';
-  if (n >= 5) return 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800';
-  return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
+const deriveSlotMap = (exam) => {
+  if (exam.slots && typeof exam.slots==='object' && Object.keys(exam.slots).length>0) return exam.slots;
+  const slots = buildSlots(exam.templateType);
+  const map = {};
+  (exam.problems||[]).forEach((p,i)=>{ if(slots[i]) map[slots[i].key]=p.id; });
+  return map;
 };
 
-// LaTeX helpers (mirrored from ExamManager for the Export button)
-const escLaTeX = s => (s || '').replace(/[&%$#_{}~^\\]/g, c => `\\${c}`);
-const fixLatex = (s) => {
-  if (!s) return '';
-  const hasSingle = /(?<!\\)\\(?!\\)/.test(s);
-  if (!hasSingle && s.includes('\\\\')) return s.replace(/\\\\/g, '\\');
+const getSlotIds = (map,key) => { const v=map[key]; if(!v) return []; return Array.isArray(v)?v:[v]; };
+const setSlotIds = (map,key,ids,multi) => {
+  const next={...map};
+  if(!ids||ids.length===0){delete next[key];return next;}
+  next[key]=multi?ids:ids[0]; return next;
+};
+
+const fixLatex = s => {
+  if(!s) return '';
+  if(!(/(?<!\\)\\(?!\\)/.test(s))&&s.includes('\\\\')) return s.replace(/\\\\/g,'\\');
   return s;
 };
-const downloadLatex = (filename, content) => {
-  const blob = new Blob([content], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
+
+const dl = (name,text) => {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download=name;a.click();URL.revokeObjectURL(a.href);
 };
 
-/* ── Sortable slot ────────────────────────────────────────────────────────── */
-function SortableSlot({ slot, idx, onRemove, canEdit, showAnswer, reviewMode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: slot.slotId });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
-  const p = slot.problem;
-  const [expanded, setExpanded] = useState(false);
+const makeTex = (exam,slotMap,byId) => {
+  const slots=buildSlots(exam.templateType);
+  const lines=slots.flatMap(s=>{
+    const ids=getSlotIds(slotMap,s.key);
+    if(ids.length===0) return [`\\item[${s.short}.] [empty]`];
+    return ids.map((pid,i)=>{
+      const p=byId[pid];
+      return `\\item[${s.multi&&ids.length>1?`${s.short} ${i+1}.`:s.short+'.'}] [${pid}]\n${fixLatex(p?.latex||'')}`;
+    });
+  }).join('\n\n');
+  return `\\documentclass[11pt]{article}\n\\usepackage[margin=1in]{geometry}\n\\usepackage{amsmath,amssymb,enumitem}\n\\begin{document}\n\\begin{center}{\\Huge\\textbf{${exam.name||'Exam'}}}\\end{center}\n\\vspace{.3in}\n\\begin{enumerate}\n${lines}\n\\end{enumerate}\n\\end{document}`;
+};
 
+// Topic abbreviations
+const topicAbbr = t => ({Algebra:'A','Number Theory':'NT',Geometry:'G',Combinatorics:'C'}[t]||t[0]);
+
+// Stage color config — matches screenshot
+const STAGE = {
+  Endorsed:      { pill:'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',  dot:'bg-green-500',  bar:'border-l-green-500'  },
+  Published:     { pill:'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',       dot:'bg-blue-400',   bar:'border-l-blue-400'   },
+  'Needs Review':{ pill:'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',             dot:'bg-red-500',    bar:'border-l-red-500'    },
+  Idea:          { pill:'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800', dot:'bg-yellow-400', bar:'border-l-yellow-400' },
+};
+const stageConfig = s => STAGE[s] || { pill:'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700', dot:'bg-slate-400', bar:'border-l-slate-300' };
+
+const Spin = () => <Loader2 size={13} className="animate-spin"/>;
+
+// ── Problem pill (inside a slot card) ─────────────────────────────────────────
+// Looks like: [ MS0031 • NT 4 ] in a soft colored pill
+const ProbPill = ({problem, slotKey, canEdit, onRemove, onPreview}) => {
+  const sc = stageConfig(problem.stage);
+  const topics = (problem.topics||[]).map(topicAbbr).join('-');
   return (
     <div
-      ref={setNodeRef} style={style}
-      className={`group flex items-start gap-2 px-3 py-2.5 border-b border-slate-100 dark:border-slate-800
-        hover:bg-slate-50 dark:hover:bg-slate-800/50 last:border-0
-        border-l-2 ${p ? (STAGE_COLORS[p.stage]?.bar ?? 'border-l-transparent') : 'border-l-slate-200 dark:border-l-slate-700'}`}
+      draggable={canEdit}
+      onDragStart={e=>{ e.dataTransfer.setData('problemId',problem.id); e.dataTransfer.setData('fromSlot',slotKey); e.stopPropagation(); }}
+      onClick={e=>{ e.stopPropagation(); onPreview(problem); }}
+      className={`group flex items-center gap-1.5 px-2 py-1 rounded-lg border ${sc.pill} cursor-pointer hover:opacity-80 transition-all select-none text-[11px] font-semibold`}
     >
+      <span className="font-mono font-bold">{problem.id}</span>
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sc.dot}`}/>
+      {topics && <span className="font-bold opacity-80">{topics}</span>}
+      {problem.quality != null && <span className="ml-auto font-bold opacity-70 text-[10px]">{problem.quality}</span>}
       {canEdit && (
-        <button {...attributes} {...listeners}
-          className="mt-0.5 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400 flex-shrink-0"
-          title="Drag to reorder"
-        >
-          <GripVertical size={14} />
-        </button>
-      )}
-      <span className="w-5 text-[10px] font-bold text-slate-400 dark:text-slate-500 tabular-nums flex-shrink-0 mt-0.5">{idx + 1}.</span>
-      {p ? (
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap mb-1">
-            <span className="font-mono text-[10px] font-bold text-[#2774AE] dark:text-[#FFD100]">{p.id}</span>
-            <span className={stagePill(p.stage)}>{p.stage}</span>
-            {p.quality && (
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border tabular-nums ${diffBadge(p.quality)}`}>
-                {p.quality}/10
-              </span>
-            )}
-            {(p.topics || []).map(t => (
-              <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">{topicAbbr(t)}</span>
-            ))}
-            {p.latex && (
-              <button
-                onClick={() => setExpanded(v => !v)}
-                className="ml-1 text-[9px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors"
-              >
-                {expanded ? 'collapse' : 'expand'}
-              </button>
-            )}
-          </div>
-          {/* Review mode: full KaTeX rendering */}
-          {reviewMode ? (
-            <div className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
-              <KatexRenderer latex={p.latex || ''} />
-              {showAnswer && p.answer && (
-                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-xs font-mono text-slate-500 dark:text-slate-400">
-                  Answer: <KatexRenderer latex={p.answer} />
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className={`text-xs text-slate-600 dark:text-slate-300 leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}>
-                <KatexRenderer latex={expanded ? (p.latex || '') : (p.latex || '').slice(0, 180)} />
-              </div>
-              {showAnswer && p.answer && (
-                <div className="mt-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                  Ans: <KatexRenderer latex={p.answer} />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      ) : (
-        <span className="text-xs text-slate-400 dark:text-slate-500 italic">Empty slot</span>
-      )}
-      {canEdit && (
-        <button
-          onClick={() => onRemove(slot.slotId)}
-          className="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-all rounded"
-          title="Remove from exam"
-        >
-          <X size={13} />
+        <button onClick={e=>{e.stopPropagation();onRemove(slotKey,problem.id);}}
+          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/10 transition flex-shrink-0">
+          <X size={9}/>
         </button>
       )}
     </div>
   );
-}
+};
 
-/* ── Bank card ────────────────────────────────────────────────────────────── */
-function BankCard({ problem, onAdd, canEdit, isInExam }) {
-  const p = problem;
-  const [expanded, setExpanded] = useState(false);
+// ── Slot card ────────────────────────────────────────────────────────────────
+const SlotCard = ({slot, problems, canEdit, onDrop, onRemove, onPreview, dragOverKey, onDragEnter, onDragLeave}) => {
+  const over = dragOverKey===slot.key;
   return (
     <div
-      className={`group px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 last:border-0
-        hover:bg-white dark:hover:bg-slate-800/80 transition-colors
-        border-l-2 ${STAGE_COLORS[p.stage]?.bar ?? 'border-l-transparent'}
-        ${isInExam ? 'opacity-40 pointer-events-none' : ''}`}
+      onDragOver={e=>e.preventDefault()}
+      onDragEnter={e=>{e.preventDefault();onDragEnter(slot.key);}}
+      onDragLeave={onDragLeave}
+      onDrop={e=>{
+        e.preventDefault();
+        const pid=e.dataTransfer.getData('problemId');
+        const from=e.dataTransfer.getData('fromSlot')||null;
+        if(pid) onDrop(slot.key,pid,from,slot.multi);
+      }}
+      className={`rounded-xl border-2 p-2.5 flex flex-col gap-1.5 min-h-[72px] transition-all
+        ${over
+          ? 'border-[#2774AE] dark:border-[#FFD100] bg-blue-50/80 dark:bg-blue-900/20 scale-[1.02]'
+          : problems.length>0
+          ? 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
+          : 'border-dashed border-slate-200 dark:border-slate-600 bg-slate-50/60 dark:bg-slate-800/20'
+        }`}
     >
-      <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap mb-1">
-            <span className="font-mono text-[10px] font-bold text-[#2774AE] dark:text-[#FFD100]">{p.id}</span>
-            <span className={stagePill(p.stage)}>{p.stage}</span>
-            {p.quality && (
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border tabular-nums ${diffBadge(p.quality)}`}>
-                {p.quality}/10
-              </span>
-            )}
-            {(p.topics || []).map(t => (
-              <span key={t} className="text-[10px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">{topicAbbr(t)}</span>
-            ))}
-            {p.latex && (
-              <button
-                onClick={() => setExpanded(v => !v)}
-                className="text-[9px] px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors"
-              >
-                {expanded ? '▲' : '▼'}
-              </button>
-            )}
-          </div>
-          <div className={`text-xs text-slate-600 dark:text-slate-300 leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}>
-            <KatexRenderer latex={expanded ? (p.latex || '') : (p.latex || '').slice(0, 100)} />
-          </div>
+      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest select-none leading-none">
+        {slot.label}
+      </p>
+      {problems.map(p=>(
+        <ProbPill key={p.id} problem={p} slotKey={slot.key} canEdit={canEdit}
+          onRemove={onRemove} onPreview={onPreview}/>
+      ))}
+      {problems.length===0&&(
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[10px] text-slate-300 dark:text-slate-700 italic select-none">
+            {canEdit?(over?'↓ drop':'drag here'):'—'}
+          </p>
         </div>
-        {canEdit && !isInExam && (
-          <button
-            onClick={() => onAdd(p)}
-            className="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1.5 rounded bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-[#001628] hover:scale-110 transition-all"
-            title="Add to exam"
-          >
-            <Plus size={13} />
-          </button>
+      )}
+      {slot.multi&&problems.length>0&&canEdit&&!over&&(
+        <p className="text-[9px] text-slate-400 italic text-center select-none">+ drag more</p>
+      )}
+    </div>
+  );
+};
+
+// ── Picker row (problem bank on the left) ────────────────────────────────────
+const PickerRow = ({problem, assigned, onPreview}) => {
+  const sc = stageConfig(problem.stage);
+  return (
+    <div
+      draggable={!assigned}
+      onDragStart={e=>{e.dataTransfer.setData('problemId',problem.id);e.dataTransfer.setData('fromSlot','');}}
+      onClick={()=>!assigned&&onPreview(problem)}
+      className={`flex items-start gap-2 px-3 py-2 border-b border-slate-100 dark:border-slate-800 transition group select-none
+        ${assigned?'opacity-25 pointer-events-none':'hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-grab active:cursor-grabbing'}`}
+    >
+      <div className={`w-0.5 h-full self-stretch min-h-[32px] rounded-full flex-shrink-0 ${sc.dot} mt-0.5`}/>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="font-mono text-[11px] font-bold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+          {(problem.topics||[]).map(t=>(
+            <span key={t} className="text-[9px] font-bold text-slate-500 dark:text-slate-400">{topicAbbr(t)}</span>
+          ))}
+          {problem.quality!=null&&<span className="text-[10px] font-semibold text-slate-400 ml-auto">{problem.quality}/10</span>}
+        </div>
+        {problem.latex&&(
+          <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1 leading-tight pointer-events-none">
+            {(problem.latex||'').replace(/\$[^$]*\$/g,match=>match).replace(/\\[a-z]+\{[^}]*\}/g,'…').slice(0,60)}
+          </p>
         )}
       </div>
     </div>
   );
-}
+};
 
-/* ── Discussion panel ─────────────────────────────────────────────────────── */
-const CommentsPanel = ({ examId, currentUserId, isAdmin }) => {
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [body, setBody] = useState('');
-  const [posting, setPosting] = useState(false);
-  const [error, setError] = useState('');
-  const bottomRef = useRef(null);
-
-  useEffect(() => {
-    if (!examId) return;
-    setLoading(true);
-    api.get(`/tests/${examId}/comments`)
-      .then(r => setComments(r.data))
-      .catch(() => setError('Failed to load comments.'))
-      .finally(() => setLoading(false));
-  }, [examId]);
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [comments]);
-
-  const handlePost = async (e) => {
-    e.preventDefault();
-    if (!body.trim()) return;
-    setPosting(true); setError('');
-    try {
-      const res = await api.post(`/tests/${examId}/comments`, { body });
-      setComments(prev => [...prev, res.data]);
-      setBody('');
-    } catch { setError('Failed to post comment.'); }
-    finally { setPosting(false); }
-  };
-
-  const handleDelete = async (commentId) => {
-    try {
-      await api.delete(`/tests/${examId}/comments/${commentId}`);
-      setComments(prev => prev.filter(c => c.id !== commentId));
-    } catch { setError('Failed to delete comment.'); }
-  };
-
+// ── Live KaTeX preview (takes over center panel) ─────────────────────────────
+const LivePreview = ({slots, slotMap, byId}) => {
+  const sections = useMemo(()=>{
+    const m={};
+    slots.forEach(s=>{(m[s.section]||(m[s.section]=[])).push(s);});
+    return m;
+  },[slots]);
   return (
-    <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900" style={{ minHeight: 200 }}>
-      <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 flex-shrink-0">
-        <MessageSquare size={13} className="text-slate-400" />
-        <h3 className="font-semibold text-xs text-slate-600 dark:text-slate-300">Discussion</h3>
-        <span className="ml-auto text-[10px] text-slate-400">{comments.length} comment{comments.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3" style={{ maxHeight: 280 }}>
-        {loading ? (
-          <div className="flex items-center justify-center py-6"><Loader2 size={16} className="animate-spin text-slate-300" /></div>
-        ) : comments.length === 0 ? (
-          <p className="text-center text-slate-400 dark:text-slate-500 text-xs py-6">No comments yet. Start the discussion.</p>
-        ) : comments.map(c => (
-          <div key={c.id} className="flex gap-2.5 group">
-            <div className="w-6 h-6 rounded-full bg-[#2774AE] dark:bg-[#FFD100] flex items-center justify-center text-[9px] font-bold text-white dark:text-slate-900 flex-shrink-0">
-              {c.user?.initials ?? '?'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-2">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{c.user?.firstName} {c.user?.lastName}</span>
-                <span className="text-[10px] text-slate-400">{new Date(c.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+    <div className="space-y-8">
+      {Object.entries(sections).map(([sec,ss])=>(
+        <div key={sec}>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">{sec}</p>
+          {ss.map(slot=>{
+            const ids=getSlotIds(slotMap,slot.key);
+            if(ids.length===0) return(
+              <div key={slot.key} className="flex gap-4 mb-5 opacity-30">
+                <span className="text-xs font-semibold text-slate-500 w-28 flex-shrink-0 text-right pt-0.5">{slot.label}</span>
+                <span className="text-xs italic text-slate-400 border-l-2 border-slate-100 dark:border-slate-800 pl-3">empty</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 whitespace-pre-wrap break-words">{c.body}</p>
+            );
+            return ids.map((pid,i)=>{
+              const p=byId[pid];
+              const sc=stageConfig(p?.stage);
+              return(
+                <div key={pid} className="flex gap-4 mb-6">
+                  <div className="w-28 flex-shrink-0 text-right pt-1">
+                    {i===0&&<span className="text-xs font-bold text-slate-500 dark:text-slate-400 leading-tight block">{slot.label}</span>}
+                  </div>
+                  <div className="flex-1 min-w-0 border-l-2 border-slate-100 dark:border-slate-700 pl-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[9px] font-mono text-slate-400">{pid}</span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}/>
+                      {p?.quality!=null&&<span className="text-[9px] text-slate-400">d={p.quality}</span>}
+                    </div>
+                    <div className="text-slate-800 dark:text-slate-100 leading-relaxed text-sm">
+                      <KatexRenderer latex={fixLatex(p?.latex||`[${pid}]`)}/>
+                    </div>
+                  </div>
+                </div>
+              );
+            });
+          })}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Problem preview modal ─────────────────────────────────────────────────────
+const Modal = ({p, close}) => {
+  const sc = stageConfig(p.stage);
+  return(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onClick={close}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
+        <div className={`flex items-center gap-3 px-6 py-4 border-b border-l-4 ${sc.bar} border-slate-100 dark:border-slate-800 rounded-t-2xl`}>
+          <span className="font-mono text-sm font-bold text-[#2774AE] dark:text-[#FFD100]">{p.id}</span>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sc.pill}`}>{p.stage}</span>
+          {(p.topics||[]).map(t=><span key={t} className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t}</span>)}
+          {p.quality!=null&&<span className="text-xs text-slate-400 font-semibold ml-1">Difficulty {p.quality}/10</span>}
+          <button onClick={close} className="ml-auto p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"><X size={14}/></button>
+        </div>
+        <div className="p-6 space-y-5">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Problem</p>
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-6 py-5 text-base leading-loose text-slate-800 dark:text-slate-100">
+              <KatexRenderer latex={fixLatex(p.latex||'')}/>
             </div>
-            {(c.user?.id === currentUserId || isAdmin) && (
-              <button onClick={() => handleDelete(c.id)}
-                className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-300 hover:text-red-500 transition flex-shrink-0">
-                <X size={11} />
-              </button>
-            )}
+          </div>
+          {p.solution&&(
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Solution</p>
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-6 py-5 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+                <KatexRenderer latex={fixLatex(p.solution||'')}/>
+              </div>
+            </div>
+          )}
+          {p.answer&&(
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+              <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Answer</span>
+              <span className="font-bold text-green-700 dark:text-green-400">{p.answer}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Discussion panel ──────────────────────────────────────────────────────────
+const Discussion = ({examId, userId, isAdmin}) => {
+  const [list,setList]=useState([]); const [body,setBody]=useState(''); const [posting,setPosting]=useState(false); const bot=useRef(null);
+  useEffect(()=>{ if(examId) api.get(`/tests/${examId}/comments`).then(r=>setList(r.data)).catch(()=>{}); },[examId]);
+  useEffect(()=>{ bot.current?.scrollIntoView({behavior:'smooth'}); },[list]);
+  const post=async e=>{e.preventDefault();if(!body.trim())return;setPosting(true);try{const r=await api.post(`/tests/${examId}/comments`,{body});setList(p=>[...p,r.data]);setBody('');}catch{}finally{setPosting(false);}};
+  const del=async cid=>{try{await api.delete(`/tests/${examId}/comments/${cid}`);setList(p=>p.filter(c=>c.id!==cid));}catch{}};
+  return(
+    <div>
+      <div className="flex-1 overflow-y-auto py-2 space-y-2 max-h-32 min-h-0">
+        {list.length===0?<p className="text-center text-[10px] text-slate-400 py-2">No comments.</p>:list.map(c=>(
+          <div key={c.id} className="flex gap-2 group">
+            <div className="w-5 h-5 rounded-full bg-[#2774AE] dark:bg-[#FFD100] flex items-center justify-center text-[8px] font-bold text-white dark:text-slate-900 flex-shrink-0">{c.user?.initials}</div>
+            <div className="flex-1 min-w-0"><div className="flex items-baseline gap-1"><span className="text-[10px] font-semibold text-slate-700 dark:text-slate-200">{c.user?.firstName}</span><span className="text-[9px] text-slate-400">{new Date(c.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span></div><p className="text-[11px] text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{c.body}</p></div>
+            {(c.user?.id===userId||isAdmin)&&<button onClick={()=>del(c.id)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition"><X size={10}/></button>}
           </div>
         ))}
-        <div ref={bottomRef} />
+        <div ref={bot}/>
       </div>
-      <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
-        {error && <p className="text-[10px] text-red-500 mb-1">{error}</p>}
-        <form onSubmit={handlePost} className="flex gap-2">
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePost(e); } }}
-            placeholder="Add a comment… (Enter to send)"
-            rows={2}
-            className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs outline-none focus:ring-2 focus:ring-[#2774AE]/20 dark:focus:ring-[#FFD100]/20 transition resize-none"
-          />
-          <button type="submit" disabled={posting || !body.trim()}
-            className="self-end p-2 rounded-lg bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 hover:opacity-90 disabled:opacity-40 transition">
-            {posting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-          </button>
-        </form>
-      </div>
+      <form onSubmit={post} className="flex gap-1.5 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <textarea value={body} onChange={e=>setBody(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();post(e);}}} placeholder="Add comment… (Enter)" rows={1} className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px] outline-none focus:ring-1 focus:ring-[#2774AE]/20 resize-none transition"/>
+        <button type="submit" disabled={posting||!body.trim()} className="px-2.5 py-1.5 rounded-lg bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 font-bold hover:opacity-90 disabled:opacity-40 transition">{posting?<Spin/>:<Send size={11}/>}</button>
+      </form>
     </div>
   );
 };
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   ExamDetail
-══════════════════════════════════════════════════════════════════════════════ */
-const ExamDetail = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+// ── Main ──────────────────────────────────────────────────────────────────────
+export default function ExamDetail() {
+  const {id}=useParams(); const navigate=useNavigate();
+  const [exam,setExam]=useState(null); const [loading,setLoading]=useState(true);
+  const [allProbs,setAllProbs]=useState([]); const [probLoading,setProbLoading]=useState(false);
+  const [me,setMe]=useState(null); const [err,setErr]=useState('');
+  const [slotMap,setSlotMap]=useState({});
+  const [pendingMap,setPendingMap]=useState(null);
+  const [dragOver,setDragOver]=useState(null);
+  const [showPreview,setShowPreview]=useState(false); // false=builder, true=preview
+  const [preview,setPreview]=useState(null);
+  const [search,setSearch]=useState('');
+  const [topicF,setTopicF]=useState('all');
+  const [stageF,setStageF]=useState('all');
+  const [diffMin,setDiffMin]=useState(1);
+  const [diffMax,setDiffMax]=useState(10);
+  const [sortBy,setSortBy]=useState('id'); // 'id'|'diff-asc'|'diff-desc'
+  const [saveState,setSaveState]=useState('idle');
+  const [discOpen,setDiscOpen]=useState(false);
+  const [allExams,setAllExams]=useState([]);
+  const [showCopy,setShowCopy]=useState(false);
+  const [copySource,setCopySource]=useState(null);
+  const slotsRef=useRef([]);
 
-  const [exam, setExam] = useState(null);
-  const [slots, setSlots] = useState([]);
-  const [bank, setBank] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMsg] = useState('');
-  const [canEdit, setCanEdit] = useState(false);
-  const [showAnswers, setShowAnswers] = useState(false);
-  const [reviewMode, setReviewMode] = useState(false);
-  const [bankSearch, setBankSearch] = useState('');
-  const [bankStage, setBankStage] = useState('Endorsed');
-  const [activeId, setActiveId] = useState(null);
-  const [autoTopics, setAutoTopics] = useState(null);
-  const [expandedSections, setExpandedSections] = useState({});
-  const [copyDone, setCopyDone] = useState(false);
+  useEffect(()=>{
+    api.get('/auth/me').then(r=>setMe(r.data.user)).catch(()=>{});
+    api.get('/tests').then(r=>setAllExams(r.data||[])).catch(()=>{});
+    (async()=>{
+      setLoading(true);
+      try{ const r=await api.get(`/tests/${id}`); setExam(r.data); setSlotMap(deriveSlotMap(r.data)); setPendingMap(null); }
+      catch{ setErr('Failed to load.'); } finally{setLoading(false);}
+    })();
+    (async()=>{
+      setProbLoading(true);
+      try{ const r=await api.get('/problems'); setAllProbs(r.data); }catch{}finally{setProbLoading(false);}
+    })();
+  },[id]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const isAdmin=me?.isAdmin||false;
+  const canEdit=exam&&(isAdmin||exam.authorId===me?.id||exam.author?.id===me?.id);
+  const slots=exam?buildSlots(exam.templateType):[];
+  useEffect(()=>{ slotsRef.current=slots; },[slots]);
+  const autoTopics=exam?examTopicFilter(exam.templateType):null;
+  const byId=useMemo(()=>{ const m={}; allProbs.forEach(p=>{m[p.id]=p;}); return m; },[allProbs]);
+  const currentMap=pendingMap||slotMap;
+  const isDirty=pendingMap!==null;
+  const assigned=useMemo(()=>{
+    const s=new Set();
+    Object.values(currentMap).forEach(v=>{ if(Array.isArray(v)) v.forEach(x=>s.add(x)); else if(v) s.add(v); });
+    return s;
+  },[currentMap]);
 
-  useEffect(() => {
-    api.get('/auth/me').then(r => setCurrentUser(r.data.user)).catch(() => {});
-    fetchAll();
-  }, [id]);
+  const handleSave=useCallback(async()=>{
+    if(!pendingMap) return;
+    setSaveState('saving');
+    try{ await api.put(`/tests/${id}/slots`,{slots:pendingMap}); setSlotMap(pendingMap); setPendingMap(null); setSaveState('saved'); setTimeout(()=>setSaveState('idle'),1500); }
+    catch{ setSaveState('err'); setTimeout(()=>setSaveState('idle'),3000); }
+  },[id,pendingMap]);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    try {
-      const [examRes, bankRes] = await Promise.all([
-        api.get(`/tests/${id}`),
-        api.get('/problems'),
-      ]);
-      const e = examRes.data;
-      setExam(e);
-      setCanEdit(e.canEdit ?? false);
-      const builtSlots = (e.problems || []).map((p, i) => ({
-        slotId: `slot-${p.id}-${i}`,
-        problem: p,
-        section: p.section ?? null,
-      }));
-      setSlots(builtSlots);
-      setBank(bankRes.data || []);
-      if (e.topics?.length) setAutoTopics(e.topics);
-    } catch (err) {
-      console.error('fetchAll error:', err);
-      setMsg('Failed to load exam.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateMap=useCallback((updater)=>{
+    setPendingMap(prev=>updater(prev||slotMap));
+  },[slotMap]);
 
-  /* ── slot mutations ──────────────────────────────────────────────────────── */
-  const addToSlot = useCallback((problem) => {
-    setSlots(prev => {
-      const emptyIdx = prev.findIndex(s => !s.problem);
-      if (emptyIdx === -1) return [...prev, { slotId: `slot-${Date.now()}`, problem, section: null }];
-      return prev.map((s, i) => i === emptyIdx ? { ...s, problem } : s);
+  const handleDrop=useCallback((toKey,pid,fromKey,multi)=>{
+    updateMap(prev=>{
+      let next={...prev};
+      if(fromKey){ const src=slotsRef.current.find(s=>s.key===fromKey); next=setSlotIds(next,fromKey,getSlotIds(next,fromKey).filter(x=>x!==pid),src?.multi); }
+      const toSlot=slotsRef.current.find(s=>s.key===toKey);
+      const toIds=getSlotIds(next,toKey);
+      if(multi){ if(!toIds.includes(pid)) next=setSlotIds(next,toKey,[...toIds,pid],true); }
+      else{
+        if(fromKey&&toIds.length>0){ const fSlot=slotsRef.current.find(s=>s.key===fromKey); next=setSlotIds(next,fromKey,[toIds[0]],fSlot?.multi); }
+        next=setSlotIds(next,toKey,[pid],false);
+      }
+      return next;
     });
-  }, []);
+    setDragOver(null);
+  },[updateMap]);
 
-  const removeFromSlot = useCallback((slotId) => {
-    setSlots(prev => prev.filter(s => s.slotId !== slotId));
-  }, []);
+  const handleRemove=useCallback((slotKey,pid)=>{
+    updateMap(prev=>{ const slot=slotsRef.current.find(s=>s.key===slotKey); return setSlotIds({...prev},slotKey,getSlotIds(prev,slotKey).filter(x=>x!==pid),slot?.multi); });
+  },[updateMap]);
 
-  const handleDragEnd = useCallback((event) => {
-    const { active, over } = event;
-    setActiveId(null);
-    if (!over || active.id === over.id) return;
-    setSlots(prev => {
-      const oldIdx = prev.findIndex(s => s.slotId === active.id);
-      const newIdx = prev.findIndex(s => s.slotId === over.id);
-      if (oldIdx === -1 || newIdx === -1) return prev;
-      return arrayMove(prev, oldIdx, newIdx);
+  const TOPICS=['Algebra','Geometry','Combinatorics','Number Theory'];
+  const picker=useMemo(()=>{
+    const filtered=allProbs.filter(p=>{
+      if(p.stage==='Archived') return false;
+      if(autoTopics&&topicF==='all'&&!(p.topics||[]).some(t=>autoTopics.includes(t))) return false;
+      if(topicF!=='all'&&!(p.topics||[]).includes(topicF)) return false;
+      if(stageF!=='all'&&p.stage!==stageF) return false;
+      const d=p.quality??0;
+      if(d<diffMin||d>diffMax) return false;
+      if(search&&!p.id.toLowerCase().includes(search.toLowerCase())&&!(p.latex||'').toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
     });
-  }, []);
+    if(sortBy==='diff-asc') return [...filtered].sort((a,b)=>(a.quality??0)-(b.quality??0));
+    if(sortBy==='diff-desc') return [...filtered].sort((a,b)=>(b.quality??0)-(a.quality??0));
+    return filtered;
+  },[allProbs,topicF,stageF,search,autoTopics,diffMin,diffMax,sortBy]);
 
-  /* ── persist ─────────────────────────────────────────────────────────────── */
-  const saveExam = async () => {
-    setSaving(true);
-    try {
-      const problemIds = slots.filter(s => s.problem).map(s => s.problem.id);
-      await api.put(`/tests/${id}`, { problemIds });
-      setMsg('Saved!');
-      setTimeout(() => setMsg(''), 2000);
-    } catch (err) {
-      console.error('saveExam error:', err);
-      setMsg('Save failed.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const sections=useMemo(()=>{
+    const m={}; slots.forEach(s=>{(m[s.section]||(m[s.section]=[])).push(s);}); return m;
+  },[slots]);
 
-  /* ── copy LaTeX ──────────────────────────────────────────────────────────── */
-  const copyLatex = async () => {
-    const text = slots
-      .filter(s => s.problem)
-      .map((s, i) => `\\item[${i+1}.] ${s.problem.latex || s.problem.id}`)
-      .join('\n\n');
-    await navigator.clipboard.writeText(text);
-    setCopyDone(true);
-    setTimeout(() => setCopyDone(false), 1500);
-  };
+  const filledSlots=Object.keys(currentMap).filter(k=>getSlotIds(currentMap,k).length>0).length;
 
-  /* ── bank filter ─────────────────────────────────────────────────────────── */
-  const examProblemIds = new Set(slots.filter(s => s.problem).map(s => s.problem.id));
-  const filteredBank = bank.filter(p => {
-    if (p.stage === 'Archived') return false;
-    if (bankStage !== 'all' && p.stage !== bankStage) return false;
-    const matchSearch = !bankSearch ||
-      p.id.toLowerCase().includes(bankSearch.toLowerCase()) ||
-      (p.latex || '').toLowerCase().includes(bankSearch.toLowerCase());
-    const matchTopic = !autoTopics || (p.topics || []).some(t => autoTopics.includes(t));
-    return matchSearch && matchTopic;
-  });
+  if(loading) return <Layout><div className="flex items-center justify-center h-64 text-slate-400 animate-pulse">Loading…</div></Layout>;
+  if(err||!exam) return <Layout><div className="max-w-xl mx-auto px-6 py-12 text-center"><p className="text-red-500 mb-3">{err||'Not found.'}</p><button onClick={()=>navigate('/exams')} className="underline text-sm text-slate-500">← Back</button></div></Layout>;
 
-  /* ── sections ────────────────────────────────────────────────────────────── */
-  const sections = exam?.sections ?? [];
-  const toggleSection = (name) =>
-    setExpandedSections(prev => ({ ...prev, [name]: !prev[name] }));
-
-  /* ── stats ───────────────────────────────────────────────────────────────── */
-  const filledSlots = slots.filter(s => s.problem);
-  const topicCounts = {};
-  filledSlots.forEach(s => (s.problem.topics || []).forEach(t => { topicCounts[t] = (topicCounts[t] || 0) + 1; }));
-  const dominantTopic = Object.entries(topicCounts).find(([, c]) => c / Math.max(filledSlots.length, 1) > 0.4)?.[0];
-
-  /* ── loading ─────────────────────────────────────────────────────────────── */
-  if (loading) return (
+  return(
     <Layout>
-      <div className="flex items-center justify-center h-64 text-slate-400">
-        <Loader2 className="animate-spin mr-2" size={20} /> Loading exam…
-      </div>
-    </Layout>
-  );
-
-  if (!exam) return (
-    <Layout>
-      <div className="text-center py-20">
-        <AlertCircle className="mx-auto text-slate-300 mb-4" size={48} />
-        <p className="text-slate-500">Exam not found.</p>
-        <button onClick={() => navigate('/exams')} className="mt-4 text-[#2774AE] hover:underline text-sm flex items-center gap-1 mx-auto">
-          <ArrowLeft size={14} /> Back to Exams
-        </button>
-      </div>
-    </Layout>
-  );
-
-  /* ── render ──────────────────────────────────────────────────────────────── */
-  return (
-    <Layout>
-      <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
+      <div className="flex flex-col h-screen overflow-hidden">
 
         {/* ── Top bar ── */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <button onClick={() => navigate('/exams')}
-              className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors flex-shrink-0"
-              title="Back to Exams"
-            >
-              <ChevronLeft size={18} />
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex-shrink-0">
+          <button onClick={()=>navigate('/exams')} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-400 hover:text-slate-600"><ArrowLeft size={15}/></button>
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">{exam.competition} · {exam.version}</p>
+            <h1 className="text-base font-bold text-slate-800 dark:text-white leading-tight">{exam.name}</h1>
+            <p className="text-[10px] text-slate-400">{TEMPLATE_LABELS[exam.templateType]||exam.templateType} · by {exam.author?.firstName} {exam.author?.lastName}
+              {copySource&&<span className="ml-2 text-amber-500">· Copied from {copySource.name}</span>}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-[11px] font-medium text-slate-400">{filledSlots}/{slots.length}</span>
+            {canEdit&&(
+              <button onClick={handleSave} disabled={saveState==='saving'||!isDirty}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm ${isDirty?'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 hover:opacity-90':'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-default'}`}>
+                {saveState==='saving'?<Spin/>:<Save size={12}/>}
+                {saveState==='saving'?'Saving…':saveState==='saved'?'✓ Saved':'Save'}
+              </button>
+            )}
+            <button onClick={()=>setShowPreview(v=>!v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition
+                ${showPreview?'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 border-transparent':'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+              <Eye size={12}/> {showPreview?'Hide preview':'Preview'}
             </button>
-            <div className="min-w-0">
-              <h1 className="text-sm font-bold text-slate-900 dark:text-white truncate">{exam.name}</h1>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                {exam.competition} &middot; {exam.version}
-                {filledSlots.length > 0 && ` · ${filledSlots.length}/${slots.length} problems`}
-              </p>
+            <button onClick={()=>dl(`${(exam.name||'exam').replace(/\s+/g,'-').toLowerCase()}.tex`,makeTex(exam,currentMap,byId))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+              <Download size={12}/> .tex
+            </button>
+          </div>
+        </div>
+
+        {/* ── Main 2-panel area ── */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+
+          {/* LEFT — Problem Bank + Discussion (also drop target to remove from exam) */}
+          <div className="w-72 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 overflow-hidden">
+            {/* Bank header */}
+            <div className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-1.5 mb-2">
+                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Problem Bank</p>
+                {autoTopics&&<span className="text-[9px] text-slate-400">({autoTopics.map(topicAbbr).join('+')} filtered)</span>}
+                {/* Copy dropdown */}
+                {canEdit&&(
+                  <div className="relative ml-auto">
+                    <button onClick={()=>setShowCopy(v=>!v)} className="flex items-center gap-0.5 text-[9px] text-slate-400 hover:text-slate-600 transition font-semibold">
+                      <Copy size={9}/> Copy <ChevronDown size={9}/>
+                    </button>
+                    {showCopy&&(
+                      <div className="absolute right-0 top-full mt-1 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl w-52 overflow-hidden">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase px-3 py-1.5 border-b border-slate-100 dark:border-slate-800">Copy layout from</p>
+                        {allExams.filter(e=>e.id!==id&&e.templateType===exam.templateType).length===0
+                          ?<p className="text-[10px] text-slate-400 italic px-3 py-3">No other compatible exams.</p>
+                          :allExams.filter(e=>e.id!==id&&e.templateType===exam.templateType).map(e=>(
+                            <button key={e.id} onClick={()=>{setCopySource(e);updateMap(()=>({...deriveSlotMap(e)}));setShowCopy(false);}}
+                              className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-50 dark:border-slate-800 transition">
+                              <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 truncate">{e.name}</p>
+                              <p className="text-[9px] text-slate-400">{e.author?.firstName} {e.author?.lastName}</p>
+                            </button>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Search */}
+              <div className="relative mb-1.5">
+                <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400"/>
+                <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ID or text…"
+                  className="w-full pl-6 pr-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-[#2774AE]/20 transition"/>
+              </div>
+              {/* Topic filters */}
+              <div className="flex flex-wrap gap-1 mb-1">
+                {['all',...TOPICS].map(t=>(
+                  <button key={t} onClick={()=>setTopicF(t)}
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-bold transition ${topicF===t?'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900':'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400'}`}>
+                    {t==='all'?'All':topicAbbr(t)}
+                  </button>
+                ))}
+              </div>
+              {/* Stage filters */}
+              <div className="flex gap-1 flex-wrap">
+                {['all','Endorsed','Published','Idea','Needs Review'].map(s=>(
+                  <button key={s} onClick={()=>setStageF(s)}
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-bold transition ${stageF===s?'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900':'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400'}`}>
+                    {s==='all'?'All':s==='Needs Review'?'NR':s==='Endorsed'?'Endo':s==='Published'?'Publ':'Idea'}
+                  </button>
+                ))}
+              </div>
+              {/* Difficulty range + sort */}
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <span className="text-[9px] font-bold text-slate-400 flex-shrink-0">Diff</span>
+                <input type="number" min={1} max={10} value={diffMin} onChange={e=>setDiffMin(Math.min(Number(e.target.value),diffMax))}
+                  className="w-10 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] text-center text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-[#2774AE]/20"/>
+                <span className="text-[9px] text-slate-400">–</span>
+                <input type="number" min={1} max={10} value={diffMax} onChange={e=>setDiffMax(Math.max(Number(e.target.value),diffMin))}
+                  className="w-10 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] text-center text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-[#2774AE]/20"/>
+                <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
+                  className="ml-auto text-[9px] font-semibold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1 py-0.5 outline-none focus:ring-1 focus:ring-[#2774AE]/20">
+                  <option value="id">Sort: ID</option>
+                  <option value="diff-asc">Diff ↑</option>
+                  <option value="diff-desc">Diff ↓</option>
+                </select>
+              </div>
+            </div>
+            {/* Problem list — also a drop target (drop here to remove from exam) */}
+            <div
+              className="flex-1 overflow-y-auto"
+              onDragOver={e=>e.preventDefault()}
+              onDrop={e=>{
+                e.preventDefault();
+                const fromSlot=e.dataTransfer.getData('fromSlot');
+                const pid=e.dataTransfer.getData('problemId');
+                if(pid&&fromSlot) handleRemove(fromSlot,pid);
+              }}
+            >
+              {probLoading?<div className="flex justify-center py-8"><Spin/></div>
+                :picker.length===0?<p className="text-center text-[10px] text-slate-400 py-8 italic">No matches.</p>
+                :picker.map(p=><PickerRow key={p.id} problem={p} assigned={assigned.has(p.id)} onPreview={setPreview}/>)}
+            </div>
+            {/* Discussion */}
+            <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <button onClick={()=>setDiscOpen(v=>!v)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                <MessageSquare size={11} className="text-slate-400"/>
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Discussion</span>
+                <ChevronDown size={11} className={`text-slate-400 ml-auto transition-transform ${discOpen?'rotate-180':''}`}/>
+              </button>
+              {discOpen&&(
+                <div className="px-3 pb-3">
+                  <Discussion examId={exam.id} userId={me?.id} isAdmin={isAdmin}/>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {/* Review mode toggle */}
-            <button
-              onClick={() => setReviewMode(v => !v)}
-              title={reviewMode ? 'Exit review mode' : 'Review mode (full problem rendering)'}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${
-                reviewMode
-                  ? 'bg-[#2774AE] dark:bg-[#FFD100] text-white dark:text-slate-900 border-transparent'
-                  : 'text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <ClipboardCheck size={13} />
-              {reviewMode ? 'Exit Review' : 'Review'}
-            </button>
-
-            {/* Show/hide answers */}
-            <button onClick={() => setShowAnswers(v => !v)}
-              className="p-2 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title={showAnswers ? 'Hide answers' : 'Show answers'}
-            >
-              {showAnswers ? <EyeOff size={15}/> : <Eye size={15}/>}
-            </button>
-
-            {/* Copy LaTeX */}
-            <button onClick={copyLatex}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-            >
-              {copyDone ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
-              {copyDone ? 'Copied!' : 'Copy LaTeX'}
-            </button>
-
-            {/* Save */}
-            {canEdit && (
-              <button
-                onClick={saveExam} disabled={saving}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded text-xs font-bold bg-[#2774AE] hover:bg-[#005587] dark:bg-[#FFD100] dark:hover:bg-[#e6bc00] text-white dark:text-slate-900 transition-colors disabled:opacity-50"
-              >
-                {saving ? <Loader2 size={13} className="animate-spin" /> : null}
-                {saving ? 'Saving…' : 'Save'}
-              </button>
+          {/* CENTER — Slot board or Preview */}
+          <div className="flex-1 min-w-0 overflow-y-auto p-5 space-y-4">
+            {showPreview?(
+              <LivePreview slots={slots} slotMap={currentMap} byId={byId}/>
+            ):(
+              <>
+                {isDirty&&(
+                  <div className="flex items-center gap-3 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-700 dark:text-amber-300 font-medium mb-2">
+                    <span>Unsaved changes.</span>
+                    {canEdit&&<button onClick={handleSave} className="underline font-bold">Save now</button>}
+                    <button onClick={()=>setPendingMap(null)} className="underline text-slate-500 ml-auto">Discard</button>
+                  </div>
+                )}
+                {Object.entries(sections).map(([secName,secSlots])=>(
+                  <div key={secName} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+                      <h2 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{secName}</h2>
+                      {secName==='Alternates'&&<p className="text-[9px] text-slate-400 mt-0.5">Drag multiple problems — all listed as alternates</p>}
+                    </div>
+                    <div className={`p-3 grid gap-3 ${
+                      secName==='Tiebreak'||secName==='Alternates'||secName==='Estimation'?'grid-cols-1 max-w-md':
+                      secSlots.length===4?'grid-cols-4':
+                      secSlots.length===3?'grid-cols-3':
+                      'grid-cols-2 xl:grid-cols-5'
+                    }`}>
+                      {secSlots.map(slot=>{
+                        const probs=getSlotIds(currentMap,slot.key).map(pid=>byId[pid]).filter(Boolean);
+                        return(
+                          <SlotCard key={slot.key} slot={slot} problems={probs}
+                            canEdit={!!canEdit} onDrop={handleDrop} onRemove={handleRemove}
+                            onPreview={setPreview} dragOverKey={dragOver}
+                            onDragEnter={setDragOver} onDragLeave={()=>setDragOver(null)}/>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </div>
-
-        {/* Status bar */}
-        {message && (
-          <div className={`px-5 py-1.5 text-xs font-medium text-center flex-shrink-0 ${
-            message.includes('fail') || message.includes('Failed')
-              ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-b border-red-200'
-              : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-b border-green-200'
-          }`}>
-            {message}
-          </div>
-        )}
-
-        {/* Topic imbalance warning */}
-        {dominantTopic && filledSlots.length >= 3 && !(exam.topics?.includes(dominantTopic)) && (
-          <div className="px-5 py-2 flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 text-xs flex-shrink-0">
-            <AlertTriangle size={13} />
-            <span><strong>Topic imbalance:</strong> {dominantTopic} is &gt;40% of the exam. Consider adding variety.</span>
-          </div>
-        )}
-
-        {/* ── Main split ── */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-
-          {/* LEFT — Problem Bank (hidden in review mode) */}
-          {!reviewMode && (
-            <div className="w-80 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 overflow-hidden">
-              <div className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Problem Bank</p>
-                  {autoTopics && (
-                    <span className="text-[9px] text-slate-400">({autoTopics.map(topicAbbr).join('+')} filtered)</span>
-                  )}
-                  {canEdit && (
-                    <button
-                      onClick={() => setAutoTopics(v => v ? null : (exam.topics?.length ? exam.topics : null))}
-                      className="ml-auto text-[9px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                    >
-                      {autoTopics ? 'Show all' : 'Filter topics'}
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="text" value={bankSearch}
-                  onChange={e => setBankSearch(e.target.value)}
-                  placeholder="Search bank…"
-                  className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 mb-1.5"
-                />
-                <select
-                  value={bankStage}
-                  onChange={e => setBankStage(e.target.value)}
-                  className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]"
-                >
-                  <option value="Endorsed">Endorsed only</option>
-                  <option value="all">All stages</option>
-                  <option value="Idea">Idea</option>
-                  <option value="Review">Review</option>
-                  <option value="Needs Review">Needs Review</option>
-                </select>
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                {filteredBank.length === 0 ? (
-                  <div className="py-10 text-center text-xs text-slate-400 dark:text-slate-600">
-                    {bankSearch ? 'No matching problems' : 'No problems match filters'}
-                  </div>
-                ) : filteredBank.map(p => (
-                  <BankCard
-                    key={p.id} problem={p}
-                    onAdd={addToSlot}
-                    canEdit={canEdit}
-                    isInExam={examProblemIds.has(p.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* RIGHT — Exam slots + Discussion */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-            {/* Slots area */}
-            <div className="flex-1 overflow-y-auto">
-              {sections.length > 0 ? (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragStart={e => setActiveId(e.active.id)}
-                  onDragEnd={handleDragEnd}
-                >
-                  {sections.map(sec => {
-                    const secName = sec.name;
-                    const secSlots = slots.filter(s => s.section === secName);
-                    const isExpanded = expandedSections[secName] !== false;
-                    return (
-                      <div key={secName} className="border-b border-slate-200 dark:border-slate-800">
-                        <button
-                          onClick={() => toggleSection(secName)}
-                          className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">{secName}</span>
-                            <span className="text-[10px] text-slate-400">{secSlots.filter(s=>s.problem).length}/{secSlots.length}</span>
-                          </div>
-                          {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
-                        </button>
-                        {isExpanded && (
-                          <SortableContext items={secSlots.map(s => s.slotId)} strategy={verticalListSortingStrategy}>
-                            <div className={`grid gap-0 ${
-                              secName==='Tiebreak'||secName==='Alternates'||secName==='Estimation'?'grid-cols-1 max-w-md':
-                              secSlots.length===4?'grid-cols-4':
-                              secSlots.length===3?'grid-cols-3':
-                              'grid-cols-2 xl:grid-cols-5'
-                            }`}>
-                              {secSlots.map((slot, idx) => (
-                                <SortableSlot
-                                  key={slot.slotId} slot={slot} idx={idx}
-                                  onRemove={removeFromSlot}
-                                  canEdit={canEdit}
-                                  showAnswer={showAnswers}
-                                  reviewMode={reviewMode}
-                                />
-                              ))}
-                            </div>
-                          </SortableContext>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <DragOverlay>
-                    {activeId ? (
-                      <div className="bg-white dark:bg-slate-800 border-2 border-[#2774AE] dark:border-[#FFD100] rounded-lg px-3 py-2 shadow-2xl text-xs text-slate-700 dark:text-slate-200 opacity-90">
-                        Moving slot…
-                      </div>
-                    ) : null}
-                  </DragOverlay>
-                </DndContext>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragStart={e => setActiveId(e.active.id)}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext items={slots.map(s => s.slotId)} strategy={verticalListSortingStrategy}>
-                    {slots.length === 0 ? (
-                      <div className="py-16 text-center">
-                        <p className="text-slate-400 dark:text-slate-500 text-sm">No problems yet.</p>
-                        {canEdit && <p className="text-xs text-slate-400 mt-1">Add from the bank on the left, or add an empty slot below.</p>}
-                      </div>
-                    ) : slots.map((slot, idx) => (
-                      <SortableSlot
-                        key={slot.slotId} slot={slot} idx={idx}
-                        onRemove={removeFromSlot}
-                        canEdit={canEdit}
-                        showAnswer={showAnswers}
-                        reviewMode={reviewMode}
-                      />
-                    ))}
-                  </SortableContext>
-                  <DragOverlay>
-                    {activeId ? (
-                      <div className="bg-white dark:bg-slate-800 border-2 border-[#2774AE] dark:border-[#FFD100] rounded-lg px-3 py-2 shadow-2xl text-xs opacity-90">
-                        Moving…
-                      </div>
-                    ) : null}
-                  </DragOverlay>
-                </DndContext>
-              )}
-
-              {canEdit && (
-                <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-                  <button
-                    onClick={() => setSlots(prev => [...prev, { slotId: `slot-empty-${Date.now()}`, problem: null, section: null }])}
-                    className="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-400 hover:border-[#2774AE] hover:text-[#2774AE] dark:hover:border-[#FFD100] dark:hover:text-[#FFD100] transition-colors"
-                  >
-                    + Add empty slot
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Discussion panel pinned at bottom of slots column */}
-            <CommentsPanel
-              examId={exam.id}
-              currentUserId={currentUser?.id}
-              isAdmin={currentUser?.isAdmin ?? false}
-            />
-          </div>
-        </div>
       </div>
+
+      {preview&&<Modal p={preview} close={()=>setPreview(null)}/>}
     </Layout>
   );
-};
-
-export default ExamDetail;
+}

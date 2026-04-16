@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Clock, Search, CheckCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Clock, Search, CheckCircle, ChevronDown, ChevronUp, Info, RefreshCw } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -12,7 +12,6 @@ const GiveFeedback = () => {
   const [problem, setProblem] = useState(null);
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState('');
-  const [startTime, setStartTime] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -29,7 +28,7 @@ const GiveFeedback = () => {
   const [reviewableLoading, setReviewableLoading] = useState(false);
 
   const topics = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
-  const stages = ['Idea', 'Review', 'Needs Review', 'Endorsed'];
+  const stages = ['Idea', 'Needs Review', 'Endorsed'];
 
   // Dirty guard — only beforeunload, no useBlocker
   const isDirtyRef = useRef(false);
@@ -47,7 +46,7 @@ const GiveFeedback = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
-  // Use refs for filter values so loadReviewableProblems never goes stale
+  // Stable refs for filter values — avoids stale closures in loadReviewableProblems
   const searchQueryRef = useRef(searchQuery);
   const filterTopicRef = useRef(filterTopic);
   const filterStageRef = useRef(filterStage);
@@ -57,32 +56,43 @@ const GiveFeedback = () => {
   useEffect(() => { filterStageRef.current = filterStage; }, [filterStage]);
   useEffect(() => { filterDifficultyRef.current = filterDifficulty; }, [filterDifficulty]);
 
+  // Fetch all reviewable problems (not authored by current user)
+  // Uses the existing GET /problems?reviewable=true endpoint
   const loadReviewableProblems = useCallback(async () => {
     setReviewableLoading(true);
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ reviewable: 'true' });
       if (searchQueryRef.current) params.append('search', searchQueryRef.current);
       if (filterTopicRef.current) params.append('topic', filterTopicRef.current);
       if (filterStageRef.current) params.append('stage', filterStageRef.current);
       if (filterDifficultyRef.current) params.append('difficulty', filterDifficultyRef.current);
-      const res = await api.get(`/problems/reviewable?${params}`);
+      const res = await api.get(`/problems?${params}`);
       setReviewableProblems(res.data || []);
     } catch {
       setReviewableProblems([]);
     } finally {
       setReviewableLoading(false);
     }
-  }, []); // stable — reads from refs, never recreated
+  }, []); // stable — reads from refs
 
+  // Pick a random problem from the reviewable list
   const loadNextProblem = useCallback(async () => {
     setLoading(true);
+    setProblem(null);
+    setMessage('');
     try {
-      const res = await api.get('/problems/review/random');
-      if (res.data) { setProblem(res.data); setMessage(''); }
-      else { setProblem(null); setMessage('No problems available for review right now.'); }
+      const res = await api.get('/problems?reviewable=true');
+      const list = res.data || [];
+      if (list.length === 0) {
+        setMessage('No problems available for review right now.');
+      } else {
+        const pick = list[Math.floor(Math.random() * list.length)];
+        // Fetch full detail for the selected problem
+        const detail = await api.get(`/problems/${pick.id}`);
+        setProblem(detail.data);
+      }
     } catch {
-      setProblem(null);
-      setMessage('No problems available for review right now.');
+      setMessage('Failed to load a problem. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -101,14 +111,19 @@ const GiveFeedback = () => {
     }
   }, []);
 
-  // Initial load — only on mount / mode change / routeProblemId change
+  // Initial load
   useEffect(() => {
-    if (routeProblemId) loadSpecificProblem(routeProblemId);
-    else if (mode === 'random') loadNextProblem();
-    else loadReviewableProblems();
-  }, [mode, routeProblemId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (routeProblemId) {
+      loadSpecificProblem(routeProblemId);
+    } else if (mode === 'random') {
+      loadNextProblem();
+    } else {
+      loadReviewableProblems();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, routeProblemId]);
 
-  // Debounced filter re-fetch — only fires when filter state actually changes
+  // Debounced filter re-fetch for browse mode
   useEffect(() => {
     if (mode !== 'browse') return;
     const id = setTimeout(loadReviewableProblems, 250);
@@ -117,10 +132,12 @@ const GiveFeedback = () => {
 
   useEffect(() => {
     if (problem) {
-      setStartTime(Date.now());
       setElapsed(0);
       setHasSubmittedAnswer(false);
       setShowSolution(false);
+      setAnswer('');
+      setFeedback('');
+      setReviewType(null);
     }
   }, [problem]);
 
@@ -143,12 +160,7 @@ const GiveFeedback = () => {
         isEndorsement,
         timeSpent: elapsed,
       });
-      setMessage(isEndorsement ? 'Problem endorsed successfully!' : 'Feedback submitted successfully!');
-      setAnswer('');
-      setFeedback('');
-      setReviewType(null);
-      setHasSubmittedAnswer(false);
-      setShowSolution(false);
+      setMessage(isEndorsement ? 'Problem endorsed!' : 'Feedback submitted!');
       isDirtyRef.current = false;
       if (routeProblemId) {
         setTimeout(() => navigate(`/problem/${problem.id}`), 1200);
@@ -178,16 +190,6 @@ const GiveFeedback = () => {
 
   const inputCls = 'w-full px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 transition';
 
-  if (loading && !problem) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#2774AE] dark:border-[#FFD100]" />
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
@@ -199,7 +201,7 @@ const GiveFeedback = () => {
           </div>
           <div className="flex items-center gap-2">
             {['random', 'browse'].map(m => (
-              <button key={m} onClick={() => setMode(m)}
+              <button key={m} onClick={() => { setMode(m); setProblem(null); setMessage(''); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   mode === m
                     ? 'bg-[#2774AE] text-white'
@@ -213,7 +215,7 @@ const GiveFeedback = () => {
 
         {message && (
           <div className={`mb-5 p-3.5 rounded-lg border text-sm ${
-            message.includes('successfully') || message.includes('endorsed')
+            message.includes('submitted') || message.includes('endorsed') || message.includes('!')
               ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
               : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
           }`}>{message}</div>
@@ -272,14 +274,20 @@ const GiveFeedback = () => {
                         </div>
                       </div>
                       <div className="text-right text-xs text-gray-400 dark:text-gray-500 shrink-0">
-                        <div>{rp.feedbackCount || 0} reviews</div>
-                        {rp.latestFeedback && <div className="mt-1">{new Date(rp.latestFeedback).toLocaleDateString()}</div>}
+                        <div>{rp.feedbacks?.length || 0} reviews</div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Loading spinner */}
+        {loading && !problem && (
+          <div className="flex items-center justify-center h-48">
+            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#2774AE] dark:border-[#FFD100]" />
           </div>
         )}
 
@@ -295,6 +303,12 @@ const GiveFeedback = () => {
                   <div className="flex items-center gap-1 text-xs text-gray-400 ml-auto font-mono">
                     <Clock size={13} />{formatTime(elapsed)}
                   </div>
+                )}
+                {mode === 'random' && (
+                  <button onClick={loadNextProblem} title="Skip to another problem"
+                    className="ml-auto flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors">
+                    <RefreshCw size={13} /> Skip
+                  </button>
                 )}
               </div>
               <div className="flex flex-wrap gap-1.5 mb-3">
@@ -313,6 +327,7 @@ const GiveFeedback = () => {
                   <div>
                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Your Answer</label>
                     <input type="text" value={answer} onChange={(e) => setAnswer(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && answer.trim() && submitAnswer()}
                       placeholder="Enter your answer..." className={inputCls} />
                   </div>
                   <button onClick={submitAnswer} disabled={!answer.trim()}
@@ -393,11 +408,12 @@ const GiveFeedback = () => {
           </div>
         )}
 
-        {!problem && !loading && mode !== 'browse' && (
+        {/* No problem available — only shown in random mode when done loading */}
+        {!problem && !loading && mode === 'random' && (
           <div className="text-center py-16">
             <Info className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={40} />
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No Problem Available</h3>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">There are no problems available for review right now.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">There are no problems available for review right now, or you've written all the problems!</p>
             <button onClick={loadNextProblem}
               className="px-5 py-2.5 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] transition-colors">
               Try Again

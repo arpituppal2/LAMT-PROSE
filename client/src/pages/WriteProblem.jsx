@@ -12,7 +12,6 @@ const WriteProblem = () => {
   const [notes, setNotes] = useState('');
   const [topics, setTopics] = useState([]);
   const [difficulty, setDifficulty] = useState(5);
-  const [examType, setExamType] = useState('Numerical Answer');
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -21,7 +20,6 @@ const WriteProblem = () => {
 
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
-  // Track dirty state via ref to avoid re-render loops; use beforeunload for tab close
   const isDirtyRef = useRef(false);
   useEffect(() => {
     const hasContent = !submitted && !!(latex || solution || answer || notes || topics.length > 0 || images.length > 0);
@@ -93,7 +91,7 @@ const WriteProblem = () => {
         notes,
         topics,
         quality: String(difficulty),
-        examType,
+        examType: 'Numerical Answer',
       });
       setSubmitted(true);
       isDirtyRef.current = false;
@@ -204,15 +202,6 @@ const WriteProblem = () => {
                     ))}
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <label className={labelCls}>Exam Type</label>
-                <select value={examType} onChange={(e) => setExamType(e.target.value)} className={inputCls}>
-                  <option>Numerical Answer</option>
-                  <option>Multiple Choice</option>
-                  <option>Free Response</option>
-                </select>
               </div>
 
               <div className="pt-4 border-t border-gray-100 dark:border-white/8">

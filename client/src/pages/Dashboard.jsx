@@ -418,7 +418,7 @@ const Dashboard = () => {
               <div className="flex items-center gap-1.5 mb-4 flex-wrap">
                 {[
                   { value: 'all',          label: 'All',          count: problems.length },
-                  { value: 'needs_review', label: 'Needs Review', count: needsReviewCount },
+                  { value: 'needs_review', label: 'Review', count: needsReviewCount },
                   { value: 'Idea',         label: 'Idea',         count: ideaCount },
                   { value: 'Endorsed',     label: 'Endorsed',     count: endorsedCount },
                   ...topicOptions.map(t => ({ value: t, label: t, count: problems.filter(p => (p.topics||[]).includes(t)).length })),

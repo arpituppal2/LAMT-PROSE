@@ -416,7 +416,6 @@ const Dashboard = () => {
           <div className="flex gap-6">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-4 flex-wrap">
-                <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mr-1">Filter:</span>
                 {[
                   { value: 'all',          label: 'All',          count: problems.length },
                   { value: 'needs_review', label: 'Needs Review', count: needsReviewCount },

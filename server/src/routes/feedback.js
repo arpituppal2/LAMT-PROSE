@@ -22,29 +22,54 @@ function computeDisplayStatus(problem) {
   return problem.stage || 'Idea';
 }
 
-// GET /feedback/next - random problem (least solves)
+// GET /feedback/next
+// Returns the single best problem to review for the current user:
+//   1. Not authored by the current user
+//   2. Not already reviewed (any feedback record) by the current user
+//   3. Sorted: fewest total feedback records first, then oldest createdAt first
 router.get('/next', authenticate, async (req, res) => {
   try {
     const { difficulty } = req.query;
+
+    // Get all problem IDs this user has already reviewed
+    const alreadyReviewed = await prisma.feedback.findMany({
+      where: { userId: req.userId },
+      select: { problemId: true },
+    });
+    const reviewedIds = alreadyReviewed.map((f) => f.problemId);
+
     const where = {
       authorId: { not: req.userId },
+      ...(reviewedIds.length > 0 ? { id: { notIn: reviewedIds } } : {}),
     };
     if (difficulty) where.quality = difficulty;
+
+    // Fetch candidates with their feedback count
     const problems = await prisma.problem.findMany({
       where,
       include: {
         author: { select: { firstName: true, lastName: true, initials: true } },
-        feedbacks: { where: { userId: req.userId } },
+        _count: { select: { feedbacks: true } },
       },
+      orderBy: [
+        { createdAt: 'asc' }, // secondary: oldest first
+      ],
     });
-    const unreviewed = problems.filter((p) => p.feedbacks.length === 0);
-    if (unreviewed.length === 0) return res.json(null);
-    const minSolve = Math.min(...unreviewed.map((p) => p.solveCount ?? 0));
-    const candidates = unreviewed.filter((p) => (p.solveCount ?? 0) === minSolve);
-    const chosen = candidates[Math.floor(Math.random() * candidates.length)];
-    const { feedbacks, ...problem } = chosen;
+
+    if (problems.length === 0) return res.json(null);
+
+    // Primary sort: fewest feedback records first
+    problems.sort((a, b) => {
+      const diff = (a._count?.feedbacks ?? 0) - (b._count?.feedbacks ?? 0);
+      if (diff !== 0) return diff;
+      // Secondary: oldest createdAt first (already sorted by DB, but belt-and-suspenders)
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
+    const { _count, ...problem } = problems[0];
     return res.json(problem);
   } catch (error) {
+    console.error('GET /feedback/next error:', error);
     return res.status(500).json({ error: 'Failed to fetch next problem' });
   }
 });
@@ -74,14 +99,23 @@ router.get('/reviewable', authenticate, async (req, res) => {
           include: { user: { select: { firstName: true, lastName: true } } },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
-    const result = problems.map((p) => ({
-      ...p,
-      _displayStatus: computeDisplayStatus(p),
-    }));
+    const result = problems
+      .map((p) => ({
+        ...p,
+        _displayStatus: computeDisplayStatus(p),
+        _feedbackCount: p.feedbacks.length,
+      }))
+      // Sort: fewest feedbacks first, then oldest
+      .sort((a, b) => {
+        const diff = a._feedbackCount - b._feedbackCount;
+        if (diff !== 0) return diff;
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      });
     return res.json(result);
   } catch (error) {
+    console.error('GET /feedback/reviewable error:', error);
     return res.status(500).json({ error: 'Failed to fetch reviewable problems' });
   }
 });
@@ -119,14 +153,17 @@ router.post('/', authenticate, async (req, res) => {
     const { problemId, answer, feedback, timeSpent, isEndorsement } = req.body;
     const problem = await prisma.problem.findUnique({ where: { id: problemId } });
     if (!problem) return res.status(404).json({ error: 'Problem not found' });
+
+    // Prevent duplicate: one feedback (of any type) per user per problem
     const existing = await prisma.feedback.findFirst({
-      where: { problemId, userId: req.userId, isEndorsement: !!isEndorsement },
+      where: { problemId, userId: req.userId },
     });
     if (existing) {
       return res.status(400).json({
-        error: `Already submitted ${isEndorsement ? 'an endorsement' : 'feedback'} for this problem`,
+        error: 'You have already submitted feedback for this problem',
       });
     }
+
     const newFeedback = await prisma.feedback.create({
       data: {
         problemId,
@@ -152,6 +189,7 @@ router.post('/', authenticate, async (req, res) => {
     }
     return res.json(newFeedback);
   } catch (error) {
+    console.error('POST /feedback error:', error);
     return res.status(500).json({ error: 'Failed to submit feedback' });
   }
 });
@@ -203,9 +241,7 @@ router.put('/:id/reply', authenticate, async (req, res) => {
   }
 });
 
-// PATCH /feedback/:id - edit feedback (creator or admin only; NOT problem author)
-// Supports: comment text, answer, isEndorsement toggle
-// Cannot edit resolved feedback.
+// PATCH /feedback/:id - edit feedback (creator or admin only)
 router.patch('/:id', authenticate, async (req, res) => {
   try {
     const { comment, answer, isEndorsement } = req.body;
@@ -231,7 +267,6 @@ router.patch('/:id', authenticate, async (req, res) => {
     if (comment !== undefined) updateData.feedback = comment;
     if (answer !== undefined) updateData.answer = answer;
 
-    // Handle endorsement toggle
     if (isEndorsement !== undefined && isEndorsement !== fb.isEndorsement) {
       updateData.isEndorsement = isEndorsement;
       updateData.needsReview = !isEndorsement;

@@ -162,18 +162,25 @@ const ExamDetail = () => {
 
   const fetchAll = async () => {
     try {
+      // NOTE: server registers exams under /api/tests, not /api/exams
       const [examRes, bankRes] = await Promise.all([
-        api.get(`/exams/${id}`),
+        api.get(`/tests/${id}`),
         api.get('/problems?stage=Endorsed'),
       ]);
       const e = examRes.data;
       setExam(e);
       setCanEdit(e.canEdit ?? false);
-      setSlots(e.slots || []);
+      // Build slots from problems array (legacy flat list)
+      const builtSlots = (e.problems || []).map((p, i) => ({
+        slotId: `slot-${p.id}-${i}`,
+        problem: p,
+        section: p.section ?? null,
+      }));
+      setSlots(builtSlots);
       setBank(bankRes.data || []);
-      // auto-filter bank by exam topics
       if (e.topics?.length) setAutoTopics(e.topics);
-    } catch {
+    } catch (err) {
+      console.error('fetchAll error:', err);
       setMsg('Failed to load exam.');
     } finally {
       setLoading(false);
@@ -209,12 +216,13 @@ const ExamDetail = () => {
   const saveExam = async () => {
     setSaving(true);
     try {
-      await api.put(`/exams/${id}`, {
-        slots: slots.map((s, i) => ({ problemId: s.problem?.id ?? null, position: i + 1 })),
-      });
+      // Save as a flat problem list via /tests/:id
+      const problemIds = slots.filter(s => s.problem).map(s => s.problem.id);
+      await api.put(`/tests/${id}`, { problemIds });
       setMsg('Saved.');
       setTimeout(() => setMsg(''), 2000);
-    } catch {
+    } catch (err) {
+      console.error('saveExam error:', err);
       setMsg('Save failed.');
     } finally {
       setSaving(false);
@@ -321,14 +329,12 @@ const ExamDetail = () => {
         {/* ── Main split ── */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
 
-          {/* LEFT — Problem Bank + Discussion (also drop target to remove from exam) */}
+          {/* LEFT — Problem Bank */}
           <div className="w-96 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 overflow-hidden">
-            {/* Bank header */}
             <div className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="flex items-center gap-1.5 mb-2">
                 <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Problem Bank</p>
                 {autoTopics&&<span className="text-[9px] text-slate-400">({autoTopics.map(topicAbbr).join('+')} filtered)</span>}
-                {/* Copy dropdown */}
                 {canEdit&&(
                   <button
                     onClick={() => setAutoTopics(v => v ? null : (exam.topics?.length ? exam.topics : null))}
@@ -345,7 +351,6 @@ const ExamDetail = () => {
                 className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded focus:outline-none focus:ring-1 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
               />
             </div>
-            {/* Bank list */}
             <div className="flex-1 overflow-y-auto">
               {filteredBank.length === 0 ? (
                 <div className="py-10 text-center text-xs text-slate-400 dark:text-slate-600">
@@ -362,7 +367,7 @@ const ExamDetail = () => {
             </div>
           </div>
 
-          {/* RIGHT — Exam slots, sectioned */}
+          {/* RIGHT — Exam slots */}
           <div className="flex-1 overflow-y-auto">
             {sections.length > 0 ? (
               <DndContext
@@ -418,7 +423,6 @@ const ExamDetail = () => {
                 </DragOverlay>
               </DndContext>
             ) : (
-              // Flat list (no sections)
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}

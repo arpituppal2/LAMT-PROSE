@@ -61,25 +61,19 @@ const Sidebar = ({ dark, toggleDark }) => {
     <div
       className={`h-screen text-white flex flex-col flex-shrink-0 ${
         collapsed ? 'w-14' : 'w-60'
-      } bg-ucla-blue dark:bg-ucla-navy border-r border-white/10 transition-[width] duration-200`}
+      } bg-ucla-blue dark:bg-ucla-navy border-r border-white/10 transition-[width] duration-200 ease-in-out`}
     >
-      {/* Header — clicking brand navigates home */}
-      <div className={`h-16 flex items-center flex-shrink-0 px-4 border-b border-white/10 ${
-        collapsed ? 'justify-center' : 'justify-between'
-      }`}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-3 border-b border-white/10">
         {!collapsed && (
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-base font-semibold tracking-tight text-white/90 hover:text-white transition-colors"
-          >
-            LAMT PROSE
-          </button>
+          <span className="font-bold text-base tracking-tight px-1">PROSE</span>
         )}
         <button
           onClick={handleToggleCollapse}
-          className="p-1.5 rounded text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded hover:bg-white/10 transition-colors ml-auto"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <Menu size={16} /> : <X size={16} />}
+          {collapsed ? <Menu size={18} /> : <X size={18} />}
         </button>
       </div>
 

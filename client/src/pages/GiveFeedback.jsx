@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Clock, Search, CheckCircle, ChevronDown, ChevronUp,
-  Info, RefreshCw, FilePenLine, MessageSquareText
+  Info, RefreshCw, FileEdit, MessageSquare
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
@@ -202,7 +202,7 @@ const GiveFeedback = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Give Feedback</h1>
-            <p className="text-base text-gray-400 dark:text-gray-500 mt-0.5">Try the problem, show your work, then review the author's solution and leave a comment</p>
+            <p className="text-base text-gray-400 dark:text-gray-500 mt-0.5">Try the problem, show your work, then review the author’s solution and leave a comment</p>
           </div>
           <div className="flex items-center gap-2">
             {['random', 'browse'].map(m => (
@@ -295,11 +295,8 @@ const GiveFeedback = () => {
           </div>
         )}
 
-        {/* ── Active problem ─────────────────────────────── */}
         {problem && (
           <div className={`${cardCls} overflow-hidden`}>
-
-            {/* Problem header */}
             <div className="p-6 border-b border-gray-100 dark:border-white/8">
               <div className="flex flex-wrap items-center gap-2.5 mb-3">
                 <span className="font-mono text-lg font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
@@ -328,7 +325,6 @@ const GiveFeedback = () => {
             </div>
 
             <div className="p-6">
-              {/* ── STEP 1: Answer + Work ──────────────── */}
               {!hasSubmittedAnswer ? (
                 <div className="space-y-4">
                   <div>
@@ -337,7 +333,6 @@ const GiveFeedback = () => {
                       onKeyDown={(e) => e.key === 'Enter' && answer.trim() && submitAnswer()}
                       placeholder="Enter your answer..." className={inputCls} />
                   </div>
-
                   <div>
                     <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Your Work</label>
                     <textarea
@@ -348,42 +343,36 @@ const GiveFeedback = () => {
                       className={`${inputCls} resize-y`}
                     />
                   </div>
-
                   <button onClick={submitAnswer} disabled={!answer.trim()}
                     className="px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-xl text-base font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity shadow-sm">
                     Continue to Review
                   </button>
                 </div>
               ) : (
-                /* ── STEP 2: Review the solution + leave feedback ── */
                 <div className="space-y-5">
-
-                  {/* Your answer + work recap */}
                   <div className="p-4 bg-white/50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/8">
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCircle className="text-green-600 dark:text-green-400" size={16} />
                       <span className="text-base font-medium text-gray-900 dark:text-white">Your answer: <span className="font-mono">{answer}</span></span>
                     </div>
-
                     {work && (
                       <div className="mt-3">
                         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                          <FilePenLine size={12} /> Your work
+                          <FileEdit size={12} /> Your work
                         </div>
                         <div className="rounded-lg border border-gray-100 dark:border-white/8 bg-white/70 dark:bg-white/[0.03] px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                           {work}
                         </div>
                       </div>
                     )}
-
                     <button onClick={() => setShowSolution(!showSolution)}
                       className="flex items-center gap-1.5 text-base text-[#2774AE] dark:text-[#FFD100] hover:underline mt-3">
                       {showSolution ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      {showSolution ? 'Hide' : 'Show'} Author's Solution
+                      {showSolution ? 'Hide' : 'Show'} Author’s Solution
                     </button>
                     {showSolution && problem.solution && (
                       <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/8">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Author's Solution</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Author’s Solution</p>
                         <div className="text-base text-gray-800 dark:text-gray-200 leading-relaxed">
                           <KatexRenderer latex={problem.solution} />
                         </div>
@@ -391,20 +380,16 @@ const GiveFeedback = () => {
                     )}
                   </div>
 
-                  {/* Comments after reviewing author's work */}
                   <div>
-                    <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                      Comments
-                    </label>
+                    <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Comments</label>
                     <div className="relative">
-                      <MessageSquareText className="absolute left-3.5 top-3.5 text-gray-400" size={15} />
+                      <MessageSquare className="absolute left-3.5 top-3.5 text-gray-400" size={15} />
                       <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={5}
-                        placeholder="After reviewing the author's solution: comment on correctness, clarity, difficulty calibration, notation, or what you'd change..."
+                        placeholder="After reviewing the author’s solution: comment on correctness, clarity, difficulty calibration, notation, or what you’d change..."
                         className={`${inputCls} resize-y pl-10`} />
                     </div>
                   </div>
 
-                  {/* Endorse / Needs Review */}
                   <div>
                     <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Decision</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -451,7 +436,7 @@ const GiveFeedback = () => {
           <div className="text-center py-16">
             <Info className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={40} />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Problem Available</h3>
-            <p className="text-base text-gray-400 dark:text-gray-500 mb-6">There are no problems available for review right now, or you've written all the problems!</p>
+            <p className="text-base text-gray-400 dark:text-gray-500 mb-6">There are no problems available for review right now, or you’ve written all the problems!</p>
             <button onClick={loadNextProblem}
               className="px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-xl text-base font-semibold hover:opacity-90 transition-opacity shadow-sm">
               Try Again

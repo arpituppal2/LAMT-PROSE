@@ -18,7 +18,7 @@ const stripLatex = (str = '') =>
     .trim()
     .slice(0, 90);
 
-// ── Preview Panel ──────────────────────────────────────────────────────────────
+// ── Preview Panel ─────────────────────────────────────────────────────────────
 const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   const [showSol, setShowSol] = useState(false);
   const data = fullProblem || problem;
@@ -36,7 +36,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0d1e2e] rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-[#2774AE] dark:bg-[#001f3f] rounded-t-2xl">
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm font-bold text-white">{data.id}</span>
@@ -57,7 +56,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
         </div>
 
         <div className="px-6 py-5 space-y-5">
-          {/* Problem statement */}
           <div>
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Problem Statement</p>
             <div className="prose-math text-gray-900 dark:text-gray-100 leading-relaxed text-sm">
@@ -65,7 +63,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
             </div>
           </div>
 
-          {/* Answer */}
           {data.answer && (
             <div className="flex items-center gap-2.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Answer</span>
@@ -75,7 +72,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
             </div>
           )}
 
-          {/* Difficulty + topics */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
               Difficulty&nbsp;&nbsp;
@@ -90,7 +86,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
             ))}
           </div>
 
-          {/* Solution accordion */}
           {data.solution && (
             <div className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
               <button
@@ -111,7 +106,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
             </div>
           )}
 
-          {/* Author notes */}
           {notes && (
             <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Author Notes</p>
@@ -121,7 +115,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
             </div>
           )}
 
-          {/* Comments */}
           {comments.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
@@ -157,7 +150,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex items-center gap-3 pt-1">
             <button
               onClick={() => { onClose(); onNavigate(data.id); }}
@@ -175,7 +167,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   );
 };
 
-// ── Main Dashboard ─────────────────────────────────────────────────────────────
+// ── Main Dashboard ────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -243,7 +235,10 @@ const Dashboard = () => {
         api.get('/problems/my'),
       ]);
       setStats(statsRes.data);
-      setProblems(problemsRes.data);
+      // Exclude archived problems from the dashboard view
+      setProblems((problemsRes.data || []).filter(
+        p => p.stage !== 'Archived' && p._displayStatus !== 'Archived' && p._displayStatus !== 'archived'
+      ));
     } catch (e) {
       console.error('Failed to fetch dashboard data', e);
     } finally {
@@ -261,8 +256,9 @@ const Dashboard = () => {
     setReviewLoading(true);
     try {
       const res = await api.get('/problems/my');
-      setReviewProblems(res.data.filter(
-        p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
+      setReviewProblems((res.data || []).filter(
+        p => (p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review')
+          && p.stage !== 'Archived'
       ));
     } catch (e) {
       console.error(e);
@@ -299,7 +295,9 @@ const Dashboard = () => {
       setEditMessage('Saved successfully.');
       await fetchReviewProblems();
       const res = await api.get('/problems/my');
-      setProblems(res.data);
+      setProblems((res.data || []).filter(
+        p => p.stage !== 'Archived' && p._displayStatus !== 'Archived' && p._displayStatus !== 'archived'
+      ));
     } catch (e) {
       setEditMessage(e.response?.data?.error || 'Failed to save.');
     } finally {
@@ -374,7 +372,6 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
-        {/* Page header */}
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -390,7 +387,6 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Tab bar */}
         <div className="flex items-center border-b border-gray-200 dark:border-white/10 mb-6 text-sm font-medium">
           {[
             { id: 'overview', label: 'Overview' },
@@ -416,12 +412,10 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* ══ OVERVIEW ══════════════════════════════════════════ */}
+        {/* OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="flex gap-6">
             <div className="flex-1 min-w-0">
-
-              {/* Filter row — compact text links with counts */}
               <div className="flex items-center gap-1.5 mb-4 flex-wrap">
                 <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mr-1">Filter:</span>
                 {[
@@ -429,7 +423,7 @@ const Dashboard = () => {
                   { value: 'needs_review', label: 'Needs Review', count: needsReviewCount },
                   { value: 'Idea',         label: 'Idea',         count: ideaCount },
                   { value: 'Endorsed',     label: 'Endorsed',     count: endorsedCount },
-                  ...topicOptions.map(t => ({ value: t, label: t, count: (stats?.topicCounts?.[t] || 0) })),
+                  ...topicOptions.map(t => ({ value: t, label: t, count: problems.filter(p => (p.topics||[]).includes(t)).length })),
                 ].map(({ value, label, count }) => (
                   <button
                     key={value}
@@ -452,7 +446,6 @@ const Dashboard = () => {
                 ))}
               </div>
 
-              {/* Problem list */}
               <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
@@ -525,7 +518,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Right column: your reviews */}
             <div className="w-72 flex-shrink-0">
               <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4 sticky top-0">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Your reviews</h3>
@@ -583,7 +575,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* ══ REVIEW FEEDBACK ═══════════════════════════════════ */}
+        {/* REVIEW FEEDBACK */}
         {activeTab === 'review' && (
           <div>
             {editingProblem ? (
@@ -716,7 +708,7 @@ const Dashboard = () => {
                 ) : reviewProblems.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <CheckCircle size={36} className="text-green-400 dark:text-green-500 mb-3" />
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">You're all caught up!</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">You’re all caught up!</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">None of your problems currently need revision.</p>
                   </div>
                 ) : (
@@ -763,7 +755,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* ══ ACCOUNT ═══════════════════════════════════════════ */}
+        {/* ACCOUNT */}
         {activeTab === 'profile' && (
           <div className="max-w-xl">
             <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-6">
@@ -811,7 +803,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Preview modal */}
       {previewProblem && (
         <PreviewPanel
           problem={previewProblem}

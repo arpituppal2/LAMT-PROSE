@@ -17,9 +17,35 @@ const ArchivePage = () => {
   useEffect(() => { fetchArchived(); }, []);
 
   const fetchArchived = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/problems?stage=Archived');
-      setProblems(res.data);
+      // Try fetching user’s own archived problems first; fall back to stage filter
+      let data = [];
+      try {
+        const res = await api.get('/problems/my?archived=true');
+        data = (res.data || []).filter(
+          p => p.stage === 'Archived' || p._displayStatus === 'Archived' || p._displayStatus === 'archived'
+        );
+      } catch {
+        data = [];
+      }
+      // If the endpoint doesn’t support archived=true, fall back
+      if (data.length === 0) {
+        try {
+          const res2 = await api.get('/problems/my');
+          data = (res2.data || []).filter(
+            p => p.stage === 'Archived' || p._displayStatus === 'Archived' || p._displayStatus === 'archived'
+          );
+        } catch { data = []; }
+      }
+      // Final fallback: global stage filter
+      if (data.length === 0) {
+        try {
+          const res3 = await api.get('/problems?stage=Archived');
+          data = res3.data || [];
+        } catch { data = []; }
+      }
+      setProblems(data);
     } catch (err) {
       console.error('Failed to fetch archived problems:', err);
     } finally {
@@ -69,8 +95,6 @@ const ArchivePage = () => {
   return (
     <Layout>
       <div className="max-w-5xl mx-auto">
-
-        {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Archive size={22} className="text-[#2774AE] dark:text-[#FFD100]" />
           <div>
@@ -91,7 +115,6 @@ const ArchivePage = () => {
           </div>
         )}
 
-        {/* Search */}
         <div className={`${cardCls} p-3 mb-5`}>
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -101,7 +124,6 @@ const ArchivePage = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className={`${cardCls} overflow-hidden`}>
           {filtered.length === 0 ? (
             <div className="py-20 text-center">
@@ -168,7 +190,6 @@ const ArchivePage = () => {
         </div>
       </div>
 
-      {/* Confirm modal */}
       {confirmId && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"

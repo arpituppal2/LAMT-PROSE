@@ -19,35 +19,11 @@ const ArchivePage = () => {
   const fetchArchived = async () => {
     setLoading(true);
     try {
-      // Try fetching user’s own archived problems first; fall back to stage filter
-      let data = [];
-      try {
-        const res = await api.get('/problems/my?archived=true');
-        data = (res.data || []).filter(
-          p => p.stage === 'Archived' || p._displayStatus === 'Archived' || p._displayStatus === 'archived'
-        );
-      } catch {
-        data = [];
-      }
-      // If the endpoint doesn’t support archived=true, fall back
-      if (data.length === 0) {
-        try {
-          const res2 = await api.get('/problems/my');
-          data = (res2.data || []).filter(
-            p => p.stage === 'Archived' || p._displayStatus === 'Archived' || p._displayStatus === 'archived'
-          );
-        } catch { data = []; }
-      }
-      // Final fallback: global stage filter
-      if (data.length === 0) {
-        try {
-          const res3 = await api.get('/problems?stage=Archived');
-          data = res3.data || [];
-        } catch { data = []; }
-      }
-      setProblems(data);
+      const res = await api.get('/problems?stage=Archived');
+      setProblems(res.data || []);
     } catch (err) {
       console.error('Failed to fetch archived problems:', err);
+      setProblems([]);
     } finally {
       setLoading(false);
     }

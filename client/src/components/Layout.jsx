@@ -61,12 +61,12 @@ const Sidebar = ({ dark, toggleDark }) => {
     <div
       className={`h-screen text-white flex flex-col flex-shrink-0 ${
         collapsed ? 'w-14' : 'w-60'
-      } bg-ucla-blue dark:bg-ucla-navy border-r border-white/10 transition-[width] duration-200 ease-in-out`}
+      } bg-ucla-blue dark:bg-[#001020] border-r border-white/20 dark:border-white/10 transition-[width] duration-200 ease-in-out`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3 border-b border-white/10">
+      <div className="flex items-center justify-between px-3 py-3 border-b border-white/15">
         {!collapsed && (
-          <span className="font-bold text-base tracking-tight px-1">PROSE</span>
+          <span className="font-bold text-lg tracking-tight px-1">PROSE</span>
         )}
         <button
           onClick={handleToggleCollapse}
@@ -87,10 +87,10 @@ const Sidebar = ({ dark, toggleDark }) => {
             <Link
               key={link.to}
               to={link.to}
-              className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded text-sm transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] transition-colors ${
                 isActive
-                  ? 'bg-white/15 text-white'
-                  : 'text-white/55 hover:bg-white/8 hover:text-white/90'
+                  ? 'bg-white/20 text-white font-medium'
+                  : 'text-white/60 hover:bg-white/10 hover:text-white'
               }`}
             >
               <Icon size={18} className="flex-shrink-0" />
@@ -101,17 +101,17 @@ const Sidebar = ({ dark, toggleDark }) => {
       </nav>
 
       {/* Footer */}
-      <div className="px-2 py-2 border-t border-white/10 space-y-0.5">
+      <div className="px-2 py-2 border-t border-white/15 space-y-0.5">
         <button
           onClick={toggleDark}
-          className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded text-sm text-white/50 hover:bg-white/8 hover:text-white/90 transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[15px] text-white/50 hover:bg-white/10 hover:text-white transition-colors"
         >
           {dark ? <Sun size={18} className="flex-shrink-0" /> : <Moon size={18} className="flex-shrink-0" />}
           {!collapsed && <span>{dark ? 'Light mode' : 'Dark mode'}</span>}
         </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded text-sm text-white/50 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[15px] text-white/50 hover:bg-red-500/20 hover:text-red-300 transition-colors"
         >
           <LogOut size={18} className="flex-shrink-0" />
           {!collapsed && <span>Sign out</span>}
@@ -127,7 +127,7 @@ const Layout = ({ children }) => {
     <ThemeContext.Provider value={{ dark }}>
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
-        <main className="flex-1 overflow-y-auto bg-[#F5F8FC] dark:bg-[#030d17]">
+        <main className="flex-1 overflow-y-auto bg-[#EEF4FB] dark:bg-[#020c16]">
           <div className="p-8">
             {children}
           </div>

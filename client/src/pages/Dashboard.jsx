@@ -11,7 +11,7 @@ import KatexRenderer from '../components/KatexRenderer';
 
 const stripLatex = (str = '') =>
   str
-    .replace(/\$\$[\s\S]*?\$\$/g, '[\u2026]')
+    .replace(/\$\$[\s\S]*?\$\$/g, '[…]')
     .replace(/\$[^$]*?\$/g, (m) => m.slice(1, -1))
     .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')
     .replace(/[\\{}]/g, '')
@@ -48,7 +48,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
                 : data.stage}
             </span>
             {data.topics?.length > 0 && (
-              <span className="text-xs text-white/60">{data.topics.join(' \u00b7 ')}</span>
+              <span className="text-xs text-white/60">{data.topics.join(' · ')}</span>
             )}
           </div>
           <button
@@ -422,7 +422,8 @@ const Dashboard = () => {
 
         {/* ── OVERVIEW ── */}
         {activeTab === 'overview' && (
-          <div className="flex gap-6">
+          <div className="flex items-start gap-6">
+            {/* Left: filter strip + table */}
             <div className="flex-1 min-w-0">
 
               {/* Filter strip */}
@@ -490,7 +491,7 @@ const Dashboard = () => {
                           <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">{problem.id}</td>
                           <td className="px-4 py-3 max-w-[220px]">
                             <span className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                              {problem.latex ? stripLatex(problem.latex) + (problem.latex.length > 90 ? '\u2026' : '') : '\u2014'}
+                              {problem.latex ? stripLatex(problem.latex) + (problem.latex.length > 90 ? '…' : '') : '—'}
                             </span>
                           </td>
                           <td className="px-4 py-3">
@@ -537,8 +538,8 @@ const Dashboard = () => {
             </div>
 
             {/* ── Your Reviews sidebar ── */}
-            <div className="w-68 flex-shrink-0">
-              <div className="glass rounded-xl p-4 sticky top-0">
+            <div className="flex-shrink-0" style={{ width: '272px' }}>
+              <div className="glass rounded-xl p-4 sticky top-6">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Your reviews</h3>
                 {myFeedback.length === 0 ? (
                   <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No reviews submitted yet.</p>

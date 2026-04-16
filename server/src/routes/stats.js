@@ -4,19 +4,35 @@ import { authenticate } from '../middleware/auth.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Classify problem using 3-stage system: Idea, Needs Review, Endorsed
+/**
+ * Classify a problem into one of three leaderboard categories:
+ *   needsReview  — has unresolved non-endorsement feedback OR stage is 'Needs Review'/'Review'
+ *   endorsed     — endorsed (by endorsements count or stage)
+ *   idea         — everything else
+ */
+const NEEDS_REVIEW_STAGES = new Set(['Needs Review', 'Review', 'needs review']);
+
 const classifyProblem = (problem) => {
   const feedbacks = problem.feedbacks || [];
+  const stage = problem.stage || 'Idea';
+
+  // Explicit stage check first
+  if (NEEDS_REVIEW_STAGES.has(stage)) {
+    return { category: 'needsReview', points: -2 };
+  }
+
+  // Feedback-based check: any unresolved non-endorsement feedback
   const pendingNeedsReview = feedbacks.some(
-    (fb) => (!fb.isEndorsement && !fb.resolved)
+    (fb) => !fb.isEndorsement && !fb.resolved
   );
-  // Needs Review: has pending unresolved feedback (-2 pts)
   if (pendingNeedsReview) {
     return { category: 'needsReview', points: -2 };
   }
-  // Stage-based classification
-  const stage = problem.stage || 'Idea';
-  if ((problem.endorsements || 0) >= 1 || stage === 'Endorsed') return { category: 'endorsed', points: 5 };
+
+  if ((problem.endorsements || 0) >= 1 || stage === 'Endorsed' || stage === 'Published') {
+    return { category: 'endorsed', points: 5 };
+  }
+
   return { category: 'idea', points: 3 };
 };
 
@@ -45,13 +61,11 @@ router.get('/leaderboard', authenticate, async (req, res) => {
       const badges = { endorsed: 0, idea: 0, needsReview: 0 };
       let score = 0;
       user.problems.forEach((p) => {
-        // Skip archived problems from scoring
         if (p.stage === 'Archived') return;
         const { category, points } = classifyProblem(p);
         score += points;
         badges[category] = (badges[category] || 0) + 1;
       });
-      // +0.25 pts per review given
       const reviewsGiven = user.feedbacks.length;
       score += reviewsGiven * 0.25;
       score = Math.round(score * 100) / 100;

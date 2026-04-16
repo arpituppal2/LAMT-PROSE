@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useBlocker } from 'react-router-dom';
 import { Image as ImageIcon, X, ArrowRightLeft, Send, FlaskConical } from 'lucide-react';
 import api from '../utils/api';
@@ -23,13 +23,13 @@ const WriteProblem = () => {
 
   const isDirty = !submitted && (latex || solution || answer || notes || topics.length > 0 || images.length > 0);
 
-  // Block in-app navigation when form has unsaved data
-  const shouldBlock = useCallback(
+  // Stable ref to avoid useBlocker re-render loop
+  const isDirtyRef = useRef(isDirty);
+  useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
+  const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      isDirty && currentLocation.pathname !== nextLocation.pathname,
-    [isDirty]
+      isDirtyRef.current && currentLocation.pathname !== nextLocation.pathname
   );
-  const blocker = useBlocker(shouldBlock);
   useEffect(() => {
     if (blocker.state === 'blocked') {
       const ok = window.confirm('You have unsaved changes. Leave anyway?');
@@ -38,16 +38,15 @@ const WriteProblem = () => {
     }
   }, [blocker]);
 
-  // Warn on browser refresh/close
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (!isDirty) return;
+      if (!isDirtyRef.current) return;
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isDirty]);
+  }, []);
 
   const handleTopicToggle = (topic) => {
     setTopics(prev =>
@@ -123,51 +122,55 @@ const WriteProblem = () => {
     }
   };
 
+  // Unified design tokens matching the rest of the app
+  const inputCls = 'w-full px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 transition';
+  const labelCls = 'block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5';
+
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      <div className="max-w-7xl mx-auto">
 
         {/* Header */}
-        <div className="mb-8 flex items-center gap-3">
-          <FlaskConical size={22} className="text-ucla-blue dark:text-ucla-gold" />
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+        <div className="mb-6 flex items-center gap-2.5">
+          <FlaskConical size={18} className="text-[#2774AE] dark:text-[#FFD100]" />
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
             Write Problem
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           {/* LEFT: FORM */}
           <div className="lg:col-span-7">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
 
               {/* Problem Text */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Problem Statement
-                </label>
+              <div>
+                <label className={labelCls}>Problem Statement</label>
                 <textarea
                   value={latex}
                   onChange={(e) => setLatex(e.target.value)}
                   rows={8}
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
+                  className={`${inputCls} font-mono resize-none`}
                   placeholder="Enter problem text. Use $...$ for inline math."
                   required
                 />
               </div>
 
               {/* Attachments */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Attachments</label>
+              <div>
+                <label className={labelCls}>Attachments</label>
                 <div className="flex flex-wrap gap-3">
                   {images.map((img, idx) => (
-                    <div key={idx} className="relative w-24 h-28 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden group border border-slate-200 dark:border-slate-700">
+                    <div key={idx} className="relative w-24 h-28 bg-gray-50 dark:bg-white/5 rounded-lg overflow-hidden group border border-gray-200 dark:border-white/10">
                       <img src={img.dataUrl} alt="upload" className="w-full h-16 object-cover" />
                       <button
                         type="button"
                         onClick={() => toggleImageDestination(idx)}
                         className={`w-full h-12 flex items-center justify-center text-[9px] font-semibold uppercase transition-colors gap-1 ${
-                          img.destination === 'problem' ? 'bg-ucla-blue text-white' : 'bg-ucla-gold text-slate-900'
+                          img.destination === 'problem'
+                            ? 'bg-[#2774AE] text-white'
+                            : 'bg-[#FFD100] text-gray-900'
                         }`}
                       >
                         {img.destination} <ArrowRightLeft size={9} />
@@ -181,70 +184,70 @@ const WriteProblem = () => {
                       </button>
                     </div>
                   ))}
-                  <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer hover:bg-ucla-blue/5 hover:border-ucla-blue transition-all group">
-                    <ImageIcon size={20} className="text-slate-400 group-hover:text-ucla-blue" />
-                    <span className="text-[10px] text-slate-400 mt-1.5 font-semibold uppercase">Add File</span>
+                  <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-white/10 rounded-lg cursor-pointer hover:bg-[#2774AE]/5 hover:border-[#2774AE] transition-all group">
+                    <ImageIcon size={18} className="text-gray-400 group-hover:text-[#2774AE]" />
+                    <span className="text-[10px] text-gray-400 mt-1.5 font-semibold uppercase">Add File</span>
                     <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
                   </label>
                 </div>
               </div>
 
               {/* Solution */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Solution</label>
+              <div>
+                <label className={labelCls}>Solution</label>
                 <textarea
                   value={solution}
                   onChange={(e) => setSolution(e.target.value)}
                   rows={6}
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
-                  placeholder="Explain the solution..."
+                  className={`${inputCls} font-mono resize-none`}
+                  placeholder="Explain the solution step by step..."
                   required
                 />
               </div>
 
               {/* Answer */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Answer</label>
+              <div>
+                <label className={labelCls}>Answer</label>
                 <input
                   type="text"
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
                   placeholder="e.g. 42 or 1/2"
-                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none text-slate-900 dark:text-white shadow-sm"
+                  className={`${inputCls} font-mono`}
                   required
                 />
               </div>
 
               {/* Notes */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Author Notes <span className="normal-case font-normal text-slate-400">(optional)</span></label>
+              <div>
+                <label className={labelCls}>Author Notes <span className="normal-case font-normal text-gray-400">(optional)</span></label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none transition-all text-slate-900 dark:text-slate-100 shadow-sm"
-                  placeholder="Notes for reviewers..."
+                  className={`${inputCls} font-mono resize-none`}
+                  placeholder="Notes for reviewers — inspiration, difficulty rationale, known issues..."
                 />
               </div>
 
               {/* Difficulty & Topics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Difficulty</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className={labelCls}>Difficulty</label>
                   <input
                     type="range" min="1" max="10" step="1"
                     value={difficulty}
                     onChange={(e) => setDifficulty(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-ucla-blue"
+                    className="w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full appearance-none cursor-pointer accent-[#2774AE] mb-2"
                   />
-                  <div className="px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Level</span>
-                    <span className="text-sm font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">{difficulty}/10</span>
+                  <div className="px-3 py-2 bg-white dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 flex items-center justify-between">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">Level</span>
+                    <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{difficulty}/10</span>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Topics</label>
+                <div>
+                  <label className={labelCls}>Topics</label>
                   <div className="flex flex-wrap gap-2">
                     {topicOptions.map(topic => (
                       <button
@@ -252,8 +255,8 @@ const WriteProblem = () => {
                         onClick={() => handleTopicToggle(topic)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                           topics.includes(topic)
-                            ? 'bg-ucla-blue border-ucla-blue text-white'
-                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-ucla-blue'
+                            ? 'bg-[#2774AE] border-[#2774AE] text-white'
+                            : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-[#2774AE]'
                         }`}
                       >
                         {topic}
@@ -264,12 +267,12 @@ const WriteProblem = () => {
               </div>
 
               {/* Exam Type */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Exam Type</label>
+              <div>
+                <label className={labelCls}>Exam Type</label>
                 <select
                   value={examType}
                   onChange={(e) => setExamType(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-ucla-blue/20 focus:border-ucla-blue outline-none text-slate-900 dark:text-white appearance-none cursor-pointer"
+                  className={inputCls}
                 >
                   <option>Numerical Answer</option>
                   <option>Multiple Choice</option>
@@ -278,7 +281,7 @@ const WriteProblem = () => {
               </div>
 
               {/* Submit */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-4 border-t border-gray-100 dark:border-white/8">
                 {message && (
                   <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
                     message.includes('submitted') || message.includes('Problem')
@@ -290,9 +293,9 @@ const WriteProblem = () => {
                 )}
                 <button
                   type="submit" disabled={loading}
-                  className="w-full bg-ucla-blue hover:bg-[#1a5a8a] text-white py-3 rounded-xl transition-all disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2"
+                  className="w-full bg-[#2774AE] hover:bg-[#005587] text-white py-2.5 rounded-lg transition-all disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Submitting...' : (<>Submit Problem <Send size={15} /></>)}
+                  {loading ? 'Submitting...' : (<>Submit Problem <Send size={14} /></>)}
                 </button>
               </div>
             </form>
@@ -300,32 +303,32 @@ const WriteProblem = () => {
 
           {/* RIGHT: LIVE PREVIEW */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-8">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</span>
+            <div className="bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+              <div className="px-5 py-3 border-b border-gray-100 dark:border-white/8">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Live Preview</span>
               </div>
-              <div className="p-6 space-y-6 max-h-[calc(100vh-220px)] overflow-y-auto">
+              <div className="p-5 space-y-5 max-h-[calc(100vh-220px)] overflow-y-auto">
 
-                <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Problem</h3>
-                  <div className="text-slate-800 dark:text-slate-200 leading-relaxed text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 min-h-[100px]">
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Problem</p>
+                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed text-sm bg-gray-50 dark:bg-white/5 p-4 rounded-lg border border-gray-100 dark:border-white/8 min-h-[100px]">
                     {latex
                       ? <KatexRenderer latex={latex} />
-                      : <span className="text-slate-400 dark:text-slate-600 italic text-sm">Waiting for input...</span>}
+                      : <span className="text-gray-400 dark:text-gray-600 italic text-sm">Waiting for input...</span>}
                     <div className="grid grid-cols-2 gap-3 mt-3">
                       {images.filter(img => img.destination === 'problem').map((img, i) => (
-                        <img key={i} src={img.dataUrl} className="rounded-lg border border-slate-200 dark:border-slate-700" alt="preview" />
+                        <img key={i} src={img.dataUrl} className="rounded-lg border border-gray-200 dark:border-white/10" alt="preview" />
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Solution</h3>
-                  <div className="text-slate-800 dark:text-slate-200 leading-relaxed text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 min-h-[80px]">
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Solution</p>
+                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed text-sm bg-gray-50 dark:bg-white/5 p-4 rounded-lg border border-gray-100 dark:border-white/8 min-h-[80px]">
                     {solution
                       ? <KatexRenderer latex={solution} />
-                      : <span className="text-slate-400 dark:text-slate-600 italic text-sm">No solution yet...</span>}
+                      : <span className="text-gray-400 dark:text-gray-600 italic text-sm">No solution yet...</span>}
                   </div>
                 </div>
 
@@ -333,7 +336,7 @@ const WriteProblem = () => {
             </div>
 
             {answer && (
-              <div className="bg-ucla-blue rounded-xl p-4 text-white">
+              <div className="bg-[#2774AE] dark:bg-[#001628] rounded-xl p-4 text-white border border-[#2774AE]/30">
                 <p className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1">Answer</p>
                 <p className="text-xl font-bold font-mono">{answer}</p>
               </div>

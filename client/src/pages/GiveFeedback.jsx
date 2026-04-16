@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Clock, Search, CheckCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
@@ -31,11 +31,12 @@ const GiveFeedback = () => {
   const topics = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
   const stages = ['Idea', 'Review', 'Needs Review', 'Endorsed'];
 
-  // beforeunload guard only (no useBlocker to avoid render loops)
+  // Dirty guard — only beforeunload, no useBlocker
   const isDirtyRef = useRef(false);
   useEffect(() => {
     isDirtyRef.current = !!(problem && hasSubmittedAnswer && (answer || feedback));
-  });
+  }, [problem, hasSubmittedAnswer, answer, feedback]);
+
   useEffect(() => {
     const handler = (e) => {
       if (!isDirtyRef.current) return;
@@ -46,11 +47,73 @@ const GiveFeedback = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
+  // Use refs for filter values so loadReviewableProblems never goes stale
+  const searchQueryRef = useRef(searchQuery);
+  const filterTopicRef = useRef(filterTopic);
+  const filterStageRef = useRef(filterStage);
+  const filterDifficultyRef = useRef(filterDifficulty);
+  useEffect(() => { searchQueryRef.current = searchQuery; }, [searchQuery]);
+  useEffect(() => { filterTopicRef.current = filterTopic; }, [filterTopic]);
+  useEffect(() => { filterStageRef.current = filterStage; }, [filterStage]);
+  useEffect(() => { filterDifficultyRef.current = filterDifficulty; }, [filterDifficulty]);
+
+  const loadReviewableProblems = useCallback(async () => {
+    setReviewableLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQueryRef.current) params.append('search', searchQueryRef.current);
+      if (filterTopicRef.current) params.append('topic', filterTopicRef.current);
+      if (filterStageRef.current) params.append('stage', filterStageRef.current);
+      if (filterDifficultyRef.current) params.append('difficulty', filterDifficultyRef.current);
+      const res = await api.get(`/problems/reviewable?${params}`);
+      setReviewableProblems(res.data || []);
+    } catch {
+      setReviewableProblems([]);
+    } finally {
+      setReviewableLoading(false);
+    }
+  }, []); // stable — reads from refs, never recreated
+
+  const loadNextProblem = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/problems/review/random');
+      if (res.data) { setProblem(res.data); setMessage(''); }
+      else { setProblem(null); setMessage('No problems available for review right now.'); }
+    } catch {
+      setProblem(null);
+      setMessage('No problems available for review right now.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadSpecificProblem = useCallback(async (problemId) => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/problems/${problemId}`);
+      setProblem(res.data);
+      setMessage('');
+    } catch {
+      setMessage('Problem not found or unavailable for review.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial load — only on mount / mode change / routeProblemId change
   useEffect(() => {
     if (routeProblemId) loadSpecificProblem(routeProblemId);
     else if (mode === 'random') loadNextProblem();
     else loadReviewableProblems();
-  }, [mode, routeProblemId]);
+  }, [mode, routeProblemId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounced filter re-fetch — only fires when filter state actually changes
+  useEffect(() => {
+    if (mode !== 'browse') return;
+    const id = setTimeout(loadReviewableProblems, 250);
+    return () => clearTimeout(id);
+  }, [searchQuery, filterTopic, filterStage, filterDifficulty, loadReviewableProblems]);
 
   useEffect(() => {
     if (problem) {
@@ -66,57 +129,6 @@ const GiveFeedback = () => {
     const interval = setInterval(() => setElapsed(prev => prev + 1), 1000);
     return () => clearInterval(interval);
   }, [problem, hasSubmittedAnswer]);
-
-  const loadSpecificProblem = async (problemId) => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/problems/${problemId}`);
-      setProblem(res.data);
-      setMessage('');
-    } catch (error) {
-      setMessage('Problem not found or unavailable for review.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadNextProblem = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/problems/review/random');
-      if (res.data) { setProblem(res.data); setMessage(''); }
-      else { setProblem(null); setMessage('No problems available for review right now.'); }
-    } catch (error) {
-      setProblem(null);
-      setMessage('No problems available for review right now.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadReviewableProblems = async () => {
-    setReviewableLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
-      if (filterTopic) params.append('topic', filterTopic);
-      if (filterStage) params.append('stage', filterStage);
-      if (filterDifficulty) params.append('difficulty', filterDifficulty);
-      const res = await api.get(`/problems/reviewable?${params}`);
-      setReviewableProblems(res.data || []);
-    } catch (error) {
-      setReviewableProblems([]);
-    } finally {
-      setReviewableLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (mode === 'browse') {
-      const debounce = setTimeout(loadReviewableProblems, 250);
-      return () => clearTimeout(debounce);
-    }
-  }, [searchQuery, filterTopic, filterStage, filterDifficulty]);
 
   const submitAnswer = () => { setHasSubmittedAnswer(true); setShowSolution(true); };
 

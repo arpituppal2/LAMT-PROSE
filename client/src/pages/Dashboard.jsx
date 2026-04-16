@@ -235,7 +235,6 @@ const Dashboard = () => {
         api.get('/problems/my'),
       ]);
       setStats(statsRes.data);
-      // Exclude archived problems from the dashboard view
       setProblems((problemsRes.data || []).filter(
         p => p.stage !== 'Archived' && p._displayStatus !== 'Archived' && p._displayStatus !== 'archived'
       ));
@@ -428,16 +427,16 @@ const Dashboard = () => {
                   <button
                     key={value}
                     onClick={() => setFilter(value)}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
                       filter === value
-                        ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/8 dark:hover:text-white'
+                        ? 'bg-[#2774AE] border-[#2774AE] text-white dark:bg-[#FFD100] dark:border-[#FFD100] dark:text-[#001628]'
+                        : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-[#2774AE] hover:text-[#2774AE] dark:hover:border-[#FFD100] dark:hover:text-[#FFD100]'
                     }`}
                   >
                     {label}
                     <span className={`text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${
                       filter === value
-                        ? 'bg-white/20 dark:bg-black/20'
+                        ? 'bg-white/20 dark:bg-black/20 text-inherit'
                         : value === 'needs_review' && count > 0
                         ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
                         : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400'
@@ -708,7 +707,7 @@ const Dashboard = () => {
                 ) : reviewProblems.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <CheckCircle size={36} className="text-green-400 dark:text-green-500 mb-3" />
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">You’re all caught up!</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">You're all caught up!</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">None of your problems currently need revision.</p>
                   </div>
                 ) : (

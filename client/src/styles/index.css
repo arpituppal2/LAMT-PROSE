@@ -55,12 +55,22 @@
   --ucla-gold-active:    #FFB81C;
 
   /* App surfaces (light mode) */
-  --app-bg:              #F5F8FC;
+  --app-bg:              #EEF4FB;
   --app-surface:         #FFFFFF;
+
+  /* Glass system */
+  --glass-blur:          16px;
+  --glass-blur-heavy:    28px;
+  --glass-light-bg:      rgba(255, 255, 255, 0.65);
+  --glass-light-border:  rgba(255, 255, 255, 0.75);
+  --glass-light-shadow:  0 4px 24px rgba(39, 116, 174, 0.10), 0 1px 2px rgba(0,0,0,0.06);
+  --glass-dark-bg:       rgba(0, 22, 40, 0.55);
+  --glass-dark-border:   rgba(255, 255, 255, 0.08);
+  --glass-dark-shadow:   0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0,0,0,0.4);
 }
 
 .dark {
-  --app-bg:      #030d17;
+  --app-bg:      #020c16;
   --app-surface: #001628;
 }
 
@@ -70,11 +80,12 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply bg-[#F5F8FC] text-gray-900 dark:bg-[#030d17] dark:text-gray-100;
+    @apply bg-[#EEF4FB] text-gray-900 dark:bg-[#020c16] dark:text-gray-100;
   }
 }
 
 @layer utilities {
+  /* ── Opacity shorthands ───────────────────────────────────────── */
   .hover\:bg-white\/8:hover  { background-color: rgba(255,255,255,0.08); }
   .hover\:bg-white\/4:hover  { background-color: rgba(255,255,255,0.04); }
   .hover\:bg-white\/3:hover  { background-color: rgba(255,255,255,0.03); }
@@ -92,12 +103,52 @@
   .dark\:border-white\/8 { border-color: rgba(255,255,255,0.08); }
   .dark\:divide-white\/5 > * + * { border-color: rgba(255,255,255,0.05); }
 
-  /* UCLA Blue gradient — for enlivening fields of color (brand-approved) */
+  /* ── UCLA gradients ───────────────────────────────────────────── */
   .bg-ucla-gradient {
     background: linear-gradient(135deg, var(--ucla-darkest-blue) 0%, var(--ucla-blue) 60%, var(--ucla-lighter-blue) 100%);
   }
   .bg-ucla-gradient-subtle {
     background: linear-gradient(135deg, var(--ucla-darker-blue) 0%, var(--ucla-blue) 100%);
+  }
+
+  /* ── Frosted glass utilities ──────────────────────────────────── */
+  /*
+   * .glass        — standard panel (cards, modals, filter bars)
+   * .glass-heavy  — stronger blur for overlays / preview panels
+   * .glass-sidebar — sidebar-specific (more opaque, full height)
+   *
+   * Light mode: white-tinted frosted glass over the blue gradient bg
+   * Dark mode:  navy-tinted frosted glass over the dark gradient bg
+   */
+  .glass {
+    background:    var(--glass-light-bg);
+    border:        1px solid var(--glass-light-border);
+    box-shadow:    var(--glass-light-shadow);
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  }
+  .dark .glass {
+    background:    var(--glass-dark-bg);
+    border-color:  var(--glass-dark-border);
+    box-shadow:    var(--glass-dark-shadow);
+  }
+
+  .glass-heavy {
+    background:    rgba(255, 255, 255, 0.72);
+    border:        1px solid rgba(255, 255, 255, 0.80);
+    box-shadow:    0 8px 40px rgba(39, 116, 174, 0.14), 0 2px 4px rgba(0,0,0,0.08);
+    backdrop-filter: blur(var(--glass-blur-heavy)) saturate(1.8);
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(1.8);
+  }
+  .dark .glass-heavy {
+    background:    rgba(0, 16, 32, 0.72);
+    border-color:  rgba(255,255,255,0.10);
+    box-shadow:    0 8px 40px rgba(0,0,0,0.50), 0 2px 4px rgba(0,0,0,0.50);
+  }
+
+  .glass-sidebar {
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
   }
 }
 

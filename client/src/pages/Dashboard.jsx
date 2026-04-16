@@ -18,7 +18,7 @@ const stripLatex = (str = '') =>
     .trim()
     .slice(0, 90);
 
-// ── Preview Panel ─────────────────────────────────────────────────────────────
+// ── Preview Panel ────────────────────────────────────────────────────────────
 const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   const [showSol, setShowSol] = useState(false);
   const data = fullProblem || problem;
@@ -29,13 +29,14 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0d1e2e] rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-heavy rounded-2xl"
         onClick={e => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-[#2774AE] dark:bg-[#001f3f] rounded-t-2xl">
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm font-bold text-white">{data.id}</span>
@@ -50,11 +51,15 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
               <span className="text-xs text-white/60">{data.topics.join(' \u00b7 ')}</span>
             )}
           </div>
-          <button onClick={onClose} className="p-1 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1 rounded text-white/60 hover:text-white hover:bg-white/15 transition-colors"
+          >
             <X size={16} />
           </button>
         </div>
 
+        {/* Body */}
         <div className="px-6 py-5 space-y-5">
           <div>
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Problem Statement</p>
@@ -66,7 +71,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
           {data.answer && (
             <div className="flex items-center gap-2.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Answer</span>
-              <span className="px-3 py-1.5 bg-gray-100 dark:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">
+              <span className="px-3 py-1.5 bg-white/60 dark:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">
                 <KatexRenderer latex={data.answer} />
               </span>
             </div>
@@ -80,7 +85,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
               </span>
             </span>
             {data.topics?.map(t => (
-              <span key={t} className="px-2 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded border border-gray-200 dark:border-white/10">
+              <span key={t} className="px-2 py-0.5 bg-white/60 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded border border-gray-200 dark:border-white/10">
                 {t}
               </span>
             ))}
@@ -90,7 +95,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
             <div className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
               <button
                 onClick={() => setShowSol(s => !s)}
-                className="w-full flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/8 transition-colors"
+                className="w-full flex justify-between items-center px-4 py-3 bg-white/50 dark:bg-white/5 hover:bg-white/70 dark:hover:bg-white/8 transition-colors"
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
                   <CheckCircle size={13} />
@@ -107,10 +112,10 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
           )}
 
           {notes && (
-            <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
+            <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Author Notes</p>
               <div className="text-sm text-gray-700 dark:text-gray-300 prose-math leading-relaxed">
-                {notes ? <KatexRenderer latex={notes} /> : null}
+                <KatexRenderer latex={notes} />
               </div>
             </div>
           )}
@@ -122,7 +127,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
               </p>
               <div className="space-y-2">
                 {comments.map((fb, idx) => (
-                  <div key={fb.id || idx} className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/8">
+                  <div key={fb.id || idx} className="p-3 bg-white/50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/8">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                         {fb.reviewer?.firstName} {fb.reviewer?.lastName}
@@ -153,7 +158,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
           <div className="flex items-center gap-3 pt-1">
             <button
               onClick={() => { onClose(); onNavigate(data.id); }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#2774AE] text-white rounded-lg text-xs font-semibold hover:bg-[#005587] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#2774AE] text-white rounded-lg text-xs font-semibold hover:bg-[#005587] transition-colors shadow-sm"
             >
               Full Page
             </button>
@@ -344,8 +349,9 @@ const Dashboard = () => {
   ).length;
 
   const ideaCount = problems.filter(
-    p => p.stage === 'Idea' && p._displayStatus !== 'needs_review' && p._displayStatus !== 'Needs Review'
-      && p._displayStatus !== 'Endorsed' && p._displayStatus !== 'endorsed'
+    p => p.stage === 'Idea'
+      && p._displayStatus !== 'needs_review' && p._displayStatus !== 'Needs Review'
+      && p._displayStatus !== 'Endorsed'     && p._displayStatus !== 'endorsed'
   ).length;
 
   const endorsedCount = problems.filter(
@@ -355,8 +361,8 @@ const Dashboard = () => {
   const filteredProblems = problems.filter(p => {
     if (filter === 'all') return true;
     if (filter === 'needs_review') return p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review';
-    if (filter === 'Endorsed') return p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed';
-    if (filter === 'Idea') return p.stage === 'Idea' && p._displayStatus !== 'needs_review' && p._displayStatus !== 'Needs Review' && p._displayStatus !== 'Endorsed' && p._displayStatus !== 'endorsed';
+    if (filter === 'Endorsed')     return p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed';
+    if (filter === 'Idea')         return p.stage === 'Idea' && p._displayStatus !== 'needs_review' && p._displayStatus !== 'Needs Review' && p._displayStatus !== 'Endorsed' && p._displayStatus !== 'endorsed';
     return p._displayStatus === filter || p.stage === filter || (p.topics || []).includes(filter);
   });
 
@@ -371,22 +377,25 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
+
+        {/* ── Page header ── */}
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               {user?.firstName} {user?.lastName}
             </h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{user?.email}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{user?.email}</p>
           </div>
           <button
             onClick={() => navigate('/write')}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] active:bg-[#003B5C] transition-colors shadow-sm"
           >
             <PenTool size={15} /> New Problem
           </button>
         </div>
 
-        <div className="flex items-center border-b border-gray-200 dark:border-white/10 mb-6 text-sm font-medium">
+        {/* ── Tab bar ── */}
+        <div className="flex items-center border-b border-gray-200/70 dark:border-white/8 mb-6 text-sm font-medium">
           {[
             { id: 'overview', label: 'Overview' },
             { id: 'review',   label: 'Review Feedback' },
@@ -411,14 +420,17 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* OVERVIEW */}
+        {/* ── OVERVIEW ── */}
         {activeTab === 'overview' && (
           <div className="flex gap-6">
             <div className="flex-1 min-w-0">
+
+              {/* Filter strip */}
               <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+                <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mr-1">Filter:</span>
                 {[
                   { value: 'all',          label: 'All',          count: problems.length },
-                  { value: 'needs_review', label: 'Review', count: needsReviewCount },
+                  { value: 'needs_review', label: 'Needs Review', count: needsReviewCount },
                   { value: 'Idea',         label: 'Idea',         count: ideaCount },
                   { value: 'Endorsed',     label: 'Endorsed',     count: endorsedCount },
                   ...topicOptions.map(t => ({ value: t, label: t, count: problems.filter(p => (p.topics||[]).includes(t)).length })),
@@ -426,29 +438,37 @@ const Dashboard = () => {
                   <button
                     key={value}
                     onClick={() => setFilter(value)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                      filter === value
-                        ? 'bg-[#2774AE] border-[#2774AE] text-white dark:bg-[#FFD100] dark:border-[#FFD100] dark:text-[#001628]'
-                        : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-[#2774AE] hover:text-[#2774AE] dark:hover:border-[#FFD100] dark:hover:text-[#FFD100]'
-                    }`}
+                    className={`
+                      flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium
+                      border transition-all duration-150
+                      ${
+                        filter === value
+                          ? 'bg-[#2774AE] border-[#2774AE] text-white shadow-sm dark:bg-[#FFD100] dark:border-[#FFD100] dark:text-[#001628]'
+                          : 'bg-white/70 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-[#2774AE]/60 hover:text-[#2774AE] hover:bg-white dark:hover:border-[#FFD100]/40 dark:hover:text-[#FFD100]'
+                      }
+                    `}
                   >
                     {label}
-                    <span className={`text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${
-                      filter === value
-                        ? 'bg-white/20 dark:bg-black/20 text-inherit'
-                        : value === 'needs_review' && count > 0
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
-                        : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400'
-                    }`}>{count}</span>
+                    <span className={`
+                      text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full
+                      ${
+                        filter === value
+                          ? 'bg-white/20 dark:bg-black/20 text-inherit'
+                          : value === 'needs_review' && count > 0
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
+                          : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400'
+                      }
+                    `}>{count}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
+              {/* Problems table */}
+              <div className="glass rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="border-b border-gray-100 dark:border-white/8">
+                      <tr className="border-b border-gray-200/60 dark:border-white/8">
                         <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">ID</th>
                         <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
                         <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
@@ -458,14 +478,14 @@ const Dashboard = () => {
                         <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                    <tbody className="divide-y divide-gray-100/80 dark:divide-white/5">
                       {filteredProblems.length === 0 ? (
                         <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400 dark:text-gray-500">No problems found.</td></tr>
                       ) : filteredProblems.map(problem => (
                         <tr
                           key={problem.id}
                           onClick={() => setPreviewProblem(problem)}
-                          className="hover:bg-gray-50 dark:hover:bg-white/4 cursor-pointer transition-colors"
+                          className="hover:bg-white/50 dark:hover:bg-white/4 cursor-pointer transition-colors"
                         >
                           <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">{problem.id}</td>
                           <td className="px-4 py-3 max-w-[220px]">
@@ -516,8 +536,9 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="w-72 flex-shrink-0">
-              <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-4 sticky top-0">
+            {/* ── Your Reviews sidebar ── */}
+            <div className="w-68 flex-shrink-0">
+              <div className="glass rounded-xl p-4 sticky top-0">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Your reviews</h3>
                 {myFeedback.length === 0 ? (
                   <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No reviews submitted yet.</p>
@@ -525,7 +546,7 @@ const Dashboard = () => {
                   <div
                     key={fb.id}
                     onClick={() => navigate(`/problem/${fb.problemId}`)}
-                    className="cursor-pointer border-l-2 border-gray-100 dark:border-white/10 pl-3 py-1.5 mb-2.5 hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors group"
+                    className="cursor-pointer border-l-2 border-gray-200 dark:border-white/10 pl-3 py-1.5 mb-2.5 hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors group"
                   >
                     <div className="flex items-center justify-between mb-0.5">
                       <div className="flex items-center gap-1.5">
@@ -564,7 +585,7 @@ const Dashboard = () => {
                 ))}
                 <button
                   onClick={() => navigate('/feedback')}
-                  className="w-full mt-3 py-1.5 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded hover:opacity-90 transition-opacity"
+                  className="w-full mt-3 py-1.5 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-lg hover:opacity-90 transition-opacity shadow-sm"
                 >
                   Go to Feedback
                 </button>
@@ -573,7 +594,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* REVIEW FEEDBACK */}
+        {/* ── REVIEW FEEDBACK ── */}
         {activeTab === 'review' && (
           <div>
             {editingProblem ? (
@@ -592,25 +613,25 @@ const Dashboard = () => {
                       <div key={key}>
                         <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">{label}</label>
                         <textarea value={editForm[key] || ''} onChange={e => setEditForm(prev => ({ ...prev, [key]: e.target.value }))} rows={rows} placeholder={placeholder}
-                          className="w-full px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/30 focus:border-[#2774AE] outline-none text-gray-900 dark:text-white resize-none transition" />
+                          className="w-full px-4 py-2.5 bg-white/70 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/30 focus:border-[#2774AE] outline-none text-gray-900 dark:text-white resize-none transition" />
                       </div>
                     ))}
                     <div>
                       <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Answer</label>
                       <input type="text" value={editForm.answer || ''} onChange={e => setEditForm(prev => ({ ...prev, answer: e.target.value }))} placeholder="e.g. 42"
-                        className="w-full px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/30 focus:border-[#2774AE] outline-none text-gray-900 dark:text-white transition" />
+                        className="w-full px-4 py-2.5 bg-white/70 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/30 focus:border-[#2774AE] outline-none text-gray-900 dark:text-white transition" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Author Notes</label>
                       <textarea value={editForm.notes || ''} onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))} rows={3} placeholder="Notes for reviewers..."
-                        className="w-full px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/30 focus:border-[#2774AE] outline-none text-gray-900 dark:text-white resize-none transition" />
+                        className="w-full px-4 py-2.5 bg-white/70 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm focus:ring-2 focus:ring-[#2774AE]/30 focus:border-[#2774AE] outline-none text-gray-900 dark:text-white resize-none transition" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Difficulty</label>
                         <input type="range" min="1" max="10" step="1" value={editForm.quality || 5} onChange={e => setEditForm(prev => ({ ...prev, quality: e.target.value }))}
                           className="w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full appearance-none cursor-pointer accent-[#2774AE] mb-2" />
-                        <div className="px-3 py-2 bg-white dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 flex items-center justify-between">
+                        <div className="px-3 py-2 bg-white/70 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 flex items-center justify-between">
                           <span className="text-xs text-gray-400">Level</span>
                           <span className="text-sm font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                         </div>
@@ -622,8 +643,8 @@ const Dashboard = () => {
                             <button key={topic} type="button" onClick={() => toggleEditTopic(topic)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                                 editForm.topics?.includes(topic)
-                                  ? 'bg-[#2774AE] border-[#2774AE] text-white'
-                                  : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-[#2774AE]'
+                                  ? 'bg-[#2774AE] border-[#2774AE] text-white shadow-sm'
+                                  : 'bg-white/70 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-[#2774AE]'
                               }`}>
                               {topic}
                             </button>
@@ -633,7 +654,7 @@ const Dashboard = () => {
                     </div>
                     <div className="flex items-center gap-3 pt-2">
                       <button onClick={handleEditSave} disabled={editSaving}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] transition-colors disabled:opacity-50">
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#2774AE] text-white rounded-lg text-sm font-semibold hover:bg-[#005587] transition-colors disabled:opacity-50 shadow-sm">
                         <Save size={14} />{editSaving ? 'Saving…' : 'Save Changes'}
                       </button>
                       <button onClick={() => navigate(`/problem/${editingProblem.id}`)}
@@ -648,8 +669,8 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="lg:col-span-5 lg:sticky lg:top-6">
-                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
-                      <div className="px-5 py-3 border-b border-gray-100 dark:border-white/8 flex items-center justify-between">
+                    <div className="glass rounded-xl overflow-hidden">
+                      <div className="px-5 py-3 border-b border-gray-200/60 dark:border-white/8 flex items-center justify-between">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Live Preview</p>
                         <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
                       </div>
@@ -662,7 +683,7 @@ const Dashboard = () => {
                         {editForm.answer && (
                           <div className="flex items-center gap-2.5">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Answer</span>
-                            <span className="px-3 py-1.5 bg-gray-100 dark:bg-white/8 rounded-lg font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">
+                            <span className="px-3 py-1.5 bg-white/60 dark:bg-white/8 rounded-lg font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">
                               <KatexRenderer latex={editForm.answer} />
                             </span>
                           </div>
@@ -670,7 +691,7 @@ const Dashboard = () => {
                         {editForm.solution && (
                           <div className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
                             <button onClick={() => setEditPreviewShowSolution(s => !s)}
-                              className="w-full flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 transition-colors">
+                              className="w-full flex justify-between items-center px-4 py-3 bg-white/50 dark:bg-white/5 hover:bg-white/70 transition-colors">
                               <div className="flex items-center gap-2 text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
                                 <CheckCircle size={13} />{editPreviewShowSolution ? 'Hide' : 'Show'} Solution
                               </div>
@@ -684,7 +705,7 @@ const Dashboard = () => {
                           </div>
                         )}
                         {editForm.notes && (
-                          <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
+                          <div className="p-4 bg-white/50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
                             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Author Notes</p>
                             <div className="text-sm text-gray-700 dark:text-gray-300">
                               <KatexRenderer latex={editForm.notes} />
@@ -710,11 +731,11 @@ const Dashboard = () => {
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">None of your problems currently need revision.</p>
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded overflow-hidden">
+                  <div className="glass rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left">
                         <thead>
-                          <tr className="border-b border-gray-100 dark:border-white/8">
+                          <tr className="border-b border-gray-200/60 dark:border-white/8">
                             <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">ID</th>
                             <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
                             <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
@@ -722,9 +743,9 @@ const Dashboard = () => {
                             <th className="px-4 py-2.5"></th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                        <tbody className="divide-y divide-gray-100/80 dark:divide-white/5">
                           {reviewProblems.map(problem => (
-                            <tr key={problem.id} onClick={() => setPreviewProblem(problem)} className="hover:bg-gray-50 dark:hover:bg-white/4 cursor-pointer transition-colors">
+                            <tr key={problem.id} onClick={() => setPreviewProblem(problem)} className="hover:bg-white/50 dark:hover:bg-white/4 cursor-pointer transition-colors">
                               <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{problem.id}</td>
                               <td className="px-4 py-3">
                                 <div className="flex flex-wrap gap-1">
@@ -737,7 +758,7 @@ const Dashboard = () => {
                               <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">{new Date(problem.createdAt).toLocaleDateString()}</td>
                               <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                                 <button onClick={() => openEditProblem(problem)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] text-white rounded text-xs font-semibold hover:bg-[#005587] transition-colors">
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2774AE] text-white rounded text-xs font-semibold hover:bg-[#005587] transition-colors shadow-sm">
                                   <ClipboardEdit size={12} /> Edit
                                 </button>
                               </td>
@@ -753,10 +774,10 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* ACCOUNT */}
+        {/* ── ACCOUNT ── */}
         {activeTab === 'profile' && (
           <div className="max-w-xl">
-            <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/8 rounded p-6">
+            <div className="glass rounded-xl p-6">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-5">Account Settings</h2>
               {profileMessage && (
                 <p className={`mb-4 text-sm ${profileMessage === 'Saved.' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
@@ -778,21 +799,21 @@ const Dashboard = () => {
                   <div>
                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">First name</label>
                     <input type="text" value={formData.firstName} onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 transition" />
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white/70 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 transition" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Last name</label>
                     <input type="text" value={formData.lastName} onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 transition" />
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white/70 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 transition" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Math experience</label>
                   <textarea value={formData.mathExp} onChange={e => setFormData(prev => ({ ...prev, mathExp: e.target.value }))} rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 resize-none transition" />
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white/70 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 resize-none transition" />
                 </div>
                 <button type="submit" disabled={profileSubmitting}
-                  className="px-5 py-2.5 text-sm font-semibold bg-[#2774AE] text-white rounded-lg hover:bg-[#005587] transition-colors disabled:opacity-50">
+                  className="px-5 py-2.5 text-sm font-semibold bg-[#2774AE] text-white rounded-lg hover:bg-[#005587] transition-colors disabled:opacity-50 shadow-sm">
                   {profileSubmitting ? 'Saving…' : 'Save changes'}
                 </button>
               </form>

@@ -1,9 +1,10 @@
 import { useState, createContext, useContext, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
+import api from '../utils/api';
 import {
   LayoutDashboard, PenTool, List, Trophy,
-  MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList, Archive
+  MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList, Archive, Bell
 } from 'lucide-react';
 
 export const ThemeContext = createContext({ dark: false });
@@ -32,9 +33,27 @@ export const useDarkMode = () => {
 
 const Sidebar = ({ dark, toggleDark }) => {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get('/notifications');
+        setUnreadCount(res.data.filter(n => !n.isRead).length);
+      } catch (e) {}
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Reset badge when visiting notifications page
+  useEffect(() => {
+    if (location.pathname === '/notifications') setUnreadCount(0);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -48,13 +67,14 @@ const Sidebar = ({ dark, toggleDark }) => {
   };
 
   const links = [
-    { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/write',       icon: PenTool,          label: 'Write' },
-    { to: '/inventory',   icon: List,             label: 'Inventory' },
-    { to: '/exams',       icon: ClipboardList,    label: 'Exams' },
-    { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard' },
-    { to: '/feedback',    icon: MessageSquare,    label: 'Feedback' },
-    { to: '/archive',     icon: Archive,          label: 'Archive' },
+    { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/write',         icon: PenTool,          label: 'Write' },
+    { to: '/inventory',     icon: List,             label: 'Inventory' },
+    { to: '/exams',         icon: ClipboardList,    label: 'Exams' },
+    { to: '/leaderboard',   icon: Trophy,           label: 'Leaderboard' },
+    { to: '/feedback',      icon: MessageSquare,    label: 'Feedback' },
+    { to: '/archive',       icon: Archive,          label: 'Archive' },
+    { to: '/notifications', icon: Bell,             label: 'Notifications', badge: unreadCount },
   ];
 
   return (
@@ -105,8 +125,22 @@ const Sidebar = ({ dark, toggleDark }) => {
                 }
               `}
             >
-              <Icon size={17} className="flex-shrink-0" />
-              {!collapsed && <span className="tracking-[-0.01em]">{link.label}</span>}
+              <div className="relative flex-shrink-0">
+                <Icon size={17} />
+                {link.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {link.badge > 99 ? '99+' : link.badge}
+                  </span>
+                )}
+              </div>
+              {!collapsed && (
+                <span className="tracking-[-0.01em] flex-1">{link.label}</span>
+              )}
+              {!collapsed && link.badge > 0 && (
+                <span className="ml-auto px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full leading-none">
+                  {link.badge > 99 ? '99+' : link.badge}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -141,7 +175,6 @@ const Layout = ({ children }) => {
     <ThemeContext.Provider value={{ dark }}>
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
-        {/* Layered gradient bg — gives glass panels something to blur against */}
         <main className="
           flex-1 overflow-y-auto
           bg-gradient-to-br
@@ -149,7 +182,6 @@ const Layout = ({ children }) => {
           dark:from-[#020c16] dark:via-[#03111e] dark:to-[#010810]
           relative
         ">
-          {/* Subtle ambient orb — light mode only, purely decorative depth cue */}
           <div className="
             pointer-events-none select-none absolute inset-0 overflow-hidden
             opacity-40 dark:opacity-0

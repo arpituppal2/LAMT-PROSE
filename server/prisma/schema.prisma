@@ -20,6 +20,7 @@ model User {
   feedbacks     Feedback[]
   testsAuthored Test[]        @relation("TestAuthor")
   testComments  TestComment[]
+  notifications Notification[]
 }
 model Problem {
   id           String   @id
@@ -40,6 +41,7 @@ model Problem {
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   feedbacks Feedback[]
   tests     Test[]     @relation("ProblemToTest")
+  notifications Notification[]
   @@index([authorId])
   @@index([stage])
   @@index([solveCount])
@@ -62,6 +64,19 @@ model Feedback {
   @@index([problemId])
   @@index([userId])
   @@index([needsReview])
+}
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  problemId String?
+  type      String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem? @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([problemId])
 }
 model Test {
   id           String   @id @default(uuid())

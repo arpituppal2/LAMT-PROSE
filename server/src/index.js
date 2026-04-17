@@ -9,6 +9,7 @@ import feedbackRoutes from './routes/feedback.js';
 import testRoutes from './routes/test.js';
 import statsRoutes from './routes/stats.js';
 import adminRoutes from './routes/admin.js';
+import notificationRoutes from './routes/notifications.js';
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

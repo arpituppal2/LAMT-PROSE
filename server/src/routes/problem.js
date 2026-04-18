@@ -104,7 +104,7 @@ router.get('/', authenticate, async (req, res) => {
       where,
       include: {
         author: { select: { firstName: true, lastName: true, initials: true } },
-        feedbacks: { orderBy: { createdAt: 'desc' } },
+        feedbacks: { include: { user: { select: { firstName: true, lastName: true, id: true } } }, orderBy: { createdAt: 'desc' } },
       },
       orderBy: { createdAt: 'desc' },
     });

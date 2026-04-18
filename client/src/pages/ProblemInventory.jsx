@@ -164,7 +164,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
                   <div key={fb.id || idx} className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/8">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                        {fb.reviewer?.firstName} {fb.reviewer?.lastName}
+                        {fb.user?.firstName} {fb.user?.lastName}
                       </span>
                       {fb.isEndorsement
                         ? <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">✓ Endorsed</span>

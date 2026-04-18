@@ -10,9 +10,11 @@ const buildSlots = (type) => {
   if (type === 'guts') {
     const s = [];
     for (let set = 1; set <= 8; set++)
-      for (let q = 1; q <= 4; q++)
+            for (let q = 1; q <= 3; q++)
         s.push({ key:`G${set}-${q}`, label:`Set ${set} Problem ${q}`, short:`S${set}P${q}`, section:`Set ${set}`, multi:false });
-    s.push({ key:'EST', label:'Estimation', short:'Est.', section:'Estimation', multi:false });
+          s.push({ key:'GEST1', label:'Estimation 1', short:'Est. 1', section:'Estimation', multi:false });
+      s.push({ key:'GEST2', label:'Estimation 2', short:'Est. 2', section:'Estimation', multi:false });
+      s.push({ key:'GEST3', label:'Estimation 3', short:'Est. 3', section:'Estimation', multi:false });
     return s;
   }
   if (type === 'shopping') {
@@ -51,12 +53,7 @@ const TEMPLATE_LABELS = {
 
 const deriveSlotMap = (exam) => {
   if (exam.slots && typeof exam.slots==='object' && Object.keys(exam.slots).length>0) return exam.slots;
-  const slots = buildSlots(exam.templateType);
-  const map = {};
-  (exam.problems||[]).forEach((p,i)=>{ if(slots[i]) map[slots[i].key]=p.id; });
-  return map;
-};
-
+    return {};
 const getSlotIds = (map,key) => { const v=map[key]; if(!v) return []; return Array.isArray(v)?v:[v]; };
 const setSlotIds = (map,key,ids,multi) => {
   const next={...map};

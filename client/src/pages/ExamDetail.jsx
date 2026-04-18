@@ -52,13 +52,14 @@ const TEMPLATE_LABELS = {
 };
 
 const deriveSlotMap = (exam) => {
-  if (exam.slots && typeof exam.slots==='object' && Object.keys(exam.slots).length>0) return exam.slots;
-    return {};
-const getSlotIds = (map,key) => { const v=map[key]; if(!v) return []; return Array.isArray(v)?v:[v]; };
-const setSlotIds = (map,key,ids,multi) => {
-  const next={...map};
-  if(!ids||ids.length===0){delete next[key];return next;}
-  next[key]=multi?ids:ids[0]; return next;
+  if (exam.slots && typeof exam.slots === 'object' && Object.keys(exam.slots).length > 0) return exam.slots;
+  return {};
+};
+
+const getSlotIds = (map, key) => {
+  const v = map[key];
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
 };
 
 const fixLatex = s => {

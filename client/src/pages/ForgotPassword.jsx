@@ -20,7 +20,7 @@ const ForgotPassword = () => {
       return setError('Passwords do not match.');
     }
     if (newPassword.length < 8) {
-      return setError('Password must be at least 8 characters.');
+      return setError('Password must be at least 8 characters!');
     }
     setLoading(true);
     try {

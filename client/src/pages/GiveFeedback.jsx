@@ -202,11 +202,9 @@ const GiveFeedback = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Give Feedback</h1>
-            <p className="text-base text-gray-400 dark:text-gray-500 mt-0.5">Try the problem, show your work, then review the author’s solution and leave a comment</p>
-          </div>
+            div>
           <div className="flex items-center gap-2">
             {['random', 'browse'].map(m => (
-              <button key={m} onClick={() => { setMode(m); setProblem(null); setMessage(''); }}
                 className={`px-4 py-2 rounded-xl text-base font-medium transition-colors ${
                   mode === m
                     ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'

@@ -205,7 +205,9 @@ const GiveFeedback = () => {
           </div>
           <div className="flex items-center gap-2">
             {['random', 'browse'].map(m => (
-              <button>
+              <button
+                key={m}
+                onClick={() => setMode(m)}
                 className={`px-4 py-2 rounded-xl text-base font-medium transition-colors ${
                   mode === m
                     ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'

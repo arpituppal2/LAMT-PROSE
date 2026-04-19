@@ -981,7 +981,6 @@ export default function ExamDetail() {
                       dupeMap={dupeMap} />;
                   })}
                 </div>
-              </div>
             ))
         }
 
@@ -1006,34 +1005,6 @@ export default function ExamDetail() {
     )
   }
 </div>
-                  {/* Discussion */}
-                  <div className="mt-2">
-                    <button onClick={() => setDiscOpen((v) => !v)}
-                      className="flex items-center gap-2 w-full text-left py-2 group">
-                      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition flex-shrink-0">
-                        <MessageSquare size={11} /> Discussion
-                        <ChevronDown size={10} className={`transition-transform ${discOpen ? 'rotate-180' : ''}`} />
-                      </span>
-                      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                    </button>
-                    {discOpen && (
-                      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 px-4 py-3">
-                        <Discussion examId={exam.id} userId={me?.id} isAdmin={isAdmin} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            }
-          </div>
-        </div>
-      </div>
-
-      {preview && <ProbModal p={preview} close={() => setPreview(null)} dupeMap={dupeMap} />}
-    </Layout>
-  );
-}
 
 // ── .tex export ────────────────────────────────────────────────────────────────
 function buildTexExport(exam, slotMap, byId, gutsPerSet, slots) {

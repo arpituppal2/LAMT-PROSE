@@ -282,19 +282,35 @@ const ExamManager = () => {
                     <ChevronRight size={14} className="text-slate-400 dark:text-slate-600" />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                    {exam.version}
-                  </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                    {exam.problems?.length ?? 0} problem{exam.problems?.length !== 1 ? 's' : ''}
-                  </span>
-                  {exam.templateType && (
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-ucla-blue/10 dark:bg-[#FFD100]/10 text-ucla-blue dark:text-[#FFD100]">
-                      {exam.templateType}
-                    </span>
-                  )}
-                </div>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+    {exam.version}
+  </span>
+  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+    {exam.problems?.length ?? 0} problem{exam.problems?.length !== 1 ? 's' : ''}
+  </span>
+  {exam.templateType && (
+    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-ucla-blue/10 dark:bg-[#FFD100]/10 text-ucla-blue dark:text-[#FFD100]">
+      {exam.templateType}
+    </span>
+  )}
+  {(exam.author?.firstName || exam.author?.lastName) && (
+    <>
+      <span className="text-[10px] text-slate-300 dark:text-slate-700">·</span>
+      <span className="text-[10px] text-slate-400 dark:text-slate-500">
+        {[exam.author.firstName, exam.author.lastName].filter(Boolean).join(' ')}
+      </span>
+    </>
+  )}
+  {exam.updatedAt && (
+    <>
+      <span className="text-[10px] text-slate-300 dark:text-slate-700">·</span>
+      <span className="text-[10px] text-slate-400 dark:text-slate-500">
+        {new Date(exam.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+      </span>
+    </>
+  )}
+</div>
               </div>
             ))}
           </div>

@@ -925,96 +925,80 @@ export default function ExamDetail() {
           </div>
 
           {/* RIGHT — Exam canvas */}
-<div className="flex-1 min-w-0 overflow-y-auto bg-slate-50 dark:bg-[#0f0f10]">
-  {showPreview
-    ? <LivePreview slots={slots} slotMap={currentMap} byId={byId} />
-    : (
-      <div className="p-4 space-y-6">
-        {exam.templateType === 'guts'
-          ? /* ── GUTS: sections = Set 1…8, Estimation ── */
-            Object.entries(sections).map(([secName, secSlots]) => (
-              <div key={secName}>
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
-                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                </div>
-                {secName === 'Estimation'
-                  ? /* Estimation: single column */
-                  <div className="flex flex-col gap-2 max-w-xs">
-                    {secSlots.map((slot) => {
-                      const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
-                      return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
-                        onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
-                        dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
-                        dupeMap={dupeMap} />;
-                    })}
-                  </div>
-                  : /* Set N: horizontal row of 3 (or 4) */
-                  <div className={`grid gap-2 grid-cols-${secSlots.length}`} style={{ gridTemplateColumns: `repeat(${secSlots.length}, minmax(0, 1fr))` }}>
-                    {secSlots.map((slot) => {
-                      const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
-                      return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
-                        onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
-                        dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
-                        dupeMap={dupeMap} />;
-                    })}
-                  </div>
-                }
-              </div>
-            ))
-          : /* ── ALL OTHER TYPES: every section stacks vertically ── */
-            Object.entries(sections).map(([secName, secSlots]) => (
-              <div key={secName}>
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
-                  {secName === 'Alternates' && (
-                    <span className="text-[9px] text-slate-400 italic">drop multiple here</span>
-                  )}
-                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                </div>
-                <div className="flex flex-col gap-2 max-w-lg">
-                  {secSlots.map((slot) => {
-                    const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
-                    return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
-                      onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
-                      dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
-                      dupeMap={dupeMap} />;
-                  })}
-                </div>
-            ))
-        }
+          <div className="flex-1 min-w-0 overflow-y-auto bg-slate-50 dark:bg-[#0f0f10]">
+            {showPreview
+              ? <LivePreview slots={slots} slotMap={currentMap} byId={byId} />
+              : (
+                <div className="p-4 space-y-6">
+                  {exam.templateType === 'guts'
+                    ? Object.entries(sections).map(([secName, secSlots]) => (
+                        <div key={secName}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
+                            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                          </div>
+                          {secName === 'Estimation'
+                            ? <div className="flex flex-col gap-2 max-w-xs">
+                                {secSlots.map((slot) => {
+                                  const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
+                                  return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
+                                    onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
+                                    dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
+                                    dupeMap={dupeMap} />;
+                                })}
+                              </div>
+                            : <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${secSlots.length}, minmax(0, 1fr))` }}>
+                                {secSlots.map((slot) => {
+                                  const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
+                                  return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
+                                    onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
+                                    dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
+                                    dupeMap={dupeMap} />;
+                                })}
+                              </div>
+                          }
+                        </div>
+                      ))
+                    : Object.entries(sections).map(([secName, secSlots]) => (
+                        <div key={secName}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
+                            {secName === 'Alternates' && (
+                              <span className="text-[9px] text-slate-400 italic">drag multiple problems here</span>
+                            )}
+                            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                          </div>
+                          <div className="flex flex-col gap-2 max-w-lg">
+                            {secSlots.map((slot) => {
+                              const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
+                              return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
+                                onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
+                                dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
+                                dupeMap={dupeMap} />;
+                            })}
+                          </div>
+                        </div>
+                      ))
+                  }
 
-        {/* Discussion */}
-        <div className="mt-2">
-          <button onClick={() => setDiscOpen((v) => !v)}
-            className="flex items-center gap-2 w-full text-left py-2 group">
-            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition flex-shrink-0">
-              <MessageSquare size={11} /> Discussion
-              <ChevronDown size={10} className={`transition-transform ${discOpen ? 'rotate-180' : ''}`} />
-            </span>
-            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-          </button>
-          {discOpen && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 px-4 py-3">
-              <Discussion examId={exam.id} userId={me?.id} isAdmin={isAdmin} />
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-</div>
-
-// ── .tex export ────────────────────────────────────────────────────────────────
-function buildTexExport(exam, slotMap, byId, gutsPerSet, slots) {
-  const lines = slots.flatMap((s) => {
-    const ids = getSlotIds(slotMap, s.key);
-    if (ids.length === 0) return [`\\item[${s.short}.] [empty]`];
-    return ids.map((pid, i) => {
-      const p = byId[pid];
-      return `\\item[${s.multi && ids.length > 1 ? `${s.short} ${i+1}.` : s.short + '.'}] [${pid}]\n${fixLatex(p?.latex || '')}`;
-    });
-  }).join('\n\n');
-  return `\\documentclass[11pt]{article}\n\\usepackage[margin=1in]{geometry}\n\\usepackage{amsmath,amssymb,enumitem}\n\\begin{document}\n\\begin{center}{\\Huge\\textbf{${exam.name || 'Exam'}}}\\end{center}\n\\vspace{.3in}\n\\begin{enumerate}\n${lines}\n\\end{enumerate}\n\\end{document}`;
-}
+                  {/* Discussion */}
+                  <div className="mt-2">
+                    <button onClick={() => setDiscOpen((v) => !v)}
+                      className="flex items-center gap-2 w-full text-left py-2 group">
+                      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition flex-shrink-0">
+                        <MessageSquare size={11} /> Discussion
+                        <ChevronDown size={10} className={`transition-transform ${discOpen ? 'rotate-180' : ''}`} />
+                      </span>
+                      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                    </button>
+                    {discOpen && (
+                      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 px-4 py-3">
+                        <Discussion examId={exam.id} userId={me?.id} isAdmin={isAdmin} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+          </div>

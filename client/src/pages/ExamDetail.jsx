@@ -383,7 +383,7 @@ const SlotCard = ({ slot, problems, canEdit, onDrop, onRemove, onPreview, dragOv
         const from = e.dataTransfer.getData('fromSlot') || null;
         if (pid) onDrop(slot.key, pid, from, slot.multi);
       }}
-      className={`rounded-lg border flex flex-col transition min-h-[90px]
+      className={`rounded-md border flex flex-col transition min-h-[90px]
         ${over ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-800/60'
           : isEmpty ? 'border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/30'
           : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'}`}
@@ -567,7 +567,7 @@ const ProbModal = ({ p, close, dupeMap }) => {
   const dupes = dupeMap?.[p.id];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onClick={close}>
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 dark:border-slate-800">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sc.dot}`} />
@@ -589,14 +589,14 @@ const ProbModal = ({ p, close, dupeMap }) => {
         <div className="p-5 space-y-4">
           <div>
             <p className="text-[10px] uppercase tracking-wide font-semibold text-slate-400 mb-2">Problem</p>
-            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-lg px-5 py-4 text-base leading-loose border border-slate-200 dark:border-slate-800">
+            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-md px-5 py-4 text-base leading-loose border border-slate-200 dark:border-slate-800">
               <KatexRenderer latex={fixLatex(p.latex || '')} />
             </div>
           </div>
           {p.solution && (
             <div>
               <p className="text-[10px] uppercase tracking-wide font-semibold text-slate-400 mb-2">Solution</p>
-              <div className="bg-slate-50 dark:bg-slate-800/60 rounded-lg px-5 py-4 text-sm leading-relaxed border border-slate-200 dark:border-slate-800">
+              <div className="bg-slate-50 dark:bg-slate-800/60 rounded-md px-5 py-4 text-sm leading-relaxed border border-slate-200 dark:border-slate-800">
                 <KatexRenderer latex={fixLatex(p.solution)} />
               </div>
             </div>
@@ -692,7 +692,6 @@ const Discussion = ({ examId, userId, isAdmin }) => {
 export default function ExamDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allProbs, setAllProbs] = useState([]);
@@ -917,7 +916,7 @@ export default function ExamDetail() {
                   <Copy size={11} /> Copy layout <ChevronDown size={10} />
                 </button>
                 {showCopy && (
-                  <div className="absolute right-0 top-full mt-1 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl w-56 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-1 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-xl w-56 overflow-hidden">
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-3 py-2 border-b border-slate-100 dark:border-slate-800">
                       Copy from
                     </p>
@@ -1078,29 +1077,38 @@ export default function ExamDetail() {
               <LivePreview slots={slots} slotMap={currentMap} byId={byId} />
             ) : (
               <div className="p-4">
-                {Object.entries(sections).map(([sec, ss]) => (
-                  <div key={sec} className="mb-6">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">{sec}</p>
-                    <div className="grid gap-2"
-                      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-                      {ss.map((slot) => (
-                        <SlotCard
-                          key={slot.key}
-                          slot={slot}
-                          problems={getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean)}
-                          canEdit={!!canEdit}
-                          onDrop={handleDrop}
-                          onRemove={handleRemove}
-                          onPreview={setPreview}
-                          dragOverKey={dragOver}
-                          onDragEnter={setDragOver}
-                          onDragLeave={() => setDragOver(null)}
-                          dupeMap={dupeMap}
-                        />
-                      ))}
+                {Object.entries(sections).map(([sec, ss]) => {
+                  const isGuts = exam.templateType === 'guts';
+                  const cols = (isGuts && sec.startsWith('Set')) ? 3
+                             : (isGuts && sec === 'Estimation') ? 3
+                             : 2;
+
+                  return (
+                    <div key={sec} className="mb-6">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">{sec}</p>
+                      <div
+                        className="grid gap-2"
+                        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+                      >
+                        {ss.map((slot) => (
+                          <SlotCard
+                            key={slot.key}
+                            slot={slot}
+                            problems={getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean)}
+                            canEdit={!!canEdit}
+                            onDrop={handleDrop}
+                            onRemove={handleRemove}
+                            onPreview={setPreview}
+                            dragOverKey={dragOver}
+                            onDragEnter={setDragOver}
+                            onDragLeave={() => setDragOver(null)}
+                            dupeMap={dupeMap}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {/* Discussion */}
                 <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-4">

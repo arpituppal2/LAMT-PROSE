@@ -9,7 +9,8 @@ const ADMIN_EMAILS = [
   'kennethren271@ucla.edu',
   'brookswang@ucla.edu',
   'zhangv29@ucla.edu',
-  'tomwu@g.ucla.edu',
+  'tomwu@.ucla.edu',
+  'muztabasyed@ucla.edu'
 ];
 
 // Consolidated 3-stage system (Archived is a soft-delete stage)

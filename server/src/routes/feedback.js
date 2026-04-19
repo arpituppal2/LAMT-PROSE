@@ -11,6 +11,7 @@ const ADMIN_EMAILS = [
   'brookswang@ucla.edu',
   'zhangv29@ucla.edu',
   'tomwu@g.ucla.edu',
+  'muztabasyed@ucla.edu',
 ];
 
 function computeDisplayStatus(problem) {

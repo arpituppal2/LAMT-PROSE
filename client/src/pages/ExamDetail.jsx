@@ -925,50 +925,87 @@ export default function ExamDetail() {
           </div>
 
           {/* RIGHT — Exam canvas */}
-          <div className="flex-1 min-w-0 overflow-y-auto bg-slate-50 dark:bg-[#0f0f10]">
-            {showPreview
-              ? <LivePreview slots={slots} slotMap={currentMap} byId={byId} />
-              : (
-                <div className="p-4 space-y-3">
-                  {Object.entries(sections).map(([secName, secSlots]) => (
-                    <div key={secName}>
-                      {/* Section header */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
-                        {secName === 'Alternates' && (
-                          <span className="text-[9px] text-slate-400 italic">drag multiple problems here</span>
-                        )}
-                        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800 ml-1" />
-                      </div>
+<div className="flex-1 min-w-0 overflow-y-auto bg-slate-50 dark:bg-[#0f0f10]">
+  {showPreview
+    ? <LivePreview slots={slots} slotMap={currentMap} byId={byId} />
+    : (
+      <div className="p-4 space-y-6">
+        {exam.templateType === 'guts'
+          ? /* ── GUTS: sections = Set 1…8, Estimation ── */
+            Object.entries(sections).map(([secName, secSlots]) => (
+              <div key={secName}>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                </div>
+                {secName === 'Estimation'
+                  ? /* Estimation: single column */
+                  <div className="flex flex-col gap-2 max-w-xs">
+                    {secSlots.map((slot) => {
+                      const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
+                      return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
+                        onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
+                        dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
+                        dupeMap={dupeMap} />;
+                    })}
+                  </div>
+                  : /* Set N: horizontal row of 3 (or 4) */
+                  <div className={`grid gap-2 grid-cols-${secSlots.length}`} style={{ gridTemplateColumns: `repeat(${secSlots.length}, minmax(0, 1fr))` }}>
+                    {secSlots.map((slot) => {
+                      const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
+                      return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
+                        onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
+                        dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
+                        dupeMap={dupeMap} />;
+                    })}
+                  </div>
+                }
+              </div>
+            ))
+          : /* ── ALL OTHER TYPES: every section stacks vertically ── */
+            Object.entries(sections).map(([secName, secSlots]) => (
+              <div key={secName}>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
+                  {secName === 'Alternates' && (
+                    <span className="text-[9px] text-slate-400 italic">drop multiple here</span>
+                  )}
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                </div>
+                <div className="flex flex-col gap-2 max-w-lg">
+                  {secSlots.map((slot) => {
+                    const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
+                    return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
+                      onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
+                      dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
+                      dupeMap={dupeMap} />;
+                  })}
+                </div>
+              </div>
+            ))
+        }
 
-                      {/* Slot grid */}
-                      <div className={`grid gap-2 ${
-                        secName === 'Tiebreak' || secName === 'Estimation'
-                          ? 'grid-cols-1 max-w-xs'
-                          : secName === 'Alternates'
-                          ? 'grid-cols-1 max-w-sm'
-                          : secSlots.length >= 10
-                          ? 'grid-cols-5 xl:grid-cols-10'
-                          : secSlots.length === 8 || secSlots.length === 4
-                          ? 'grid-cols-4'
-                          : secSlots.length === 3
-                          ? 'grid-cols-3'
-                          : 'grid-cols-5'
-                      }`}>
-                        {secSlots.map((slot) => {
-                          const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
-                          return (
-                            <SlotCard key={slot.key} slot={slot} problems={probs}
-                              canEdit={!!canEdit} onDrop={handleDrop} onRemove={handleRemove}
-                              onPreview={setPreview} dragOverKey={dragOver}
-                              onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
-                              dupeMap={dupeMap} />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-
+        {/* Discussion */}
+        <div className="mt-2">
+          <button onClick={() => setDiscOpen((v) => !v)}
+            className="flex items-center gap-2 w-full text-left py-2 group">
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition flex-shrink-0">
+              <MessageSquare size={11} /> Discussion
+              <ChevronDown size={10} className={`transition-transform ${discOpen ? 'rotate-180' : ''}`} />
+            </span>
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+          </button>
+          {discOpen && (
+            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 px-4 py-3">
+              <Discussion examId={exam.id} userId={me?.id} isAdmin={isAdmin} />
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+</div>
                   {/* Discussion */}
                   <div className="mt-2">
                     <button onClick={() => setDiscOpen((v) => !v)}

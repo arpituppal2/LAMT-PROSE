@@ -62,12 +62,11 @@ const STAGES = ['Endorsed', 'Published', 'Needs Review', 'Idea'];
 const TOPIC_WARN_THRESHOLD = 0.4;
 
 // ── Stage config ───────────────────────────────────────────────────────────────
-// Semantic: Endorsed=green, Published=blue-neutral, Needs Review=red, Idea=yellow
 const STAGE_CFG = {
-  Endorsed:     { dot: 'bg-emerald-500',  chip: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',  rail: 'border-l-emerald-400 dark:border-l-emerald-600' },
-  Published:    { dot: 'bg-sky-500',      chip: 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800',                           rail: 'border-l-sky-400 dark:border-l-sky-600' },
-  'Needs Review':{ dot: 'bg-red-500',    chip: 'bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',                            rail: 'border-l-red-400 dark:border-l-red-600' },
-  Idea:         { dot: 'bg-amber-400',    chip: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',               rail: 'border-l-amber-400 dark:border-l-amber-500' },
+  Endorsed:      { dot: 'bg-emerald-500',  chip: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',  rail: 'border-l-emerald-400 dark:border-l-emerald-600' },
+  Published:     { dot: 'bg-sky-500',      chip: 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800',                           rail: 'border-l-sky-400 dark:border-l-sky-600' },
+  'Needs Review':{ dot: 'bg-red-500',      chip: 'bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',                            rail: 'border-l-red-400 dark:border-l-red-600' },
+  Idea:          { dot: 'bg-amber-400',    chip: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',               rail: 'border-l-amber-400 dark:border-l-amber-500' },
 };
 const stageCfg = (s) => STAGE_CFG[s] || { dot: 'bg-slate-400', chip: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700', rail: 'border-l-slate-300 dark:border-l-slate-600' };
 
@@ -92,7 +91,6 @@ const setSlotIds = (map, key, ids, multi) => {
 };
 
 // ── LaTeX strip ────────────────────────────────────────────────────────────────
-// Strip LaTeX commands for a short plain preview
 const stripLatex = (s, len = 90) => {
   if (!s) return '';
   let out = s
@@ -124,16 +122,191 @@ const dl = (name, text) => {
   URL.revokeObjectURL(a.href);
 };
 
+// ── Shopping table ─────────────────────────────────────────────────────────────
+const SHOPPING_TABLE = [
+  { q: 1,  cost: 10, pts: 20 },  { q: 2,  cost: 11, pts: 23 },
+  { q: 3,  cost: 12, pts: 26 },  { q: 4,  cost: 13, pts: 29 },
+  { q: 5,  cost: 14, pts: 32 },  { q: 6,  cost: 15, pts: 35 },
+  { q: 7,  cost: 16, pts: 38 },  { q: 8,  cost: 17, pts: 41 },
+  { q: 9,  cost: 18, pts: 44 },  { q: 10, cost: 19, pts: 47 },
+  { q: 11, cost: 20, pts: 50 },  { q: 12, cost: 22, pts: 70 },
+  { q: 13, cost: 24, pts: 75 },  { q: 14, cost: 26, pts: 80 },
+  { q: 15, cost: 28, pts: 95 },  { q: 16, cost: 30, pts: 100 },
+  { q: 17, cost: 32, pts: 120 }, { q: 18, cost: 34, pts: 128 },
+  { q: 19, cost: 36, pts: 138 }, { q: 20, cost: 38, pts: 142 },
+  { q: 21, cost: 40, pts: 156 }, { q: 22, cost: 42, pts: 170 },
+  { q: 23, cost: 44, pts: 186 }, { q: 24, cost: 48, pts: 208 },
+];
+
+// ── LaTeX export ───────────────────────────────────────────────────────────────
+const escLaTeX = s => (s || '').replace(/[&%$#_{}~^\\]/g, c => `\\${c}`);
+
+const buildTexExport = (exam, slotMap, byId, gutsPerSet, slots) => {
+  const type = exam.templateType;
+  const getProb = (key) => {
+    const ids = getSlotIds(slotMap, key);
+    return ids.map(id => byId[id]).filter(Boolean);
+  };
+
+  if (type === 'indiv-alg-nt' || type === 'indiv-geo' || type === 'indiv-combo') {
+    const titles = {
+      'indiv-alg-nt': 'Individual Round 1: Algebra \\& Number Theory',
+      'indiv-geo': 'Individual Round 2: Geometry',
+      'indiv-combo': 'Individual Round 3: Combinatorics',
+    };
+    const times = { 'indiv-alg-nt': '10:45 AM', 'indiv-geo': '12:00 PM', 'indiv-combo': '02:00 PM' };
+    const title = titles[type];
+    const time = times[type];
+    const qs = Array.from({ length: 10 }, (_, i) => getProb(`Q${i+1}`)[0] || null);
+    const tb = getProb('TB')[0] || null;
+
+    const problemLines = qs.map((p, i) =>
+      p ? `\\item[${i+1}.] [${p.id}]\n${fixLatex(p.latex || '')}`
+        : `\\item[${i+1}.] [Slot ${i+1} — empty]`
+    ).join('\n\n');
+    const tbLine = tb
+      ? `\\item[Tiebreak.] [${tb.id}]\n${fixLatex(tb.latex || '')}`
+      : `\\item[Tiebreak.] [Tiebreak slot — empty]`;
+
+    return `\\documentclass[11pt]{article}
+\\usepackage[margin=1in]{geometry}
+\\usepackage{amsmath, amssymb}
+\\usepackage{tabularx}
+\\usepackage{tcolorbox}
+\\usepackage{fancyhdr}
+\\usepackage{xcolor}
+\\usepackage{enumitem}
+
+\\definecolor{uclablue}{HTML}{2774AE}
+\\definecolor{uclagold}{HTML}{FFD100}
+
+\\pagestyle{fancy}
+\\fancyhf{}
+\\lhead{\\textbf{\\textcolor{uclablue}{Los Angeles Math Tournament (LAMT)}}}
+\\rhead{\\textbf{Competitor Test Packet}}
+\\cfoot{\\thepage}
+\\renewcommand{\\headrulewidth}{0.4pt}
+
+\\begin{document}
+
+\\begin{center}
+  {\\Huge \\textbf{\\textcolor{uclablue}{${title}}}} \\\\[0.5em]
+  {\\Large \\textbf{Time: ${time}} \\quad $\\vert$ \\quad \\textbf{Duration: 50 Minutes}}
+\\end{center}
+
+\\newpage
+\\begin{enumerate}
+${problemLines}
+
+${tbLine}
+\\end{enumerate}
+
+\\end{document}`;
+  }
+
+  if (type === 'shopping') {
+    const qs = Array.from({ length: 24 }, (_, i) => getProb(`SQ${i+1}`)[0] || null);
+    const est = getProb('SEST')[0] || null;
+    const rows = SHOPPING_TABLE.map((row, i) => {
+      const p = qs[i];
+      return `\\item[Q${row.q}.] ${p ? `[${p.id}]\n${fixLatex(p.latex || '')}` : `[Slot Q${row.q} — empty]`}`;
+    }).join('\n\n');
+    const estLine = est ? `\\item[Q25.] [${est.id}]\n${fixLatex(est.latex || '')}` : `\\item[Q25.] [Estimation slot — empty]`;
+
+    return `\\documentclass[11pt]{article}
+\\usepackage[margin=1in]{geometry}
+\\usepackage{amsmath, amssymb}
+\\usepackage{fancyhdr}
+\\usepackage{xcolor}
+\\usepackage{enumitem}
+
+\\definecolor{uclablue}{HTML}{2774AE}
+
+\\pagestyle{fancy}
+\\fancyhf{}
+\\lhead{\\textbf{\\textcolor{uclablue}{Los Angeles Math Tournament (LAMT)}}}
+\\rhead{\\textbf{Shopping Spree}}
+\\cfoot{\\thepage}
+
+\\begin{document}
+\\begin{center}
+  {\\Huge \\textbf{\\textcolor{uclablue}{Team Round 1: Shopping Spree}}}
+\\end{center}
+
+\\begin{description}
+${rows}
+
+${estLine}
+\\end{description}
+
+\\end{document}`;
+  }
+
+  if (type === 'guts') {
+    const allSlotKeys = slots.filter(s => s.section.startsWith('Set')).map(s => s.key);
+    const estKeys = ['GEST1', 'GEST2', 'GEST3'];
+    const setMap = {};
+    allSlotKeys.forEach(k => {
+      const m = k.match(/^G(\d+)-(\d+)$/);
+      if (m) {
+        const set = m[1];
+        if (!setMap[set]) setMap[set] = [];
+        setMap[set].push(getProb(k)[0] || null);
+      }
+    });
+    const estProbs = estKeys.map(k => getProb(k)[0] || null);
+
+    const setBlocks = Object.entries(setMap).map(([set, ps]) => {
+      const pLines = ps.map((p, i) =>
+        `\\item[${i+1}.] ${p ? `[${p.id}]\n${fixLatex(p.latex || '')}` : '[empty]'}\n\n\\vspace{1.5in}`
+      ).join('\n');
+      return `{\\Large \\textbf{SET ${set}}}\n\\begin{description}\n${pLines}\n\\end{description}\n\\vspace{0.3in}\n\\noindent\\rule{\\textwidth}{0.4pt}`;
+    }).join('\n\n');
+
+    const estLines = estProbs.map((p, i) =>
+      `\\item[Est. ${i+1}.] ${p ? `[${p.id}]\n${fixLatex(p.latex || '')}` : '[empty]'}`
+    ).join('\n\n');
+
+    return `\\documentclass[11pt]{article}
+\\usepackage[margin=1in]{geometry}
+\\usepackage{amsmath, amssymb}
+\\usepackage{fancyhdr}
+\\usepackage{xcolor}
+\\usepackage{enumitem}
+
+\\definecolor{uclablue}{HTML}{2774AE}
+
+\\pagestyle{fancy}
+\\fancyhf{}
+\\lhead{\\textbf{\\textcolor{uclablue}{Los Angeles Math Tournament (LAMT)}}}
+\\rhead{\\textbf{Guts Round}}
+\\cfoot{\\thepage}
+
+\\begin{document}
+\\begin{center}
+  {\\Huge \\textbf{\\textcolor{uclablue}{Team Round 2: Guts}}}
+\\end{center}
+
+${setBlocks}
+
+\\subsection*{Estimation}
+\\begin{description}
+${estLines}
+\\end{description}
+
+\\end{document}`;
+  }
+
+  // Generic fallback
+  const allProbs = slots.flatMap(s => getProb(s.key));
+  return `% ${escLaTeX(exam.name)}\n\\begin{enumerate}\n${allProbs.map(p => `  \\item ${fixLatex(p?.latex || p?.id || '')}`).join('\n')}\n\\end{enumerate}`;
+};
+
 // ── Cross-exam duplicate detection ────────────────────────────────────────────
-/**
- * Returns a map of { problemId -> [examName, ...] } for all other exams
- * owned by the same user that contain each problem.
- */
 const buildDupeMap = (allExams, currentExamId, currentUserId) => {
-  const map = {}; // pid -> Set of exam names
+  const map = {};
   allExams.forEach((exam) => {
     if (exam.id === currentExamId) return;
-    // only check exams created by the same user
     if (exam.authorId !== currentUserId && exam.author?.id !== currentUserId) return;
     const ids = exam.slots
       ? Object.values(exam.slots).flatMap((v) => (Array.isArray(v) ? v : v ? [v] : []))
@@ -143,7 +316,7 @@ const buildDupeMap = (allExams, currentExamId, currentUserId) => {
       map[pid].add(exam.name);
     });
   });
-  return map; // { pid: Set<examName> }
+  return map;
 };
 
 // ── Tiny helpers ───────────────────────────────────────────────────────────────
@@ -246,13 +419,10 @@ const SlotCard = ({ slot, problems, canEdit, onDrop, onRemove, onPreview, dragOv
                 className={`group relative rounded border cursor-pointer transition
                   ${isDupe
                     ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30'
-                    : `border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-slate-300 dark:hover:border-slate-600`}`}
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-slate-300 dark:hover:border-slate-600'}`}
               >
-                {/* left accent rail */}
                 <div className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-l ${sc.dot}`} />
-
                 <div className="pl-2.5 pr-2 pt-2 pb-1.5">
-                  {/* Row 1: ID + dupe warning dot + quality + remove */}
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate">{p.id}</span>
                     {isDupe && (
@@ -271,16 +441,12 @@ const SlotCard = ({ slot, problems, canEdit, onDrop, onRemove, onPreview, dragOv
                       </button>
                     )}
                   </div>
-
-                  {/* Row 2: topics + stage chip */}
                   <div className="flex items-center gap-1 flex-wrap mt-1">
                     {(p.topics || []).map((t) => (
                       <span key={t} className="text-[9px] font-medium text-slate-400 dark:text-slate-500">{topicAbbr(t)}</span>
                     ))}
                     {p.stage && <StageChip stage={p.stage} />}
                   </div>
-
-                  {/* Row 3: short statement preview */}
                   {preview && (
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-snug line-clamp-2 select-none">
                       {preview}
@@ -318,9 +484,7 @@ const BankRow = ({ problem, assigned, onPreview, dupeMap }) => {
         ${assigned ? 'opacity-30 pointer-events-none'
           : 'hover:bg-white dark:hover:bg-slate-900 cursor-grab active:cursor-grabbing'}`}
     >
-      {/* stage dot */}
       <span className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${sc.dot}`} />
-
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="font-mono text-[11px] font-semibold text-slate-800 dark:text-slate-100">{problem.id}</span>
@@ -466,12 +630,18 @@ const Discussion = ({ examId, userId, isAdmin }) => {
     e.preventDefault();
     if (!body.trim()) return;
     setPosting(true);
-    try { const r = await api.post(`/tests/${examId}/comments`, { body }); setList((p) => [...p, r.data]); setBody(''); }
-    catch {} finally { setPosting(false); }
+    try {
+      const r = await api.post(`/tests/${examId}/comments`, { body });
+      setList((p) => [...p, r.data]);
+      setBody('');
+    } catch {} finally { setPosting(false); }
   };
 
   const del = async (cid) => {
-    try { await api.delete(`/tests/${examId}/comments/${cid}`); setList((p) => p.filter((c) => c.id !== cid)); } catch {}
+    try {
+      await api.delete(`/tests/${examId}/comments/${cid}`);
+      setList((p) => p.filter((c) => c.id !== cid));
+    } catch {}
   };
 
   return (
@@ -545,7 +715,6 @@ export default function ExamDetail() {
   const [allExams, setAllExams] = useState([]);
   const [showCopy, setShowCopy] = useState(false);
   const [copySource, setCopySource] = useState(null);
-  // dupe warning: array of { pid, exams: Set<name> } for active warnings
   const [dupeWarnings, setDupeWarnings] = useState([]);
   const [dupeDismissed, setDupeDismissed] = useState(false);
   const slotsRef = useRef([]);
@@ -604,13 +773,11 @@ export default function ExamDetail() {
     return s;
   }, [currentMap]);
 
-  // Build dupe map whenever allExams or me changes
   const dupeMap = useMemo(() => {
     if (!me || !allExams.length) return {};
     return buildDupeMap(allExams, id, me.id);
   }, [allExams, id, me]);
 
-  // Recalculate active dupe warnings whenever assigned set changes
   useEffect(() => {
     if (!Object.keys(dupeMap).length) return;
     const warnings = [];
@@ -671,7 +838,6 @@ export default function ExamDetail() {
     });
   }, [updateMap]);
 
-  // topic balance warning
   const assignedProbs = useMemo(() => [...assigned].map((pid) => byId[pid]).filter(Boolean), [assigned, byId]);
   const topicWarn = topicWarning(assignedProbs);
 
@@ -683,7 +849,6 @@ export default function ExamDetail() {
 
   const filledSlots = Object.keys(currentMap).filter((k) => getSlotIds(currentMap, k).length > 0).length;
 
-  // Filter + sort problem bank
   const picker = useMemo(() => {
     const filtered = allProbs.filter((p) => {
       if (p.stage === 'Archived') return false;
@@ -721,15 +886,8 @@ export default function ExamDetail() {
     );
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <Layout fullHeight noPadding>
-      {/*
-        The builder fills Layout's content region edge-to-edge.
-        Layout should render this with no extra padding when fullHeight+noPadding
-        are passed — adjust those props to match your Layout's API.
-        The outer div uses h-full flex-col to claim the full viewport column.
-      */}
       <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-slate-950">
 
         {/* ── Top bar ─────────────────────────────────────────────────────── */}
@@ -833,9 +991,7 @@ export default function ExamDetail() {
           {/* LEFT — Problem bank */}
           <div className="w-72 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 overflow-hidden">
 
-            {/* Bank filters */}
             <div className="flex-shrink-0 px-3 py-3 space-y-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-
               {/* Search */}
               <div className="relative">
                 <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -896,109 +1052,73 @@ export default function ExamDetail() {
                   onChange={(e) => setDiffMax(Math.max(Number(e.target.value), diffMin))}
                   className="w-10 px-1.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[11px] text-center text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-slate-300" />
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                  className="ml-auto text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 px-1.5 py-1 outline-none focus:ring-1 focus:ring-slate-300">
+                  className="ml-auto text-[10px] px-1.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 outline-none">
                   <option value="id">ID</option>
                   <option value="diff-asc">d ↑</option>
                   <option value="diff-desc">d ↓</option>
                 </select>
               </div>
+
+              <p className="text-[10px] text-slate-400">
+                {probLoading ? 'Loading…' : `${picker.length} problem${picker.length !== 1 ? 's' : ''}`}
+              </p>
             </div>
 
-            {/* Bank list — drop here to remove from exam */}
-            <div className="flex-1 overflow-y-auto"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const fromSlot = e.dataTransfer.getData('fromSlot');
-                const pid = e.dataTransfer.getData('problemId');
-                if (pid && fromSlot) handleRemove(fromSlot, pid);
-              }}>
-              {probLoading
-                ? <div className="flex justify-center py-8"><Spin size={16} /></div>
-                : picker.length === 0
-                  ? <p className="text-center text-[11px] text-slate-400 py-8 italic">No matches.</p>
-                  : picker.map((p) => (
-                    <BankRow key={p.id} problem={p} assigned={assigned.has(p.id)} onPreview={setPreview} dupeMap={dupeMap} />
-                  ))
-              }
+            {/* Bank list */}
+            <div className="flex-1 overflow-y-auto">
+              {picker.map((p) => (
+                <BankRow key={p.id} problem={p} assigned={assigned.has(p.id)} onPreview={setPreview} dupeMap={dupeMap} />
+              ))}
             </div>
           </div>
 
-          {/* RIGHT — Exam canvas */}
-          <div className="flex-1 min-w-0 overflow-y-auto bg-slate-50 dark:bg-[#0f0f10]">
-            {showPreview
-              ? <LivePreview slots={slots} slotMap={currentMap} byId={byId} />
-              : (
-                <div className="p-4 space-y-6">
-                  {exam.templateType === 'guts'
-                    ? Object.entries(sections).map(([secName, secSlots]) => (
-                        <div key={secName}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
-                            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                          </div>
-                          {secName === 'Estimation'
-                            ? <div className="flex flex-col gap-2 max-w-xs">
-                                {secSlots.map((slot) => {
-                                  const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
-                                  return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
-                                    onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
-                                    dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
-                                    dupeMap={dupeMap} />;
-                                })}
-                              </div>
-                            : <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${secSlots.length}, minmax(0, 1fr))` }}>
-                                {secSlots.map((slot) => {
-                                  const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
-                                  return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
-                                    onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
-                                    dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
-                                    dupeMap={dupeMap} />;
-                                })}
-                              </div>
-                          }
-                        </div>
-                      ))
-                    : Object.entries(sections).map(([secName, secSlots]) => (
-                        <div key={secName}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{secName}</p>
-                            {secName === 'Alternates' && (
-                              <span className="text-[9px] text-slate-400 italic">drag multiple problems here</span>
-                            )}
-                            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                          </div>
-                          <div className="flex flex-col gap-2 max-w-lg">
-                            {secSlots.map((slot) => {
-                              const probs = getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean);
-                              return <SlotCard key={slot.key} slot={slot} problems={probs} canEdit={!!canEdit}
-                                onDrop={handleDrop} onRemove={handleRemove} onPreview={setPreview}
-                                dragOverKey={dragOver} onDragEnter={setDragOver} onDragLeave={() => setDragOver(null)}
-                                dupeMap={dupeMap} />;
-                            })}
-                          </div>
-                        </div>
-                      ))
-                  }
-
-                  {/* Discussion */}
-                  <div className="mt-2">
-                    <button onClick={() => setDiscOpen((v) => !v)}
-                      className="flex items-center gap-2 w-full text-left py-2 group">
-                      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition flex-shrink-0">
-                        <MessageSquare size={11} /> Discussion
-                        <ChevronDown size={10} className={`transition-transform ${discOpen ? 'rotate-180' : ''}`} />
-                      </span>
-                      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                    </button>
-                    {discOpen && (
-                      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 px-4 py-3">
-                        <Discussion examId={exam.id} userId={me?.id} isAdmin={isAdmin} />
-                      </div>
-                    )}
+          {/* RIGHT — Slot grid or Preview */}
+          <div className="flex-1 min-w-0 overflow-y-auto">
+            {showPreview ? (
+              <LivePreview slots={slots} slotMap={currentMap} byId={byId} />
+            ) : (
+              <div className="p-4">
+                {Object.entries(sections).map(([sec, ss]) => (
+                  <div key={sec} className="mb-6">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">{sec}</p>
+                    <div className="grid gap-2"
+                      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+                      {ss.map((slot) => (
+                        <SlotCard
+                          key={slot.key}
+                          slot={slot}
+                          problems={getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean)}
+                          canEdit={!!canEdit}
+                          onDrop={handleDrop}
+                          onRemove={handleRemove}
+                          onPreview={setPreview}
+                          dragOverKey={dragOver}
+                          onDragEnter={setDragOver}
+                          onDragLeave={() => setDragOver(null)}
+                          dupeMap={dupeMap}
+                        />
+                      ))}
+                    </div>
                   </div>
+                ))}
+
+                {/* Discussion */}
+                <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-4">
+                  <button onClick={() => setDiscOpen((v) => !v)}
+                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition mb-3">
+                    <MessageSquare size={13} />
+                    Discussion
+                    <ChevronDown size={11} className={`transition-transform ${discOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {discOpen && <Discussion examId={id} userId={me?.id} isAdmin={isAdmin} />}
                 </div>
-              )
-            }
+              </div>
+            )}
           </div>
+        </div>
+      </div>
+
+      {preview && <ProbModal p={preview} close={() => setPreview(null)} dupeMap={dupeMap} />}
+    </Layout>
+  );
+}

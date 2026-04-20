@@ -14,7 +14,12 @@ const ADMIN_EMAILS = [
   'muztabasyed@ucla.edu',
 ];
 
+// Compute display status using hierarchical classification:
+// 1. Idea (no reviews/endorsements, freshly written)
+// 2. Needs Review (has unresolved non-endorsement feedback)
+// 3. Endorsed (has endorsements, no unresolved feedback)
 function computeDisplayStatus(problem) {
+    if (problem.stage === 'Archived') return 'Archived';
   const hasUnresolvedFeedback = problem.feedbacks?.some(
     (f) => !f.resolved && !f.isEndorsement
   );

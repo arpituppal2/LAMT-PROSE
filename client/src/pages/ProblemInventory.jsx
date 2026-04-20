@@ -8,7 +8,6 @@ import api from '../utils/api';
 import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
-import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 
 /* ── Shimmer skeleton ───────────────────────────────────────────────── */
 const shimmerBase = [

@@ -16,15 +16,21 @@ const ADMIN_EMAILS = [
 // Consolidated 3-stage system (Archived is a soft-delete stage)
 const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed', 'Archived'];
 
-// Compute display status: unresolved feedback > endorsed > stage
+// Compute display status using the hierarchical if/else:
+// 1. Idea - no feedbacks at all
+// 2. Needs Review - any unresolved non-endorsement feedback
+// 3. Endorsed - at least 1 endorsement, no unresolved NR feedback
+// 4. Resolved - all NR resolved, no endorsements
 function computeDisplayStatus(problem) {
   if (problem.stage === 'Archived') return 'Archived';
-  const hasUnresolvedFeedback = problem.feedbacks?.some(
-    (f) => !f.resolved && !f.isEndorsement
-  );
-  if (hasUnresolvedFeedback) return 'Needs Review';
-  if (problem.endorsements > 0) return 'Endorsed';
-  return problem.stage || 'Idea';
+  const feedbacks = problem.feedbacks || [];
+  if (feedbacks.length === 0) return 'Idea';
+  const hasUnresolved = feedbacks.some(f => !f.resolved && !f.isEndorsement);
+  if (hasUnresolved) return 'Needs Review';
+  if ((problem.endorsements || 0) > 0) return 'Endorsed';
+  const hadNR = feedbacks.some(f => !f.isEndorsement);
+  if (hadNR) return 'Resolved';
+  return 'Endorsed';
 }
 
 // Atomically assign the next problem ID using a GLOBAL counter.
@@ -105,7 +111,10 @@ router.get('/', authenticate, async (req, res) => {
       where,
       include: {
         author: { select: { firstName: true, lastName: true, initials: true } },
-        feedbacks: { include: { user: { select: { firstName: true, lastName: true, id: true } } }, orderBy: { createdAt: 'desc' } },
+        feedbacks: {
+          include: { user: { select: { firstName: true, lastName: true, id: true } } },
+          orderBy: { createdAt: 'desc' }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -113,9 +122,7 @@ router.get('/', authenticate, async (req, res) => {
       const pData = { ...p };
       const isAuthor = String(p.authorId) === String(req.userId);
       if (!isAdmin) delete pData.answer;
-      if (!isAdmin && !isAuthor) {
-        delete pData.solution;
-      }
+      if (!isAdmin && !isAuthor) { delete pData.solution; }
       pData._displayStatus = computeDisplayStatus(p);
       pData._isAdmin = isAdmin;
       pData._isAuthor = isAuthor;
@@ -269,7 +276,7 @@ router.put('/:id/unarchive', authenticate, async (req, res) => {
   }
 });
 
-// Delete problem (hard delete - admin only)
+// Delete problem (hard delete - admin or author)
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({

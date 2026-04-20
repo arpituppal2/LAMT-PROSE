@@ -5,11 +5,12 @@ import {
 } from 'recharts';
 import { Search, MessageSquare, X, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
 import api from '../utils/api';
+import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 
-/* ── Shimmer skeleton ─────────────────────────────────────────── */
+/* ── Shimmer skeleton ───────────────────────────────────────────────── */
 const shimmerBase = [
   'bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100',
   'dark:from-white/5 dark:via-white/10 dark:to-white/5',
@@ -55,7 +56,7 @@ const InventorySkeleton = () => (
   </Layout>
 );
 
-/* ── Preview Panel ────────────────────────────────────────────── */
+/* ── Preview Panel ───────────────────────────────────────────────────── */
 const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   const [showSol, setShowSol] = useState(false);
   const data = fullProblem || problem;
@@ -81,7 +82,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
               {data._displayStatus || getProblemStatus(data, data.feedbacks)}
             </span>
             {data.topics?.length > 0 && (
-              <span className="text-xs text-white/60">{data.topics.join(' \u00b7 ')}</span>
+              <span className="text-xs text-white/60">{data.topics.join(' · ')}</span>
             )}
           </div>
           <button onClick={onClose} className="p-1 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors">
@@ -169,6 +170,8 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
                       </span>
                       {fb.isEndorsement
                         ? <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">✓ Endorsed</span>
+                        : fb.resolved
+                        ? <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">Resolved</span>
                         : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-medium">Needs Review</span>
                       }
                       <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto">
@@ -208,16 +211,17 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   );
 };
 
-/* ── Main component ───────────────────────────────────────────── */
+/* ── Main component ─────────────────────────────────────────────────────── */
 const ProblemInventory = () => {
   const navigate = useNavigate();
 
+  // Dark mode detection
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
   useEffect(() => {
     const observer = new MutationObserver(() =>
       setDark(document.documentElement.classList.contains('dark'))
     );
-    observer.observe(document.documentElement, { attributeFilter: ['class'] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
 
@@ -271,7 +275,7 @@ const ProblemInventory = () => {
       return 0;
     });
 
-    // Build stacked cumulative chart data
+    // Build stacked cumulative chart data (keep graph logic unchanged)
     const dailyData = {};
     [...problems]
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
@@ -408,27 +412,27 @@ const ProblemInventory = () => {
                     <div className="flex items-center gap-2.5 mb-1">
                       <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
                       {problem.quality && (
-                        <span className="text-sm text-gray-400 dark:text-gray-500 tabular-nums">{problem.quality}/10</span>
+                        <span className="text-sm text-gray-400 dark:text-gray-500">· {problem.quality}/10</span>
                       )}
-                      <div className="flex gap-1.5">
-                        {(problem.topics || []).map(t => (
-                          <span key={t} className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 rounded">{t}</span>
-                        ))}
-                      </div>
+                      {problem.topics?.map(t => (
+                        <span key={t} className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-[10px] rounded">{t}</span>
+                      ))}
                     </div>
-                    <div className="text-sm text-gray-400 dark:text-gray-500 max-w-md overflow-hidden" style={{ maxHeight: '2.5em' }}>
-                      <KatexRenderer latex={(problem.latex || '').slice(0, 150)} />
-                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">{problem.latex}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-start gap-2 max-w-xs">
-                      <MessageSquare size={13} className="mt-0.5 shrink-0 text-gray-300 dark:text-gray-600" />
-                      <p className="text-sm text-gray-400 dark:text-gray-500 line-clamp-2 italic">
-                        {problem.feedbacks?.length > 0
-                          ? problem.feedbacks[0].feedback || '(no comment)'
-                          : 'No reviews yet.'}
-                      </p>
-                    </div>
+                    {problem.feedbacks?.length > 0 ? (
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {problem.feedbacks[0].user?.firstName} {problem.feedbacks[0].user?.lastName}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                          {new Date(problem.feedbacks[0].createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400 dark:text-gray-500">No reviews yet</span>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-right">
                     {(() => {

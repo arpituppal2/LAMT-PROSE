@@ -80,7 +80,7 @@ const Leaderboard = () => {
         </div>
 
         <div className="border border-slate-200 dark:border-white/15 rounded-lg overflow-hidden bg-white dark:bg-[#001628]">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full">
             <table className="w-full min-w-[920px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#020c16]">

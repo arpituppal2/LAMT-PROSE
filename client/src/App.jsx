@@ -14,8 +14,6 @@ import ExamManager from './pages/ExamManager';
 import ExamDetail from './pages/ExamDetail';
 import ArchivePage from './pages/ArchivePage';
 import TransferGuest from './pages/TransferGuest';
-import Notifications from './pages/Notifications';
-
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) {
@@ -78,8 +76,6 @@ function App() {
           <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
-          <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
-
           {/* Admin Routes */}
           <Route path="/admin/transfer" element={<AdminRoute><TransferGuest /></AdminRoute>} />
 

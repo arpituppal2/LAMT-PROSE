@@ -1,51 +1,36 @@
 /**
- * Canonical problem classification.
+ * Canonical problem classification (if / else priority):
+ *   1. Idea — no feedback yet
+ *   2. Needs Review — any unresolved non-endorsement review
+ *   3. Endorsed — all reviews closed + at least one endorsement (feedback or counter)
+ *   4. Resolved — had non-endorsement reviews, all resolved, no endorsements
  *
- * Priority (highest → lowest):
- *   1. Idea          – no feedback at all (freshly written)
- *   2. Needs Review  – has at least one unresolved, non-endorsement review
- *   3. Endorsed      – all feedback resolved + at least one endorsement
- *   4. Resolved      – all feedback resolved, none are endorsements
- *
- * @param {object}   problem   – the problem object (used only for fallback)
- * @param {Array}    feedbacks – array of feedback objects with { isEndorsement, resolved }
- * @returns {'Idea'|'Needs Review'|'Endorsed'|'Resolved'}
+ * @returns {'Idea'|'Needs Review'|'Endorsed'|'Resolved'|'Archived'}
  */
 export function getProblemStatus(problem, feedbacks) {
+  if (problem?.stage === 'Archived') return 'Archived';
   const fbs = feedbacks || problem?.feedbacks || [];
-
-  // 1. No feedback at all → Idea
   if (fbs.length === 0) return 'Idea';
-
-  // 2. Any unresolved non-endorsement review → Needs Review
-  const hasOpenReview = fbs.some(fb => !fb.isEndorsement && !fb.resolved);
-  if (hasOpenReview) return 'Needs Review';
-
-  // All feedback is now resolved or is an endorsement.
-  // 3. At least one endorsement → Endorsed
-  const hasEndorsement = fbs.some(fb => fb.isEndorsement);
+  if (fbs.some((fb) => !fb.isEndorsement && !fb.resolved)) return 'Needs Review';
+  const hasEndorsement =
+    fbs.some((fb) => fb.isEndorsement) || (Number(problem?.endorsements) || 0) > 0;
   if (hasEndorsement) return 'Endorsed';
-
-  // 4. Had reviews, all resolved, no endorsements → Resolved
-  return 'Resolved';
+  if (fbs.some((fb) => !fb.isEndorsement)) return 'Resolved';
+  return 'Endorsed';
 }
 
-/**
- * Tailwind badge classes for each status (light + dark).
- */
+/** Badge styles: high contrast, UCLA-aligned */
 export const STATUS_BADGE_CLASS = {
-  'Idea':         'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-  'Needs Review': 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
-  'Endorsed':     'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
-  'Resolved':     'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+  Idea: 'bg-[#DAEBFE] text-[#003B5C] dark:bg-[#003B5C] dark:text-white border border-[#2774AE]/25 dark:border-white/20',
+  'Needs Review': 'bg-[#FFB81C]/25 text-[#003B5C] dark:bg-[#FFB81C]/20 dark:text-white border border-[#FFB81C]/50',
+  Endorsed: 'bg-[#FFD100] text-[#001628] dark:bg-[#FFD100] dark:text-[#001628] border border-[#005587]/30',
+  Resolved: 'bg-[#8BB8E8]/35 text-[#003B5C] dark:bg-[#2774AE] dark:text-white border border-[#2774AE]/40',
+  Archived: 'bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-600',
 };
 
-/**
- * Leaderboard point values per status.
- */
 export const STATUS_POINTS = {
-  'Idea':         2,
+  Idea: 2,
   'Needs Review': -2,
-  'Endorsed':     5,
-  'Resolved':     3,
+  Endorsed: 5,
+  Resolved: 3,
 };

@@ -1,6 +1,8 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
+import { computeDisplayStatus } from '../lib/problemDisplayStatus.js';
+
 const router = express.Router();
 const prisma = new PrismaClient();
 
@@ -13,23 +15,8 @@ const ADMIN_EMAILS = [
   'muztabasyed@ucla.edu',
 ];
 
-// Consolidated 3-stage system (Archived is a soft-delete stage)
-const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed', 'Archived'];
-
-// Compute display status using hierarchical classification:
-// 1. Idea (no reviews/endorsements, freshly written)
-// 2. Needs Review (has unresolved non-endorsement feedback)
-// 3. Endorsed (has endorsements, no unresolved feedback)
-  if (problem.stage === 'Archived') return 'Archived';
-  const feedbacks = problem.feedbacks || [];
-  if (feedbacks.length === 0) return 'Idea';
-  const hasUnresolved = feedbacks.some(f => !f.resolved && !f.isEndorsement);
-  if (hasUnresolved) return 'Needs Review';
-  if ((problem.endorsements || 0) > 0) return 'Endorsed';
-  const hadNR = feedbacks.some(f => !f.isEndorsement);
-  if (hadNR) return 'Resolved';
-  return 'Endorsed';
-}
+// Stored stage (display uses computeDisplayStatus). Archived is soft-delete.
+const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed', 'Resolved', 'Archived'];
 
 // Atomically assign the next problem ID using a GLOBAL counter.
 async function assignProblemId(userInitials) {
@@ -83,22 +70,33 @@ router.post('/', authenticate, async (req, res) => {
 // Get all problems
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { stage, topic, author, search, reviewable } = req.query;
+    const { stage, topic, author, search, reviewable, difficulty } = req.query;
     const currentUser = await prisma.user.findUnique({
       where: { id: req.userId },
       select: { isAdmin: true, email: true },
     });
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
+    const displayStages = ['Idea', 'Needs Review', 'Endorsed', 'Resolved'];
     const where = {};
     if (reviewable === 'true') {
       where.authorId = { not: req.userId };
       where.stage = { not: 'Archived' };
+      const mine = await prisma.feedback.findMany({
+        where: { userId: req.userId },
+        select: { problemId: true },
+      });
+      const reviewedIds = [...new Set(mine.map((m) => m.problemId))];
+      if (reviewedIds.length) where.id = { notIn: reviewedIds };
     } else {
-      if (stage && stage !== 'all') where.stage = stage;
-      else if (!stage) where.stage = { not: 'Archived' };
       if (author) where.authorId = author;
+      if (!stage || stage === 'all' || displayStages.includes(String(stage))) {
+        where.stage = { not: 'Archived' };
+      } else {
+        where.stage = stage;
+      }
     }
     if (topic) where.topics = { has: topic };
+    if (difficulty) where.quality = String(difficulty);
     if (search) {
       where.OR = [
         { id: { contains: search, mode: 'insensitive' } },
@@ -116,7 +114,7 @@ router.get('/', authenticate, async (req, res) => {
       },
       orderBy: { createdAt: 'desc' },
     });
-    const result = problems.map((p) => {
+    let result = problems.map((p) => {
       const pData = { ...p };
       const isAuthor = String(p.authorId) === String(req.userId);
       if (!isAdmin) delete pData.answer;
@@ -127,6 +125,9 @@ router.get('/', authenticate, async (req, res) => {
       pData._userId = req.userId;
       return pData;
     });
+    if (reviewable !== 'true' && stage && stage !== 'all' && displayStages.includes(String(stage))) {
+      result = result.filter((p) => p._displayStatus === stage);
+    }
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch problems', details: error.message });

@@ -80,7 +80,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply bg-[#EEF4FB] text-gray-900 dark:bg-[#020c16] dark:text-gray-100;
+    @apply bg-white text-black dark:bg-[#001628] dark:text-white;
   }
 }
 
@@ -154,8 +154,12 @@
 
 @layer components {
   .dark .prose,
-  .dark .preview-container {
-    @apply text-gray-200;
+  .dark .preview-container,
+  .dark .prose-math {
+    @apply text-white;
+  }
+  .prose-math {
+    @apply text-black;
   }
   .dark .prose strong,
   .dark .prose h1,
@@ -163,9 +167,11 @@
   .dark .prose h3 {
     @apply text-white;
   }
-  .dark .recharts-text { fill: #9ca3af; }
+  .dark .recharts-text { fill: #e5e7eb; }
   .dark .recharts-cartesian-grid-horizontal line,
-  .dark .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.08); }
+  .dark .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.12); }
+  .katex-render-root .katex { color: inherit; }
+  .dark .katex-render-root .katex { color: #fff; }
 }
 
 code {

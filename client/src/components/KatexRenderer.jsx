@@ -75,8 +75,8 @@ const KatexRenderer = ({ latex, displayMode = false }) => {
   }, [latex, displayMode]);
 
   return (
-    <span
-      className={displayMode ? 'block my-4' : 'inline'}
+    <div
+      className={displayMode ? 'block my-4 katex-render-root' : 'inline-block max-w-full align-middle katex-render-root'}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

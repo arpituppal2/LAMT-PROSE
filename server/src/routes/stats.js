@@ -1,45 +1,31 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
+import { computeDisplayStatus } from '../lib/problemDisplayStatus.js';
+
 const router = express.Router();
 const prisma = new PrismaClient();
 
-/**
- /**
- * Classify a problem for leaderboard scoring using hierarchical classification:
- * 1. Idea — no feedbacks at all (freshly written)
- * 2. Needs Review — any unresolved non-endorsement feedback  
- * 3. Endorsed — at least 1 endorsement, no unresolved NR feedback
- * Points: Idea +3, Needs Review -2, Endorsed +5
- */ const feedbacks = problem.feedbacks || [];
-  const stage = problem.stage || 'Idea';
-  if (stage === 'Archived') return { category: 'archived', points: 0 };
-
-  // No feedbacks at all => Idea
-  if (feedbacks.length === 0) {
-    return { category: 'idea', points: 2 };
-  }
-
-  // Any unresolved non-endorsement feedback => Needs Review
-  const hasUnresolved = feedbacks.some(fb => !fb.isEndorsement && !fb.resolved);
-  if (hasUnresolved) {
-    return { category: 'needsReview', points: -2 };
-  }
-
-  // At least 1 endorsement, no unresolved NR => Endorsed
-  if ((problem.endorsements || 0) >= 1) {
-    return { category: 'endorsed', points: 5 };
-  }
-
-  // Had feedback, all resolved, no endorsements => Resolved
-  const hadNR = feedbacks.some(fb => !fb.isEndorsement);
-  if (hadNR) {
-    return { category: 'resolved', points: 3 };
-  }
-
-  // Only endorsements (edge case) => Endorsed
-  return { category: 'endorsed', points: 5 };
+const STATUS_POINTS = {
+  Idea: 2,
+  'Needs Review': -2,
+  Endorsed: 5,
+  Resolved: 3,
 };
+
+/** Leaderboard row: category key matches `badges` object keys */
+function classifyProblem(problem) {
+  const status = computeDisplayStatus(problem);
+  if (status === 'Archived') return { category: 'archived', points: 0 };
+  const points = STATUS_POINTS[status] ?? 0;
+  const category =
+    status === 'Idea' ? 'idea'
+    : status === 'Needs Review' ? 'needsReview'
+    : status === 'Endorsed' ? 'endorsed'
+    : status === 'Resolved' ? 'resolved'
+    : 'idea';
+  return { category, points };
+}
 
 // Leaderboard
 router.get('/leaderboard', authenticate, async (req, res) => {

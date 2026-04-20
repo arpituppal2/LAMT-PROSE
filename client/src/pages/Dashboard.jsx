@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Star, X, ChevronDown, ChevronUp, CheckCircle,
@@ -8,6 +8,11 @@ import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
+import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
+
+const DRAFTS_KEY = 'prose_drafts_v1';
+
+const normStatus = (p) => p._displayStatus || getProblemStatus(p, p.feedbacks);
 
 const stripLatex = (str = '') =>
   str
@@ -29,23 +34,19 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/70"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-heavy rounded-2xl"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-slate-200 dark:border-white/15 bg-white dark:bg-[#001628] text-black dark:text-white shadow-xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-[#2774AE] dark:bg-[#001f3f] rounded-t-2xl">
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm font-bold text-white">{data.id}</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-white/20 text-white">
-              {data._displayStatus === 'needs_review' || data._displayStatus === 'Needs Review'
-                ? 'Needs Review'
-                : data._displayStatus === 'Endorsed' || data._displayStatus === 'endorsed'
-                ? 'Endorsed'
-                : data.stage}
+            <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-white/20 text-white">
+              {normStatus(data)}
             </span>
             {data.topics?.length > 0 && (
               <span className="text-xs text-white/60">{data.topics.join(' · ')}</span>
@@ -219,6 +220,17 @@ const Dashboard = () => {
 
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
+  const draftEntries = useMemo(() => {
+    try {
+      const o = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '{}');
+      return Object.entries(o)
+        .map(([pid, v]) => ({ pid, updatedAt: v.updatedAt || 0 }))
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+    } catch {
+      return [];
+    }
+  }, [activeTab, dashboardLoading, problems.length]);
+
   useEffect(() => { fetchDashboardData(); }, []);
   useEffect(() => { if (activeTab === 'review') fetchReviewProblems(); }, [activeTab]);
   useEffect(() => {
@@ -241,7 +253,7 @@ const Dashboard = () => {
       ]);
       setStats(statsRes.data);
       setProblems((problemsRes.data || []).filter(
-        p => p.stage !== 'Archived' && p._displayStatus !== 'Archived' && p._displayStatus !== 'archived'
+        p => p.stage !== 'Archived' && normStatus(p) !== 'Archived'
       ));
     } catch (e) {
       console.error('Failed to fetch dashboard data', e);
@@ -261,8 +273,7 @@ const Dashboard = () => {
     try {
       const res = await api.get('/problems/my');
       setReviewProblems((res.data || []).filter(
-        p => (p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review')
-          && p.stage !== 'Archived'
+        p => normStatus(p) === 'Needs Review' && p.stage !== 'Archived'
       ));
     } catch (e) {
       console.error(e);
@@ -300,7 +311,7 @@ const Dashboard = () => {
       await fetchReviewProblems();
       const res = await api.get('/problems/my');
       setProblems((res.data || []).filter(
-        p => p.stage !== 'Archived' && p._displayStatus !== 'Archived' && p._displayStatus !== 'archived'
+        p => p.stage !== 'Archived' && normStatus(p) !== 'Archived'
       ));
     } catch (e) {
       setEditMessage(e.response?.data?.error || 'Failed to save.');
@@ -344,26 +355,18 @@ const Dashboard = () => {
     }
   };
 
-  const needsReviewCount = problems.filter(
-    p => p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review'
-  ).length;
-
-  const ideaCount = problems.filter(
-    p => p.stage === 'Idea'
-      && p._displayStatus !== 'needs_review' && p._displayStatus !== 'Needs Review'
-      && p._displayStatus !== 'Endorsed'     && p._displayStatus !== 'endorsed'
-  ).length;
-
-  const endorsedCount = problems.filter(
-    p => p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed'
-  ).length;
+  const needsReviewCount = problems.filter(p => normStatus(p) === 'Needs Review').length;
+  const ideaCount = problems.filter(p => normStatus(p) === 'Idea').length;
+  const endorsedCount = problems.filter(p => normStatus(p) === 'Endorsed').length;
+  const resolvedCount = problems.filter(p => normStatus(p) === 'Resolved').length;
 
   const filteredProblems = problems.filter(p => {
     if (filter === 'all') return true;
-    if (filter === 'needs_review') return p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review';
-    if (filter === 'Endorsed')     return p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed';
-    if (filter === 'Idea')         return p.stage === 'Idea' && p._displayStatus !== 'needs_review' && p._displayStatus !== 'Needs Review' && p._displayStatus !== 'Endorsed' && p._displayStatus !== 'endorsed';
-    return p._displayStatus === filter || p.stage === filter || (p.topics || []).includes(filter);
+    if (filter === 'needs_review') return normStatus(p) === 'Needs Review';
+    if (filter === 'Endorsed') return normStatus(p) === 'Endorsed';
+    if (filter === 'Resolved') return normStatus(p) === 'Resolved';
+    if (filter === 'Idea') return normStatus(p) === 'Idea';
+    return normStatus(p) === filter || (p.topics || []).includes(filter);
   });
 
   if (dashboardLoading) {
@@ -395,11 +398,12 @@ const Dashboard = () => {
         </div>
 
         {/* ── Tab bar ── */}
-        <div className="flex items-center border-b border-gray-200/70 dark:border-white/8 mb-6 text-sm font-medium">
+        <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 dark:border-white/15 mb-6 text-sm font-medium">
           {[
             { id: 'overview', label: 'Overview' },
-            { id: 'review',   label: 'Review Feedback' },
-            { id: 'profile',  label: 'Account' },
+            { id: 'review', label: 'Review' },
+            { id: 'myreviews', label: 'My reviews' },
+            { id: 'profile', label: 'Account' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -407,12 +411,12 @@ const Dashboard = () => {
               className={`flex items-center gap-1.5 px-4 py-2.5 border-b-2 transition-colors -mb-px ${
                 activeTab === tab.id
                   ? 'border-[#2774AE] text-[#2774AE] dark:border-[#FFD100] dark:text-[#FFD100]'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
+                  : 'border-transparent text-slate-600 hover:text-black dark:text-slate-300 dark:hover:text-white'
               }`}
             >
               {tab.label}
               {tab.id === 'review' && needsReviewCount > 0 && (
-                <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 tabular-nums">
+                <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 dark:bg-[#FFB81C]/30 dark:text-white tabular-nums">
                   {needsReviewCount}
                 </span>
               )}
@@ -422,30 +426,47 @@ const Dashboard = () => {
 
         {/* ── OVERVIEW ── */}
         {activeTab === 'overview' && (
-          <div className="flex items-start gap-6">
-            {/* Left: filter strip + table */}
-            <div className="flex-1 min-w-0">
+          <div className="min-w-0">
+              {draftEntries.length > 0 && (
+                <div className="mb-4 border border-slate-200 dark:border-white/15 rounded-md p-4 bg-slate-50 dark:bg-[#020c16] text-black dark:text-white">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-2">Drafts (this browser)</p>
+                  <ul className="text-xs space-y-1.5">
+                    {draftEntries.slice(0, 8).map(({ pid, updatedAt }) => (
+                      <li key={pid} className="flex flex-wrap items-baseline gap-2">
+                        <button
+                          type="button"
+                          className="font-mono font-semibold text-[#2774AE] dark:text-[#FFD100] hover:underline"
+                          onClick={() => navigate(`/problem/${pid}`)}
+                        >
+                          {pid}
+                        </button>
+                        <span className="text-slate-600 dark:text-slate-400">{new Date(updatedAt).toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-              {/* Filter strip */}
               <div className="flex items-center gap-1.5 mb-4 flex-wrap">
-                <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mr-1">Filter:</span>
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
                 {[
-                  { value: 'all',          label: 'All',          count: problems.length },
+                  { value: 'all', label: 'All', count: problems.length },
                   { value: 'needs_review', label: 'Needs Review', count: needsReviewCount },
-                  { value: 'Idea',         label: 'Idea',         count: ideaCount },
-                  { value: 'Endorsed',     label: 'Endorsed',     count: endorsedCount },
-                  ...topicOptions.map(t => ({ value: t, label: t, count: problems.filter(p => (p.topics||[]).includes(t)).length })),
+                  { value: 'Idea', label: 'Idea', count: ideaCount },
+                  { value: 'Resolved', label: 'Resolved', count: resolvedCount },
+                  { value: 'Endorsed', label: 'Endorsed', count: endorsedCount },
+                  ...topicOptions.map(t => ({ value: t, label: t, count: problems.filter(p => (p.topics || []).includes(t)).length })),
                 ].map(({ value, label, count }) => (
                   <button
                     key={value}
                     onClick={() => setFilter(value)}
                     className={`
-                      flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium
-                      border transition-all duration-150
+                      flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium
+                      border transition-colors
                       ${
                         filter === value
-                          ? 'bg-[#2774AE] border-[#2774AE] text-white shadow-sm dark:bg-[#FFD100] dark:border-[#FFD100] dark:text-[#001628]'
-                          : 'bg-white/70 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-[#2774AE]/60 hover:text-[#2774AE] hover:bg-white dark:hover:border-[#FFD100]/40 dark:hover:text-[#FFD100]'
+                          ? 'bg-[#2774AE] border-[#2774AE] text-white dark:bg-[#FFD100] dark:border-[#FFD100] dark:text-[#001628]'
+                          : 'bg-white dark:bg-[#001628] border-slate-200 dark:border-white/15 text-slate-700 dark:text-slate-200 hover:border-[#2774AE] dark:hover:border-[#FFD100]'
                       }
                     `}
                   >
@@ -464,134 +485,128 @@ const Dashboard = () => {
                 ))}
               </div>
 
-              {/* Problems table */}
-              <div className="glass rounded-xl overflow-hidden">
+              <div className="border border-slate-200 dark:border-white/15 rounded-md overflow-hidden bg-white dark:bg-[#001628]">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left">
+                  <table className="w-full text-left text-black dark:text-white">
                     <thead>
-                      <tr className="border-b border-gray-200/60 dark:border-white/8">
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">ID</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Problem</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Topics</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Diff</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Status</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Stars</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Date</th>
+                      <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#020c16]">
+                        <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">ID</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Problem</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Topics</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Diff</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Status</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Stars</th>
+                        <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100/80 dark:divide-white/5">
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                       {filteredProblems.length === 0 ? (
-                        <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400 dark:text-gray-500">No problems found.</td></tr>
-                      ) : filteredProblems.map(problem => (
+                        <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-500">No problems found.</td></tr>
+                      ) : filteredProblems.map(problem => {
+                        const st = normStatus(problem);
+                        return (
                         <tr
                           key={problem.id}
                           onClick={() => setPreviewProblem(problem)}
-                          className="hover:bg-white/50 dark:hover:bg-white/4 cursor-pointer transition-colors"
+                          className="hover:bg-slate-50 dark:hover:bg-[#020c16] cursor-pointer transition-colors"
                         >
-                          <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">{problem.id}</td>
+                          <td className="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap">{problem.id}</td>
                           <td className="px-4 py-3 max-w-[220px]">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                            <span className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
                               {problem.latex ? stripLatex(problem.latex) + (problem.latex.length > 90 ? '…' : '') : '—'}
                             </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-1">
                               {problem.topics.map(t => (
-                                <span key={t} className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded">{t}</span>
+                                <span key={t} className="px-1.5 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 text-xs rounded border border-slate-200 dark:border-white/10">{t}</span>
                               ))}
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             {problem.quality
                               ? <span className="text-xs font-semibold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{parseInt(problem.quality)}/10</span>
-                              : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                              : <span className="text-slate-400">—</span>}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                              (problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review')
-                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
-                                : (problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed')
-                                ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
-                                : 'bg-gray-100 text-gray-600 dark:bg-white/8 dark:text-gray-400'
-                            }`}>
-                              {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
-                                ? 'Needs Review'
-                                : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
-                                ? 'Endorsed'
-                                : problem.stage}
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${STATUS_BADGE_CLASS[st] || STATUS_BADGE_CLASS.Idea}`}>
+                              {st}
                             </span>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             {problem.endorsements > 0
                               ? <span className="flex items-center gap-1 text-xs text-[#2774AE] dark:text-[#FFD100] font-semibold"><Star size={11} fill="currentColor" /> {problem.endorsements}</span>
-                              : <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>}
+                              : <span className="text-slate-400 text-xs">—</span>}
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                          <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                             {new Date(problem.createdAt).toLocaleDateString()}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
+          </div>
+        )}
 
-            {/* ── Your Reviews sidebar ── */}
-            <div className="flex-shrink-0" style={{ width: '272px' }}>
-              <div className="glass rounded-xl p-4 sticky top-6">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Your reviews</h3>
-                {myFeedback.length === 0 ? (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No reviews submitted yet.</p>
-                ) : myFeedback.map(fb => (
+        {activeTab === 'myreviews' && (
+          <div className="max-w-3xl border border-slate-200 dark:border-white/15 rounded-md p-5 bg-white dark:bg-[#001628] text-black dark:text-white">
+            <h2 className="text-sm font-semibold text-slate-800 dark:text-white mb-4">Problems you have reviewed</h2>
+            {myFeedback.length === 0 ? (
+              <p className="text-sm text-slate-500">No reviews submitted yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {myFeedback.map(fb => (
                   <div
                     key={fb.id}
                     onClick={() => navigate(`/problem/${fb.problemId}`)}
-                    className="cursor-pointer border-l-2 border-gray-200 dark:border-white/10 pl-3 py-1.5 mb-2.5 hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors group"
+                    className="cursor-pointer border-l-2 border-slate-200 dark:border-white/15 pl-3 py-2 hover:border-[#2774AE] dark:hover:border-[#FFD100] transition-colors group"
                   >
                     <div className="flex items-center justify-between mb-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{fb.problemId}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold">{fb.problemId}</span>
                         {!fb.isEndorsement && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${
                             fb.resolved
-                              ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
-                              : 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400'
+                              ? 'border-green-600 text-green-800 dark:text-green-300'
+                              : 'border-slate-300 dark:border-white/20 text-slate-600 dark:text-slate-300'
                           }`}>{fb.resolved ? 'Resolved' : 'Open'}</span>
                         )}
                       </div>
                       <button
+                        type="button"
                         onClick={e => handleDeleteFeedback(e, fb.id)}
-                        className="text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                        className="text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 size={11} />
                       </button>
                     </div>
                     {fb.answer && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-baseline gap-1 flex-wrap">
-                        <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Ans:</span>
+                      <div className="text-xs text-slate-600 dark:text-slate-300 flex items-baseline gap-1 flex-wrap">
+                        <span className="text-[10px] uppercase font-semibold text-slate-500">Ans:</span>
                         <span className="font-mono"><KatexRenderer latex={fb.answer} /></span>
                       </div>
                     )}
                     {fb.comment && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{fb.comment}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 line-clamp-2">{fb.comment}</p>
                     )}
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-gray-300 dark:text-gray-600">
-                        {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}
-                      </span>
-                      {fb.isEndorsement && <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">✓ Endorsed</span>}
+                    <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
+                      {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}
+                      {fb.isEndorsement && <span className="font-semibold text-[#005587] dark:text-[#FFD100]">Endorsement</span>}
                     </div>
                   </div>
                 ))}
-                <button
-                  onClick={() => navigate('/feedback')}
-                  className="w-full mt-3 py-1.5 text-sm font-medium bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-lg hover:opacity-90 transition-opacity shadow-sm"
-                >
-                  Go to Feedback
-                </button>
               </div>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate('/feedback')}
+              className="mt-5 px-4 py-2 text-sm font-semibold bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-md hover:opacity-90"
+            >
+              Give more feedback
+            </button>
           </div>
         )}
 
@@ -670,7 +685,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="lg:col-span-5 lg:sticky lg:top-6">
-                    <div className="glass rounded-xl overflow-hidden">
+                    <div className="border border-slate-200 dark:border-white/15 rounded-md overflow-hidden bg-white dark:bg-[#001628]">
                       <div className="px-5 py-3 border-b border-gray-200/60 dark:border-white/8 flex items-center justify-between">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Live Preview</p>
                         <span className="text-xs font-bold text-[#2774AE] dark:text-[#FFD100] tabular-nums">{editForm.quality || 5}/10</span>
@@ -732,7 +747,7 @@ const Dashboard = () => {
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">None of your problems currently need revision.</p>
                   </div>
                 ) : (
-                  <div className="glass rounded-xl overflow-hidden">
+                  <div className="border border-slate-200 dark:border-white/15 rounded-md overflow-hidden bg-white dark:bg-[#001628]">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left">
                         <thead>
@@ -777,48 +792,44 @@ const Dashboard = () => {
 
         {/* ── ACCOUNT ── */}
         {activeTab === 'profile' && (
-          <div className="max-w-xl">
-            <div className="glass rounded-xl p-6">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-5">Account Settings</h2>
-              {profileMessage && (
-                <p className={`mb-4 text-sm ${profileMessage === 'Saved.' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                  {profileMessage}
-                </p>
-              )}
-              <form onSubmit={handleProfileSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Email</label>
-                    <input type="email" value={user?.email || ''} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50 dark:bg-white/3 text-gray-400 cursor-not-allowed" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Initials</label>
-                    <input type="text" value={user?.initials || ''} disabled className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50 dark:bg-white/3 text-gray-400 cursor-not-allowed" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">First name</label>
-                    <input type="text" value={formData.firstName} onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white/70 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 transition" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Last name</label>
-                    <input type="text" value={formData.lastName} onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white/70 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 transition" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Math experience</label>
-                  <textarea value={formData.mathExp} onChange={e => setFormData(prev => ({ ...prev, mathExp: e.target.value }))} rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-lg bg-white/70 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 resize-none transition" />
-                </div>
+          <div className="max-w-xl text-black dark:text-white">
+            <h2 className="text-base font-semibold mb-3">Account</h2>
+            {profileMessage && (
+              <p className={`mb-3 text-sm ${profileMessage === 'Saved.' ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {profileMessage}
+              </p>
+            )}
+            <form onSubmit={handleProfileSubmit} className="border border-slate-200 dark:border-white/15 rounded-md overflow-hidden bg-white dark:bg-[#001628]">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 w-32 shrink-0">Email</span>
+                <span className="text-sm">{user?.email}</span>
+              </div>
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 w-32 shrink-0">Initials</span>
+                <span className="text-sm font-mono">{user?.initials}</span>
+              </div>
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-6">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 w-32 shrink-0 pt-2">First name</span>
+                <input type="text" value={formData.firstName} onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  className="flex-1 min-w-0 px-3 py-2 text-sm border border-slate-200 dark:border-white/15 rounded-md bg-white dark:bg-[#020c16] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]" />
+              </div>
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-6">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 w-32 shrink-0 pt-2">Last name</span>
+                <input type="text" value={formData.lastName} onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  className="flex-1 min-w-0 px-3 py-2 text-sm border border-slate-200 dark:border-white/15 rounded-md bg-white dark:bg-[#020c16] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]" />
+              </div>
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex flex-col gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Math experience</span>
+                <textarea value={formData.mathExp} onChange={e => setFormData(prev => ({ ...prev, mathExp: e.target.value }))} rows={3}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/15 rounded-md bg-white dark:bg-[#020c16] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2774AE] dark:focus:ring-[#FFD100] resize-none" />
+              </div>
+              <div className="px-4 py-3 bg-slate-50 dark:bg-[#020c16]">
                 <button type="submit" disabled={profileSubmitting}
-                  className="px-5 py-2.5 text-sm font-semibold bg-[#2774AE] text-white rounded-lg hover:bg-[#005587] transition-colors disabled:opacity-50 shadow-sm">
+                  className="px-5 py-2 text-sm font-semibold bg-[#2774AE] text-white rounded-md hover:bg-[#005587] transition-colors disabled:opacity-50 dark:bg-[#FFD100] dark:text-[#001628] dark:hover:bg-[#FFC72C]">
                   {profileSubmitting ? 'Saving…' : 'Save changes'}
                 </button>
-              </form>
-            </div>
+              </div>
+            </form>
           </div>
         )}
       </div>

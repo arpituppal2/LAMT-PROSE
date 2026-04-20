@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
+import { computeDisplayStatus } from '../lib/problemDisplayStatus.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -13,20 +14,6 @@ const ADMIN_EMAILS = [
   'tomwu@g.ucla.edu',
   'muztabasyed@ucla.edu',
 ];
-
-// Compute display status using hierarchical classification:
-// 1. Idea (no reviews/endorsements, freshly written)
-// 2. Needs Review (has unresolved non-endorsement feedback)
-// 3. Endorsed (has endorsements, no unresolved feedback)
-function computeDisplayStatus(problem) {
-    if (problem.stage === 'Archived') return 'Archived';
-  const hasUnresolvedFeedback = problem.feedbacks?.some(
-    (f) => !f.resolved && !f.isEndorsement
-  );
-  if (hasUnresolvedFeedback) return 'Needs Review';
-  if (problem.endorsements > 0) return 'Endorsed';
-  return problem.stage || 'Idea';
-}
 
 // GET /feedback/next
 // Returns the single best problem to review for the current user:
@@ -48,7 +35,7 @@ router.get('/next', authenticate, async (req, res) => {
       authorId: { not: req.userId },
       ...(reviewedIds.length > 0 ? { id: { notIn: reviewedIds } } : {}),
     };
-    if (difficulty) where.quality = difficulty;
+    if (difficulty) where.quality = String(difficulty);
 
     // Fetch candidates with their feedback count
     const problems = await prisma.problem.findMany({
@@ -83,20 +70,27 @@ router.get('/next', authenticate, async (req, res) => {
 // GET /feedback/reviewable - all problems eligible for review
 router.get('/reviewable', authenticate, async (req, res) => {
   try {
-    const { topic, stage, author, difficulty } = req.query;
+    const { topic, stage, author, difficulty, search } = req.query;
     const alreadyReviewed = await prisma.feedback.findMany({
       where: { userId: req.userId },
       select: { problemId: true },
     });
-    const reviewedIds = alreadyReviewed.map((f) => f.problemId);
-    const where = {
-      authorId: { not: req.userId },
-      ...(reviewedIds.length > 0 ? { id: { notIn: reviewedIds } } : {}),
-    };
-    if (topic) where.topics = { has: topic };
-    if (stage) where.stage = stage;
-    if (author) where.authorId = author;
-    if (difficulty) where.quality = difficulty;
+    const reviewedIds = [...new Set(alreadyReviewed.map((f) => f.problemId))];
+    const andParts = [{ authorId: { not: req.userId } }, { stage: { not: 'Archived' } } ];
+    if (reviewedIds.length > 0) andParts.push({ id: { notIn: reviewedIds } });
+    if (topic) andParts.push({ topics: { has: topic } });
+    if (author) andParts.push({ authorId: author });
+    if (difficulty) andParts.push({ quality: String(difficulty) });
+    if (search && String(search).trim()) {
+      const q = String(search).trim();
+      andParts.push({
+        OR: [
+          { id: { contains: q, mode: 'insensitive' } },
+          { latex: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+    const where = { AND: andParts };
     const problems = await prisma.problem.findMany({
       where,
       include: {
@@ -107,18 +101,20 @@ router.get('/reviewable', authenticate, async (req, res) => {
       },
       orderBy: { createdAt: 'asc' },
     });
-    const result = problems
+    let result = problems
       .map((p) => ({
         ...p,
         _displayStatus: computeDisplayStatus(p),
         _feedbackCount: p.feedbacks.length,
       }))
-      // Sort: fewest feedbacks first, then oldest
       .sort((a, b) => {
         const diff = a._feedbackCount - b._feedbackCount;
         if (diff !== 0) return diff;
         return new Date(a.createdAt) - new Date(b.createdAt);
       });
+    if (stage && stage !== 'all' && ['Idea', 'Needs Review', 'Endorsed', 'Resolved'].includes(String(stage))) {
+      result = result.filter((p) => p._displayStatus === stage);
+    }
     return res.json(result);
   } catch (error) {
     console.error('GET /feedback/reviewable error:', error);
@@ -340,7 +336,7 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
     });
     if (remaining === 0) {
       const problem = await prisma.problem.findUnique({ where: { id: fb.problemId } });
-      const newStage = (problem?.endorsements || 0) > 0 ? 'Endorsed' : 'Idea';
+      const newStage = (problem?.endorsements || 0) > 0 ? 'Endorsed' : 'Resolved';
       await prisma.problem.update({ where: { id: fb.problemId }, data: { stage: newStage } });
     }
     return res.json(updated);
@@ -382,7 +378,7 @@ router.delete('/:id', authenticate, async (req, res) => {
         where: { problemId, resolved: false, isEndorsement: false },
       });
       if (remainingUnresolved === 0) {
-        updateData.stage = (problem.endorsements || 0) > 0 ? 'Endorsed' : 'Idea';
+        updateData.stage = (problem.endorsements || 0) > 0 ? 'Endorsed' : 'Resolved';
       }
     }
     await prisma.problem.update({ where: { id: problemId }, data: updateData });

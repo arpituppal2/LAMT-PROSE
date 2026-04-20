@@ -8,6 +8,7 @@ import api from '../utils/api';
 import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
+import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 
 /* ── Shimmer skeleton ───────────────────────────────────────────────── */
 const shimmerBase = [
@@ -77,8 +78,8 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
         <div className="flex items-center justify-between px-5 py-3.5 bg-[#2774AE] dark:bg-[#001628] rounded-t-2xl">
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm font-bold text-white">{data.id}</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-white/20 text-white">
-              {getProblemStatus(data, data.feedbacks || [])}
+            <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-white/20 text-white">
+              {data._displayStatus || getProblemStatus(data, data.feedbacks)}
             </span>
             {data.topics?.length > 0 && (
               <span className="text-xs text-white/60">{data.topics.join(' · ')}</span>
@@ -260,8 +261,8 @@ const ProblemInventory = () => {
       const matchesSearch = search === '' ||
         (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
         (p.latex || '').toLowerCase().includes(search.toLowerCase());
-      const pStatus = getProblemStatus(p, p.feedbacks || []);
-      const matchesStage = stageFilter === 'all' || pStatus === stageFilter;
+      const disp = p._displayStatus || getProblemStatus(p, p.feedbacks);
+      const matchesStage = stageFilter === 'all' || disp === stageFilter;
       const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
       const matchesDifficulty = difficultyFilter === 'all' || parseInt(p.quality) === parseInt(difficultyFilter);
       return matchesSearch && matchesStage && matchesTopic && matchesDifficulty;
@@ -346,11 +347,11 @@ const ProblemInventory = () => {
                   <Legend verticalAlign="top" align="right" iconType="circle"
                     wrapperStyle={{ paddingBottom: 12, fontSize: 11, color: chartColor.axis }} />
                   <Area type="monotone" dataKey="Idea" stackId="stack"
-                    stroke={chartColor.axis} fill={chartColor.axis} fillOpacity={0.18} dot={false} strokeWidth={1.5} />
+                    stroke="#003B5C" fill="#8BB8E8" fillOpacity={0.45} dot={false} strokeWidth={1.5} />
                   <Area type="monotone" dataKey="Review" stackId="stack"
-                    stroke="#2774AE" fill="#2774AE" fillOpacity={0.35} dot={false} strokeWidth={2} />
+                    stroke="#FFB81C" fill="#FFB81C" fillOpacity={0.4} dot={false} strokeWidth={2} />
                   <Area type="monotone" dataKey="Endorsed" stackId="stack"
-                    stroke="#FFD100" fill="#FFD100" fillOpacity={0.5} dot={false} strokeWidth={2.5} />
+                    stroke="#FFD100" fill="#2774AE" fillOpacity={0.35} dot={false} strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -371,7 +372,7 @@ const ProblemInventory = () => {
           </div>
           {[
             { val: sortBy,           fn: setSortBy,           opts: [['newest','Newest'],['oldest','Oldest'],['diff','Hardest first']] },
-            { val: stageFilter,      fn: setStageFilter,      opts: [['all','All stages'],['Idea','Idea'],['Needs Review','Needs Review'],['Endorsed','Endorsed'],['Resolved','Resolved']] },
+            { val: stageFilter,      fn: setStageFilter,      opts: [['all','All stages'],['Idea','Idea'],['Needs Review','Needs Review'],['Resolved','Resolved'],['Endorsed','Endorsed']] },
             { val: topicFilter,      fn: setTopicFilter,      opts: [['all','All topics'],['Algebra','Algebra'],['Geometry','Geometry'],['Combinatorics','Combinatorics'],['Number Theory','Number Theory']] },
             { val: difficultyFilter, fn: setDifficultyFilter, opts: [['all','All difficulties'],...Array.from({length:10},(_,i)=>[(i+1).toString(),`${i+1}/10`])] },
           ].map((sel, i) => (
@@ -435,10 +436,10 @@ const ProblemInventory = () => {
                   </td>
                   <td className="px-5 py-4 text-right">
                     {(() => {
-                      const st = getProblemStatus(problem, problem.feedbacks || []);
+                      const s = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
                       return (
-                        <span className={`inline-block px-2.5 py-1 text-xs rounded font-medium ${STATUS_BADGE_CLASS[st]}`}>
-                          {st}
+                        <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded border ${STATUS_BADGE_CLASS[s] || STATUS_BADGE_CLASS.Idea}`}>
+                          {s}
                         </span>
                       );
                     })()}

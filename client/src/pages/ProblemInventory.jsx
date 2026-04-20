@@ -248,7 +248,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
 const ProblemInventory = () => {
   const navigate = useNavigate();
 
-  // Dark mode detection
   const [dark, setDark] = useState(() =>
     document.documentElement.classList.contains('dark'),
   );
@@ -274,9 +273,7 @@ const ProblemInventory = () => {
   const [previewProblem, setPreviewProblem] = useState(null);
   const [previewFull, setPreviewFull] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
     if (!previewProblem) {
@@ -313,24 +310,16 @@ const ProblemInventory = () => {
       const matchesDifficulty =
         difficultyFilter === 'all' ||
         parseInt(p.quality) === parseInt(difficultyFilter);
-      return (
-        matchesSearch &&
-        matchesStage &&
-        matchesTopic &&
-        matchesDifficulty
-      );
+      return matchesSearch && matchesStage && matchesTopic && matchesDifficulty;
     });
 
     res.sort((a, b) => {
-      if (sortBy === 'newest')
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      if (sortBy === 'oldest')
-        return new Date(a.createdAt) - new Date(b.createdAt);
+      if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+      if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
       if (sortBy === 'diff') return (b.quality || 0) - (a.quality || 0);
       return 0;
     });
 
-    // Build stacked cumulative chart data using computed display status
     const dailyData = {};
     [...problems]
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
@@ -339,45 +328,23 @@ const ProblemInventory = () => {
           month: 'short',
           day: 'numeric',
         });
-
         if (!dailyData[date]) {
-          dailyData[date] = {
-            date,
-            Idea: 0,
-            'Needs Review': 0,
-            Resolved: 0,
-            Endorsed: 0,
-          };
+          dailyData[date] = { date, Idea: 0, 'Needs Review': 0, Resolved: 0, Endorsed: 0 };
         }
-
         const status = p._displayStatus || getProblemStatus(p, p.feedbacks);
-
         if (status === 'Endorsed') dailyData[date].Endorsed++;
         else if (status === 'Resolved') dailyData[date].Resolved++;
         else if (status === 'Needs Review') dailyData[date]['Needs Review']++;
         else dailyData[date].Idea++;
       });
 
-    let totals = {
-      Idea: 0,
-      'Needs Review': 0,
-      Resolved: 0,
-      Endorsed: 0,
-    };
-
+    let totals = { Idea: 0, 'Needs Review': 0, Resolved: 0, Endorsed: 0 };
     const cumulativeGrowth = Object.values(dailyData).map(day => {
       totals.Idea += day.Idea;
       totals['Needs Review'] += day['Needs Review'];
       totals.Resolved += day.Resolved;
       totals.Endorsed += day.Endorsed;
-
-      return {
-        date: day.date,
-        Idea: totals.Idea,
-        'Needs Review': totals['Needs Review'],
-        Resolved: totals.Resolved,
-        Endorsed: totals.Endorsed,
-      };
+      return { date: day.date, ...totals };
     });
 
     return { filtered: res, chartData: cumulativeGrowth };
@@ -401,106 +368,28 @@ const ProblemInventory = () => {
         {/* Header row: count + chart */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 mb-6">
           <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-6">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Total problems
-            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Total problems</p>
             <p className="text-5xl font-semibold text-gray-900 dark:text-white tabular-nums">
               {problems.length}
             </p>
           </div>
 
           <div className="lg:col-span-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-6">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Growth over time
-            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Growth over time</p>
             <div className="h-36">
               <ResponsiveContainer width="100%" height="100%" key={String(dark)}>
                 <AreaChart data={chartData} margin={{ left: 10 }}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke={chartColor.grid}
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColor.grid} />
+                  <XAxis dataKey="date" stroke={chartColor.axis} fontSize={11} tickLine={false} axisLine={false} dy={6} />
+                  <YAxis stroke={chartColor.axis} fontSize={11} tickLine={false} axisLine={false}
+                    label={{ value: 'Problems', angle: -90, position: 'insideLeft', offset: -2, style: { fontSize: 10, fill: chartColor.axis } }}
                   />
-                  <XAxis
-                    dataKey="date"
-                    stroke={chartColor.axis}
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    dy={6}
-                  />
-                  <YAxis
-                    stroke={chartColor.axis}
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    label={{
-                      value: 'Problems',
-                      angle: -90,
-                      position: 'insideLeft',
-                      offset: -2,
-                      style: { fontSize: 10, fill: chartColor.axis },
-                    }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: chartColor.tooltip.bg,
-                      border: `1px solid ${chartColor.tooltip.border}`,
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      color: chartColor.tooltip.text,
-                    }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    align="right"
-                    iconType="circle"
-                    wrapperStyle={{
-                      paddingBottom: 12,
-                      fontSize: 11,
-                      color: chartColor.axis,
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Idea"
-                    stackId="stack"
-                    stroke="#003B5C"
-                    fill="#8BB8E8"
-                    fillOpacity={0.4}
-                    dot={false}
-                    strokeWidth={1.5}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Needs Review"
-                    stackId="stack"
-                    stroke="#C08400"
-                    fill="#FFB81C"
-                    fillOpacity={0.45}
-                    dot={false}
-                    strokeWidth={1.8}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Resolved"
-                    stackId="stack"
-                    stroke="#2563EB"
-                    fill="#2774AE"
-                    fillOpacity={0.38}
-                    dot={false}
-                    strokeWidth={1.8}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Endorsed"
-                    stackId="stack"
-                    stroke="#15803D"
-                    fill="#22C55E"
-                    fillOpacity={0.35}
-                    dot={false}
-                    strokeWidth={1.8}
-                  />
+                  <Tooltip contentStyle={{ backgroundColor: chartColor.tooltip.bg, border: `1px solid ${chartColor.tooltip.border}`, borderRadius: '6px', fontSize: '12px', color: chartColor.tooltip.text }} />
+                  <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: 12, fontSize: 11, color: chartColor.axis }} />
+                  <Area type="monotone" dataKey="Idea" stackId="stack" stroke="#003B5C" fill="#8BB8E8" fillOpacity={0.4} dot={false} strokeWidth={1.5} />
+                  <Area type="monotone" dataKey="Needs Review" stackId="stack" stroke="#C08400" fill="#FFB81C" fillOpacity={0.45} dot={false} strokeWidth={1.8} />
+                  <Area type="monotone" dataKey="Resolved" stackId="stack" stroke="#2563EB" fill="#2774AE" fillOpacity={0.38} dot={false} strokeWidth={1.8} />
+                  <Area type="monotone" dataKey="Endorsed" stackId="stack" stroke="#15803D" fill="#22C55E" fillOpacity={0.35} dot={false} strokeWidth={1.8} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -510,10 +399,7 @@ const ProblemInventory = () => {
         {/* Filter bar */}
         <div className="flex flex-wrap gap-3 p-4 mb-5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg">
           <div className="relative flex-1 min-w-[220px]">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search by ID or content"
@@ -524,46 +410,20 @@ const ProblemInventory = () => {
           </div>
           {[
             {
-              val: sortBy,
-              fn: setSortBy,
-              opts: [
-                ['newest', 'Newest'],
-                ['oldest', 'Oldest'],
-                ['diff', 'Hardest first'],
-              ],
+              val: sortBy, fn: setSortBy,
+              opts: [['newest','Newest'],['oldest','Oldest'],['diff','Hardest first']],
             },
             {
-              val: stageFilter,
-              fn: setStageFilter,
-              opts: [
-                ['all', 'All stages'],
-                ['Idea', 'Idea'],
-                ['Needs Review', 'Needs Review'],
-                ['Resolved', 'Resolved'],
-                ['Endorsed', 'Endorsed'],
-              ],
+              val: stageFilter, fn: setStageFilter,
+              opts: [['all','All stages'],['Idea','Idea'],['Needs Review','Needs Review'],['Resolved','Resolved'],['Endorsed','Endorsed']],
             },
             {
-              val: topicFilter,
-              fn: setTopicFilter,
-              opts: [
-                ['all', 'All topics'],
-                ['Algebra', 'Algebra'],
-                ['Geometry', 'Geometry'],
-                ['Combinatorics', 'Combinatorics'],
-                ['Number Theory', 'Number Theory'],
-              ],
+              val: topicFilter, fn: setTopicFilter,
+              opts: [['all','All topics'],['Algebra','Algebra'],['Geometry','Geometry'],['Combinatorics','Combinatorics'],['Number Theory','Number Theory']],
             },
             {
-              val: difficultyFilter,
-              fn: setDifficultyFilter,
-              opts: [
-                ['all', 'All difficulties'],
-                ...Array.from({ length: 10 }, (_, i) => [
-                  (i + 1).toString(),
-                  `${i + 1}/10`,
-                ]),
-              ],
+              val: difficultyFilter, fn: setDifficultyFilter,
+              opts: [['all','All difficulties'], ...Array.from({ length: 10 }, (_, i) => [(i+1).toString(), `${i+1}/10`])],
             },
           ].map((sel, i) => (
             <select
@@ -572,124 +432,106 @@ const ProblemInventory = () => {
               onChange={e => sel.fn(e.target.value)}
               className="px-3 py-2 text-sm appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 cursor-pointer transition"
             >
-              {sel.opts.map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
+              {sel.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           ))}
         </div>
 
         {/* Table */}
         <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg overflow-hidden">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-white/8">
-                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Problem
-                </th>
-                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Latest review
-                </th>
-                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right">
-                  Stage
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="px-5 py-14 text-center text-sm text-gray-400 dark:text-gray-500"
-                  >
-                    No matching problems.
-                  </td>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[600px] text-left">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-white/8">
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide w-[45%]">
+                    Problem
+                  </th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide w-[35%]">
+                    Latest review
+                  </th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right w-[20%]">
+                    Stage
+                  </th>
                 </tr>
-              ) : (
-                filtered.map(problem => (
-                  <tr
-                    key={problem.id}
-                    onClick={() => setPreviewProblem(problem)}
-                    className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2.5 mb-1">
-                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
-                          {problem.id}
-                        </span>
-                        {problem.quality && (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">
-                            · {problem.quality}/10
-                          </span>
-                        )}
-                        {problem.topics?.map(t => (
-                          <span
-                            key={t}
-                            className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-[10px] rounded"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
-                        {problem.latex}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4">
-                      {problem.feedbacks?.length > 0 ? (
-                        <div>
-                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                            {problem.feedbacks[0].user?.firstName}{' '}
-                            {problem.feedbacks[0].user?.lastName}
-                          </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
-                            {new Date(
-                              problem.feedbacks[0].createdAt,
-                            ).toLocaleDateString()}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 dark:text-gray-500">
-                          No reviews yet
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      {(() => {
-                        const s =
-                          problem._displayStatus ||
-                          getProblemStatus(problem, problem.feedbacks);
-                        return (
-                          <span
-                            className={`inline-block px-2.5 py-1 text-xs font-semibold rounded border ${
-                              STATUS_BADGE_CLASS[s] ||
-                              STATUS_BADGE_CLASS.Idea
-                            }`}
-                          >
-                            {s}
-                          </span>
-                        );
-                      })()}
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-5 py-14 text-center text-sm text-gray-400 dark:text-gray-500">
+                      No matching problems.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filtered.map(problem => (
+                    <tr
+                      key={problem.id}
+                      onClick={() => setPreviewProblem(problem)}
+                      className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
+                    >
+                      <td className="px-5 py-4 max-w-0">
+                        <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+                          <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
+                            {problem.id}
+                          </span>
+                          {problem.quality && (
+                            <span className="text-sm text-gray-400 dark:text-gray-500">
+                              · {problem.quality}/10
+                            </span>
+                          )}
+                          {problem.topics?.map(t => (
+                            <span
+                              key={t}
+                              className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-[10px] rounded"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                          {problem.latex}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4">
+                        {problem.feedbacks?.length > 0 ? (
+                          <div>
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                              {problem.feedbacks[0].user?.firstName}{' '}
+                              {problem.feedbacks[0].user?.lastName}
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">
+                              {new Date(problem.feedbacks[0].createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            No reviews yet
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        {(() => {
+                          const s = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
+                          return (
+                            <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded border ${STATUS_BADGE_CLASS[s] || STATUS_BADGE_CLASS.Idea}`}>
+                              {s}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* Preview modal */}
       {previewProblem && (
         <PreviewPanel
           problem={previewProblem}
           fullProblem={previewFull}
-          onClose={() => {
-            setPreviewProblem(null);
-            setPreviewFull(null);
-          }}
+          onClose={() => { setPreviewProblem(null); setPreviewFull(null); }}
           onNavigate={id => navigate(`/problem/${id}`)}
         />
       )}

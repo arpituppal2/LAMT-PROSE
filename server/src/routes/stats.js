@@ -5,35 +5,44 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 /**
- * Classify a problem into one of three leaderboard categories:
- *   needsReview  — has unresolved non-endorsement feedback OR stage is 'Needs Review'/'Review'
- *   endorsed     — endorsed (by endorsements count or stage)
- *   idea         — everything else
+ * Classify a problem for leaderboard scoring.
+ * Hierarchy (if/else):
+ *   1. Idea       — no feedbacks at all
+ *   2. Needs Review — any unresolved non-endorsement feedback
+ *   3. Endorsed    — at least 1 endorsement, no unresolved NR feedback
+ *   4. Resolved    — had NR feedback, all resolved, no endorsements
+ *
+ * Points: Idea +2, Needs Review -2, Resolved +3, Endorsed +5
  */
-const NEEDS_REVIEW_STAGES = new Set(['Needs Review', 'Review', 'needs review']);
-
 const classifyProblem = (problem) => {
   const feedbacks = problem.feedbacks || [];
   const stage = problem.stage || 'Idea';
+  if (stage === 'Archived') return { category: 'archived', points: 0 };
 
-  // Explicit stage check first
-  if (NEEDS_REVIEW_STAGES.has(stage)) {
+  // No feedbacks at all => Idea
+  if (feedbacks.length === 0) {
+    return { category: 'idea', points: 2 };
+  }
+
+  // Any unresolved non-endorsement feedback => Needs Review
+  const hasUnresolved = feedbacks.some(fb => !fb.isEndorsement && !fb.resolved);
+  if (hasUnresolved) {
     return { category: 'needsReview', points: -2 };
   }
 
-  // Feedback-based check: any unresolved non-endorsement feedback
-  const pendingNeedsReview = feedbacks.some(
-    (fb) => !fb.isEndorsement && !fb.resolved
-  );
-  if (pendingNeedsReview) {
-    return { category: 'needsReview', points: -2 };
-  }
-
-  if ((problem.endorsements || 0) >= 1 || stage === 'Endorsed' || stage === 'Published') {
+  // At least 1 endorsement, no unresolved NR => Endorsed
+  if ((problem.endorsements || 0) >= 1) {
     return { category: 'endorsed', points: 5 };
   }
 
-  return { category: 'idea', points: 3 };
+  // Had feedback, all resolved, no endorsements => Resolved
+  const hadNR = feedbacks.some(fb => !fb.isEndorsement);
+  if (hadNR) {
+    return { category: 'resolved', points: 3 };
+  }
+
+  // Only endorsements (edge case) => Endorsed
+  return { category: 'endorsed', points: 5 };
 };
 
 // Leaderboard
@@ -58,13 +67,13 @@ router.get('/leaderboard', authenticate, async (req, res) => {
       },
     });
     const leaderboard = users.map((user) => {
-      const badges = { endorsed: 0, idea: 0, needsReview: 0 };
+      const badges = { endorsed: 0, idea: 0, needsReview: 0, resolved: 0 };
       let score = 0;
       user.problems.forEach((p) => {
         if (p.stage === 'Archived') return;
         const { category, points } = classifyProblem(p);
         score += points;
-        badges[category] = (badges[category] || 0) + 1;
+        if (badges[category] !== undefined) badges[category] = (badges[category] || 0) + 1;
       });
       const reviewsGiven = user.feedbacks.length;
       score += reviewsGiven * 0.25;
@@ -95,16 +104,15 @@ router.get('/dashboard', authenticate, async (req, res) => {
       include: { feedbacks: true },
     });
     const topicCounts = {};
-    const stageCounts = { Idea: 0, 'Needs Review': 0, Endorsed: 0 };
+    const stageCounts = { Idea: 0, 'Needs Review': 0, Endorsed: 0, Resolved: 0 };
     let totalEndorsements = 0;
     problems.forEach((p) => {
       if (p.stage === 'Archived') return;
-      p.topics.forEach((t) => {
-        topicCounts[t] = (topicCounts[t] || 0) + 1;
-      });
+      p.topics.forEach((t) => { topicCounts[t] = (topicCounts[t] || 0) + 1; });
       const { category } = classifyProblem(p);
       if (category === 'needsReview') stageCounts['Needs Review'] = (stageCounts['Needs Review'] || 0) + 1;
       else if (category === 'endorsed') stageCounts['Endorsed'] = (stageCounts['Endorsed'] || 0) + 1;
+      else if (category === 'resolved') stageCounts['Resolved'] = (stageCounts['Resolved'] || 0) + 1;
       else stageCounts['Idea'] = (stageCounts['Idea'] || 0) + 1;
       totalEndorsements += p.endorsements || 0;
     });
@@ -124,9 +132,7 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
   try {
     const problems = await prisma.problem.findMany({
       select: {
-        stage: true,
-        topics: true,
-        createdAt: true,
+        stage: true, topics: true, createdAt: true,
         feedbacks: { select: { needsReview: true, resolved: true, isEndorsement: true } },
         endorsements: true,
       },
@@ -137,30 +143,19 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
       if (p.stage === 'Archived') return;
       const date = new Date(p.createdAt).toISOString().split('T')[0];
       if (!progressByDate[date]) {
-        progressByDate[date] = { date, idea: 0, endorsed: 0, needsReview: 0, count: 0, Algebra: 0, Geometry: 0, Combinatorics: 0, 'Number Theory': 0 };
+        progressByDate[date] = { date, idea: 0, endorsed: 0, needsReview: 0, resolved: 0, count: 0, Algebra: 0, Geometry: 0, Combinatorics: 0, 'Number Theory': 0 };
       }
       const { category } = classifyProblem(p);
       progressByDate[date].count++;
-      if (category === 'needsReview') progressByDate[date].needsReview++;
-      else if (category === 'endorsed') progressByDate[date].endorsed++;
-      else progressByDate[date].idea++;
-      (p.topics || []).forEach((t) => {
-        if (progressByDate[date][t] !== undefined) progressByDate[date][t]++;
-      });
+      progressByDate[date][category] = (progressByDate[date][category] || 0) + 1;
+      (p.topics || []).forEach((t) => { if (progressByDate[date][t] !== undefined) progressByDate[date][t]++; });
     });
     const dates = Object.keys(progressByDate).sort();
     const cumulative = [];
-    let totals = { idea: 0, endorsed: 0, needsReview: 0, count: 0, Algebra: 0, Geometry: 0, Combinatorics: 0, 'Number Theory': 0 };
+    let totals = { idea: 0, endorsed: 0, needsReview: 0, resolved: 0, count: 0, Algebra: 0, Geometry: 0, Combinatorics: 0, 'Number Theory': 0 };
     dates.forEach((date) => {
-      totals.idea += progressByDate[date].idea;
-      totals.endorsed += progressByDate[date].endorsed;
-      totals.needsReview += progressByDate[date].needsReview;
-      totals.count += progressByDate[date].count;
-      totals.Algebra += progressByDate[date].Algebra;
-      totals.Geometry += progressByDate[date].Geometry;
-      totals.Combinatorics += progressByDate[date].Combinatorics;
-      totals['Number Theory'] += progressByDate[date]['Number Theory'];
-      cumulative.push({ date, idea: totals.idea, endorsed: totals.endorsed, needsReview: totals.needsReview, count: totals.count, Algebra: totals.Algebra, Geometry: totals.Geometry, Combinatorics: totals.Combinatorics, 'Number Theory': totals['Number Theory'] });
+      Object.keys(totals).forEach(k => { totals[k] += progressByDate[date][k] || 0; });
+      cumulative.push({ date, ...totals });
     });
     res.json(cumulative);
   } catch (error) {

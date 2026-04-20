@@ -469,14 +469,16 @@ const ProblemDetail = () => {
     }
   };
 
-  const draftMeta = useMemo(() => {
-    try {
-      const all = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '{}');
-      return all[problem.id] || null;
-    } catch {
-      return null;
-    }
-  }, [problem.id, isEditing, detailTab, editedLatex]);
+const draftMeta = useMemo(() => {
+  if (!problem?.id) return null;
+  try {
+    const all = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '{}');
+    return all[problem.id] || null;
+  } catch {
+    return null;
+  }
+}, [problem?.id, isEditing, detailTab, editedLatex]);
+
 
   return (
     <Layout>

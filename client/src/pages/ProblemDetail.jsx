@@ -873,7 +873,7 @@ const ProblemDetail = () => {
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs ${
                             fb.isEndorsement ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                           }`}>
-                            {fb.user?.firstName?[0]}{fb.user?.lastName?[0]}
+                            {fb.user?.firstName?.[0]}{fb.user?.lastName?.[0]}
                           </div>
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white text-sm leading-none mb-0.5">{fb.user?.firstName} {fb.user?.lastName}</p>

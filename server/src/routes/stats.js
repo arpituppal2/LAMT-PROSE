@@ -5,17 +5,13 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 /**
- * Classify a problem for leaderboard scoring.
- * Hierarchy (if/else):
- *   1. Idea       — no feedbacks at all
- *   2. Needs Review — any unresolved non-endorsement feedback
- *   3. Endorsed    — at least 1 endorsement, no unresolved NR feedback
- *   4. Resolved    — had NR feedback, all resolved, no endorsements
- *
- * Points: Idea +2, Needs Review -2, Resolved +3, Endorsed +5
- */
-const classifyProblem = (problem) => {
-  const feedbacks = problem.feedbacks || [];
+ /**
+ * Classify a problem for leaderboard scoring using hierarchical classification:
+ * 1. Idea — no feedbacks at all (freshly written)
+ * 2. Needs Review — any unresolved non-endorsement feedback  
+ * 3. Endorsed — at least 1 endorsement, no unresolved NR feedback
+ * Points: Idea +3, Needs Review -2, Endorsed +5
+ */ const feedbacks = problem.feedbacks || [];
   const stage = problem.stage || 'Idea';
   if (stage === 'Archived') return { category: 'archived', points: 0 };
 

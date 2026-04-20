@@ -47,17 +47,21 @@ function renderTextSegment(value) {
 
 const KatexRenderer = ({ latex, displayMode = false }) => {
   const html = useMemo(() => {
-    if (!latex) return '';
+    // Guard: must be a non-empty string
+    if (latex === null || latex === undefined) return '';
+    const str = typeof latex === 'string' ? latex : String(latex);
+    if (!str.trim()) return '';
+
     // Legacy: if displayMode is explicitly passed true, render entire string as display math
     if (displayMode) {
       try {
-        return katex.renderToString(latex, { displayMode: true, throwOnError: false, trust: true });
+        return katex.renderToString(str, { displayMode: true, throwOnError: false, trust: true });
       } catch (e) {
-        return latex;
+        return str;
       }
     }
     // Default: parse text with $...$ and $$...$$ delimiters
-    const segments = parseSegments(latex);
+    const segments = parseSegments(str);
     return segments.map(seg => {
       if (seg.type === 'text') {
         return renderTextSegment(seg.value);

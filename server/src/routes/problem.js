@@ -16,12 +16,10 @@ const ADMIN_EMAILS = [
 // Consolidated 3-stage system (Archived is a soft-delete stage)
 const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed', 'Archived'];
 
-// Compute display status using the hierarchical if/else:
-// 1. Idea - no feedbacks at all
-// 2. Needs Review - any unresolved non-endorsement feedback
-// 3. Endorsed - at least 1 endorsement, no unresolved NR feedback
-// 4. Resolved - all NR resolved, no endorsements
-function computeDisplayStatus(problem) {
+// Compute display status using hierarchical classification:
+// 1. Idea (no reviews/endorsements, freshly written)
+// 2. Needs Review (has unresolved non-endorsement feedback)
+// 3. Endorsed (has endorsements, no unresolved feedback)
   if (problem.stage === 'Archived') return 'Archived';
   const feedbacks = problem.feedbacks || [];
   if (feedbacks.length === 0) return 'Idea';

@@ -84,7 +84,10 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
               <span className="text-xs text-white/60">{data.topics.join(' · ')}</span>
             )}
           </div>
-          <button onClick={onClose} className="p-1 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          >
             <X size={16} />
           </button>
         </div>
@@ -92,7 +95,9 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
         <div className="px-6 py-5 space-y-5">
           {/* Problem statement */}
           <div>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Problem Statement</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Problem Statement
+            </p>
             <div className="prose-math text-gray-900 dark:text-gray-100 leading-relaxed text-sm">
               <KatexRenderer latex={data.latex || ''} />
             </div>
@@ -101,8 +106,10 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
           {/* Answer */}
           {data.answer && (
             <div className="flex items-center gap-2.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Answer</span>
-              <span className="px-3 py-1.5 bg-gray-100 dark:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                Answer
+              </span>
+              <span className="px-3 py-1.5 bg-gray-100 dark:bg:white/8 border border-gray-200 dark:border-white/10 rounded-lg font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">
                 <KatexRenderer latex={data.answer} />
               </span>
             </div>
@@ -117,7 +124,10 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
               </span>
             </span>
             {data.topics?.map(t => (
-              <span key={t} className="px-2 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded border border-gray-200 dark:border-white/10">
+              <span
+                key={t}
+                className="px-2 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-xs rounded border border-gray-200 dark:border-white/10"
+              >
                 {t}
               </span>
             ))}
@@ -134,7 +144,11 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
                   <CheckCircle size={13} />
                   {showSol ? 'Hide' : 'Show'} Solution
                 </div>
-                {showSol ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
+                {showSol ? (
+                  <ChevronUp size={15} className="text-gray-400" />
+                ) : (
+                  <ChevronDown size={15} className="text-gray-400" />
+                )}
               </button>
               {showSol && (
                 <div className="p-4 border-t border-gray-100 dark:border-white/8 prose-math text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
@@ -147,7 +161,9 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
           {/* Author notes */}
           {notes && (
             <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Author Notes</p>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                Author Notes
+              </p>
               <div className="text-sm text-gray-700 dark:text-gray-300 prose-math leading-relaxed">
                 <KatexRenderer latex={notes} />
               </div>
@@ -162,17 +178,27 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
               </p>
               <div className="space-y-2">
                 {comments.map((fb, idx) => (
-                  <div key={fb.id || idx} className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/8">
+                  <div
+                    key={fb.id || idx}
+                    className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/8"
+                  >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                         {fb.user?.firstName} {fb.user?.lastName}
                       </span>
-                      {fb.isEndorsement
-                        ? <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">✓ Endorsed</span>
-                        : fb.resolved
-                        ? <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">Resolved</span>
-                        : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-medium">Needs Review</span>
-                      }
+                      {fb.isEndorsement ? (
+                        <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">
+                          ✓ Endorsed
+                        </span>
+                      ) : fb.resolved ? (
+                        <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                          Resolved
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-medium">
+                          Needs Review
+                        </span>
+                      )}
                       <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto">
                         {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}
                       </span>
@@ -184,7 +210,9 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
                       </div>
                     )}
                     {(fb.comment || fb.feedback) && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{fb.comment || fb.feedback}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                        {fb.comment || fb.feedback}
+                      </p>
                     )}
                   </div>
                 ))}
@@ -195,12 +223,18 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
           {/* Actions */}
           <div className="flex items-center gap-3 pt-1">
             <button
-              onClick={() => { onClose(); onNavigate(data.id); }}
+              onClick={() => {
+                onClose();
+                onNavigate(data.id);
+              }}
               className="flex items-center gap-1.5 px-3 py-2 bg-[#2774AE] text-white rounded-lg text-xs font-semibold hover:bg-[#005587] transition-colors"
             >
               Full Page
             </button>
-            <button onClick={onClose} className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors">
+            <button
+              onClick={onClose}
+              className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
+            >
               Close
             </button>
           </div>
@@ -215,12 +249,17 @@ const ProblemInventory = () => {
   const navigate = useNavigate();
 
   // Dark mode detection
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const [dark, setDark] = useState(() =>
+    document.documentElement.classList.contains('dark'),
+  );
   useEffect(() => {
     const observer = new MutationObserver(() =>
-      setDark(document.documentElement.classList.contains('dark'))
+      setDark(document.documentElement.classList.contains('dark')),
     );
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
     return () => observer.disconnect();
   }, []);
 
@@ -235,11 +274,17 @@ const ProblemInventory = () => {
   const [previewProblem, setPreviewProblem] = useState(null);
   const [previewFull, setPreviewFull] = useState(null);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   useEffect(() => {
-    if (!previewProblem) { setPreviewFull(null); return; }
-    api.get(`/problems/${previewProblem.id}`)
+    if (!previewProblem) {
+      setPreviewFull(null);
+      return;
+    }
+    api
+      .get(`/problems/${previewProblem.id}`)
       .then(res => setPreviewFull(res.data))
       .catch(() => setPreviewFull(previewProblem));
   }, [previewProblem]);
@@ -257,41 +302,82 @@ const ProblemInventory = () => {
 
   const { filtered, chartData } = useMemo(() => {
     let res = problems.filter(p => {
-      const matchesSearch = search === '' ||
+      const matchesSearch =
+        search === '' ||
         (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
         (p.latex || '').toLowerCase().includes(search.toLowerCase());
       const disp = p._displayStatus || getProblemStatus(p, p.feedbacks);
       const matchesStage = stageFilter === 'all' || disp === stageFilter;
-      const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
-      const matchesDifficulty = difficultyFilter === 'all' || parseInt(p.quality) === parseInt(difficultyFilter);
-      return matchesSearch && matchesStage && matchesTopic && matchesDifficulty;
+      const matchesTopic =
+        topicFilter === 'all' || (p.topics || []).includes(topicFilter);
+      const matchesDifficulty =
+        difficultyFilter === 'all' ||
+        parseInt(p.quality) === parseInt(difficultyFilter);
+      return (
+        matchesSearch &&
+        matchesStage &&
+        matchesTopic &&
+        matchesDifficulty
+      );
     });
 
     res.sort((a, b) => {
-      if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
-      if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      if (sortBy === 'newest')
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      if (sortBy === 'oldest')
+        return new Date(a.createdAt) - new Date(b.createdAt);
       if (sortBy === 'diff') return (b.quality || 0) - (a.quality || 0);
       return 0;
     });
 
-    // Build stacked cumulative chart data (keep graph logic unchanged)
+    // Build stacked cumulative chart data using computed display status
     const dailyData = {};
     [...problems]
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
       .forEach(p => {
-        const date = new Date(p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        if (!dailyData[date]) dailyData[date] = { date, Idea: 0, Review: 0, Endorsed: 0 };
-        if (p.stage === 'Endorsed' || p.stage === 'Published') dailyData[date].Endorsed++;
-        else if (p.stage === 'Review') dailyData[date].Review++;
+        const date = new Date(p.createdAt).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+        });
+
+        if (!dailyData[date]) {
+          dailyData[date] = {
+            date,
+            Idea: 0,
+            'Needs Review': 0,
+            Resolved: 0,
+            Endorsed: 0,
+          };
+        }
+
+        const status = p._displayStatus || getProblemStatus(p, p.feedbacks);
+
+        if (status === 'Endorsed') dailyData[date].Endorsed++;
+        else if (status === 'Resolved') dailyData[date].Resolved++;
+        else if (status === 'Needs Review') dailyData[date]['Needs Review']++;
         else dailyData[date].Idea++;
       });
 
-    let totals = { Idea: 0, Review: 0, Endorsed: 0 };
+    let totals = {
+      Idea: 0,
+      'Needs Review': 0,
+      Resolved: 0,
+      Endorsed: 0,
+    };
+
     const cumulativeGrowth = Object.values(dailyData).map(day => {
       totals.Idea += day.Idea;
-      totals.Review += day.Review;
+      totals['Needs Review'] += day['Needs Review'];
+      totals.Resolved += day.Resolved;
       totals.Endorsed += day.Endorsed;
-      return { date: day.date, Idea: totals.Idea, Review: totals.Review, Endorsed: totals.Endorsed };
+
+      return {
+        date: day.date,
+        Idea: totals.Idea,
+        'Needs Review': totals['Needs Review'],
+        Resolved: totals.Resolved,
+        Endorsed: totals.Endorsed,
+      };
     });
 
     return { filtered: res, chartData: cumulativeGrowth };
@@ -300,7 +386,11 @@ const ProblemInventory = () => {
   const chartColor = {
     grid: dark ? 'rgba(255,255,255,0.06)' : '#e5e7eb',
     axis: dark ? '#4b5563' : '#9ca3af',
-    tooltip: { bg: dark ? '#111827' : '#fff', border: dark ? 'rgba(255,255,255,0.08)' : '#e5e7eb', text: dark ? '#d1d5db' : '#111827' },
+    tooltip: {
+      bg: dark ? '#111827' : '#fff',
+      border: dark ? 'rgba(255,255,255,0.08)' : '#e5e7eb',
+      text: dark ? '#d1d5db' : '#111827',
+    },
   };
 
   if (loading) return <InventorySkeleton />;
@@ -308,21 +398,37 @@ const ProblemInventory = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
-
         {/* Header row: count + chart */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 mb-6">
           <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-6">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Total problems</p>
-            <p className="text-5xl font-semibold text-gray-900 dark:text-white tabular-nums">{problems.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              Total problems
+            </p>
+            <p className="text-5xl font-semibold text-gray-900 dark:text-white tabular-nums">
+              {problems.length}
+            </p>
           </div>
 
           <div className="lg:col-span-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg p-6">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Growth over time</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Growth over time
+            </p>
             <div className="h-36">
               <ResponsiveContainer width="100%" height="100%" key={String(dark)}>
                 <AreaChart data={chartData} margin={{ left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColor.grid} />
-                  <XAxis dataKey="date" stroke={chartColor.axis} fontSize={11} tickLine={false} axisLine={false} dy={6} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke={chartColor.grid}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    stroke={chartColor.axis}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={6}
+                  />
                   <YAxis
                     stroke={chartColor.axis}
                     fontSize={11}
@@ -336,21 +442,65 @@ const ProblemInventory = () => {
                       style: { fontSize: 10, fill: chartColor.axis },
                     }}
                   />
-                  <Tooltip contentStyle={{
-                    backgroundColor: chartColor.tooltip.bg,
-                    border: `1px solid ${chartColor.tooltip.border}`,
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    color: chartColor.tooltip.text,
-                  }} />
-                  <Legend verticalAlign="top" align="right" iconType="circle"
-                    wrapperStyle={{ paddingBottom: 12, fontSize: 11, color: chartColor.axis }} />
-                  <Area type="monotone" dataKey="Idea" stackId="stack"
-                    stroke="#003B5C" fill="#8BB8E8" fillOpacity={0.45} dot={false} strokeWidth={1.5} />
-                  <Area type="monotone" dataKey="Review" stackId="stack"
-                    stroke="#FFB81C" fill="#FFB81C" fillOpacity={0.4} dot={false} strokeWidth={2} />
-                  <Area type="monotone" dataKey="Endorsed" stackId="stack"
-                    stroke="#FFD100" fill="#2774AE" fillOpacity={0.35} dot={false} strokeWidth={2} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: chartColor.tooltip.bg,
+                      border: `1px solid ${chartColor.tooltip.border}`,
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      color: chartColor.tooltip.text,
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    iconType="circle"
+                    wrapperStyle={{
+                      paddingBottom: 12,
+                      fontSize: 11,
+                      color: chartColor.axis,
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Idea"
+                    stackId="stack"
+                    stroke="#003B5C"
+                    fill="#8BB8E8"
+                    fillOpacity={0.4}
+                    dot={false}
+                    strokeWidth={1.5}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Needs Review"
+                    stackId="stack"
+                    stroke="#C08400"
+                    fill="#FFB81C"
+                    fillOpacity={0.45}
+                    dot={false}
+                    strokeWidth={1.8}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Resolved"
+                    stackId="stack"
+                    stroke="#2563EB"
+                    fill="#2774AE"
+                    fillOpacity={0.38}
+                    dot={false}
+                    strokeWidth={1.8}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Endorsed"
+                    stackId="stack"
+                    stroke="#15803D"
+                    fill="#22C55E"
+                    fillOpacity={0.35}
+                    dot={false}
+                    strokeWidth={1.8}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -360,7 +510,10 @@ const ProblemInventory = () => {
         {/* Filter bar */}
         <div className="flex flex-wrap gap-3 p-4 mb-5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-lg">
           <div className="relative flex-1 min-w-[220px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               placeholder="Search by ID or content"
@@ -370,10 +523,48 @@ const ProblemInventory = () => {
             />
           </div>
           {[
-            { val: sortBy,           fn: setSortBy,           opts: [['newest','Newest'],['oldest','Oldest'],['diff','Hardest first']] },
-            { val: stageFilter,      fn: setStageFilter,      opts: [['all','All stages'],['Idea','Idea'],['Needs Review','Needs Review'],['Resolved','Resolved'],['Endorsed','Endorsed']] },
-            { val: topicFilter,      fn: setTopicFilter,      opts: [['all','All topics'],['Algebra','Algebra'],['Geometry','Geometry'],['Combinatorics','Combinatorics'],['Number Theory','Number Theory']] },
-            { val: difficultyFilter, fn: setDifficultyFilter, opts: [['all','All difficulties'],...Array.from({length:10},(_,i)=>[(i+1).toString(),`${i+1}/10`])] },
+            {
+              val: sortBy,
+              fn: setSortBy,
+              opts: [
+                ['newest', 'Newest'],
+                ['oldest', 'Oldest'],
+                ['diff', 'Hardest first'],
+              ],
+            },
+            {
+              val: stageFilter,
+              fn: setStageFilter,
+              opts: [
+                ['all', 'All stages'],
+                ['Idea', 'Idea'],
+                ['Needs Review', 'Needs Review'],
+                ['Resolved', 'Resolved'],
+                ['Endorsed', 'Endorsed'],
+              ],
+            },
+            {
+              val: topicFilter,
+              fn: setTopicFilter,
+              opts: [
+                ['all', 'All topics'],
+                ['Algebra', 'Algebra'],
+                ['Geometry', 'Geometry'],
+                ['Combinatorics', 'Combinatorics'],
+                ['Number Theory', 'Number Theory'],
+              ],
+            },
+            {
+              val: difficultyFilter,
+              fn: setDifficultyFilter,
+              opts: [
+                ['all', 'All difficulties'],
+                ...Array.from({ length: 10 }, (_, i) => [
+                  (i + 1).toString(),
+                  `${i + 1}/10`,
+                ]),
+              ],
+            },
           ].map((sel, i) => (
             <select
               key={i}
@@ -381,7 +572,11 @@ const ProblemInventory = () => {
               onChange={e => sel.fn(e.target.value)}
               className="px-3 py-2 text-sm appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 cursor-pointer transition"
             >
-              {sel.opts.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+              {sel.opts.map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
             </select>
           ))}
         </div>
@@ -391,64 +586,99 @@ const ProblemInventory = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-gray-100 dark:border-white/8">
-                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Problem</th>
-                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Latest review</th>
-                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right">Stage</th>
+                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Problem
+                </th>
+                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Latest review
+                </th>
+                <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right">
+                  Stage
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-white/5">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-5 py-14 text-center text-sm text-gray-400 dark:text-gray-500">No matching problems.</td>
+                  <td
+                    colSpan={3}
+                    className="px-5 py-14 text-center text-sm text-gray-400 dark:text-gray-500"
+                  >
+                    No matching problems.
+                  </td>
                 </tr>
-              ) : filtered.map(problem => (
-                <tr
-                  key={problem.id}
-                  onClick={() => setPreviewProblem(problem)}
-                  className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
-                >
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
-                      {problem.quality && (
-                        <span className="text-sm text-gray-400 dark:text-gray-500">· {problem.quality}/10</span>
-                      )}
-                      {problem.topics?.map(t => (
-                        <span key={t} className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-[10px] rounded">{t}</span>
-                      ))}
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">{problem.latex}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    {problem.feedbacks?.length > 0 ? (
-                      <div>
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                          {problem.feedbacks[0].user?.firstName} {problem.feedbacks[0].user?.lastName}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          {new Date(problem.feedbacks[0].createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-400 dark:text-gray-500">No reviews yet</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    {(() => {
-                      const s = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
-                      return (
-                        <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded border ${STATUS_BADGE_CLASS[s] || STATUS_BADGE_CLASS.Idea}`}>
-                          {s}
+              ) : (
+                filtered.map(problem => (
+                  <tr
+                    key={problem.id}
+                    onClick={() => setPreviewProblem(problem)}
+                    className="hover:bg-gray-50 dark:hover:bg-white/3 cursor-pointer transition-colors"
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2.5 mb-1">
+                        <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">
+                          {problem.id}
                         </span>
-                      );
-                    })()}
-                  </td>
-                </tr>
-              ))}
+                        {problem.quality && (
+                          <span className="text-sm text-gray-400 dark:text-gray-500">
+                            · {problem.quality}/10
+                          </span>
+                        )}
+                        {problem.topics?.map(t => (
+                          <span
+                            key={t}
+                            className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400 text-[10px] rounded"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
+                        {problem.latex}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4">
+                      {problem.feedbacks?.length > 0 ? (
+                        <div>
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            {problem.feedbacks[0].user?.firstName}{' '}
+                            {problem.feedbacks[0].user?.lastName}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            {new Date(
+                              problem.feedbacks[0].createdAt,
+                            ).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          No reviews yet
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      {(() => {
+                        const s =
+                          problem._displayStatus ||
+                          getProblemStatus(problem, problem.feedbacks);
+                        return (
+                          <span
+                            className={`inline-block px-2.5 py-1 text-xs font-semibold rounded border ${
+                              STATUS_BADGE_CLASS[s] ||
+                              STATUS_BADGE_CLASS.Idea
+                            }`}
+                          >
+                            {s}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-
       </div>
 
       {/* Preview modal */}
@@ -456,8 +686,11 @@ const ProblemInventory = () => {
         <PreviewPanel
           problem={previewProblem}
           fullProblem={previewFull}
-          onClose={() => { setPreviewProblem(null); setPreviewFull(null); }}
-          onNavigate={(id) => navigate(`/problem/${id}`)}
+          onClose={() => {
+            setPreviewProblem(null);
+            setPreviewFull(null);
+          }}
+          onNavigate={id => navigate(`/problem/${id}`)}
         />
       )}
     </Layout>

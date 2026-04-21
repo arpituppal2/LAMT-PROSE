@@ -16,15 +16,10 @@ const ADMIN_EMAILS = [
 ];
 
 // GET /feedback/next
-// Returns the single best problem to review for the current user:
-//   1. Not authored by the current user
-//   2. Not already reviewed (any feedback record) by the current user
-//   3. Sorted: fewest total feedback records first, then oldest createdAt first
 router.get('/next', authenticate, async (req, res) => {
   try {
     const { difficulty } = req.query;
 
-    // Get all problem IDs this user has already reviewed
     const alreadyReviewed = await prisma.feedback.findMany({
       where: { userId: req.userId },
       select: { problemId: true },
@@ -37,25 +32,20 @@ router.get('/next', authenticate, async (req, res) => {
     };
     if (difficulty) where.quality = String(difficulty);
 
-    // Fetch candidates with their feedback count
     const problems = await prisma.problem.findMany({
       where,
       include: {
         author: { select: { firstName: true, lastName: true, initials: true } },
         _count: { select: { feedbacks: true } },
       },
-      orderBy: [
-        { createdAt: 'asc' }, // secondary: oldest first
-      ],
+      orderBy: [{ createdAt: 'asc' }],
     });
 
     if (problems.length === 0) return res.json(null);
 
-    // Primary sort: fewest feedback records first
     problems.sort((a, b) => {
       const diff = (a._count?.feedbacks ?? 0) - (b._count?.feedbacks ?? 0);
       if (diff !== 0) return diff;
-      // Secondary: oldest createdAt first (already sorted by DB, but belt-and-suspenders)
       return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
@@ -67,7 +57,57 @@ router.get('/next', authenticate, async (req, res) => {
   }
 });
 
-// GET /feedback/reviewable - all problems eligible for review
+// GET /feedback/skip
+// Returns a random Idea problem not authored/reviewed by the user.
+// Falls back to a random Endorsed problem not yet reviewed by the user.
+router.get('/skip', authenticate, async (req, res) => {
+  try {
+    const alreadyReviewed = await prisma.feedback.findMany({
+      where: { userId: req.userId },
+      select: { problemId: true },
+    });
+    const reviewedIds = alreadyReviewed.map((f) => f.problemId);
+
+    const baseWhere = {
+      authorId: { not: req.userId },
+      stage: { not: 'Archived' },
+      ...(reviewedIds.length > 0 ? { id: { notIn: reviewedIds } } : {}),
+    };
+
+    // First: try to find Idea problems (no feedback at all)
+    const ideaProblems = await prisma.problem.findMany({
+      where: { ...baseWhere, stage: 'Idea' },
+      include: {
+        author: { select: { firstName: true, lastName: true, initials: true } },
+      },
+    });
+
+    if (ideaProblems.length > 0) {
+      const pick = ideaProblems[Math.floor(Math.random() * ideaProblems.length)];
+      return res.json(pick);
+    }
+
+    // Fallback: Endorsed problems not yet reviewed by user
+    const endorsedProblems = await prisma.problem.findMany({
+      where: { ...baseWhere, stage: 'Endorsed' },
+      include: {
+        author: { select: { firstName: true, lastName: true, initials: true } },
+      },
+    });
+
+    if (endorsedProblems.length > 0) {
+      const pick = endorsedProblems[Math.floor(Math.random() * endorsedProblems.length)];
+      return res.json(pick);
+    }
+
+    return res.json(null);
+  } catch (error) {
+    console.error('GET /feedback/skip error:', error);
+    return res.status(500).json({ error: 'Failed to fetch skip problem' });
+  }
+});
+
+// GET /feedback/reviewable
 router.get('/reviewable', authenticate, async (req, res) => {
   try {
     const { topic, stage, author, difficulty, search } = req.query;
@@ -76,7 +116,7 @@ router.get('/reviewable', authenticate, async (req, res) => {
       select: { problemId: true },
     });
     const reviewedIds = [...new Set(alreadyReviewed.map((f) => f.problemId))];
-    const andParts = [{ authorId: { not: req.userId } }, { stage: { not: 'Archived' } } ];
+    const andParts = [{ authorId: { not: req.userId } }, { stage: { not: 'Archived' } }];
     if (reviewedIds.length > 0) andParts.push({ id: { notIn: reviewedIds } });
     if (topic) andParts.push({ topics: { has: topic } });
     if (author) andParts.push({ authorId: author });
@@ -122,7 +162,7 @@ router.get('/reviewable', authenticate, async (req, res) => {
   }
 });
 
-// GET /feedback/my-feedback - current user's feedback history
+// GET /feedback/my-feedback
 router.get('/my-feedback', authenticate, async (req, res) => {
   try {
     const feedbacks = await prisma.feedback.findMany({
@@ -149,14 +189,13 @@ router.get('/my-feedback', authenticate, async (req, res) => {
   }
 });
 
-// POST /feedback - submit feedback or endorsement
+// POST /feedback
 router.post('/', authenticate, async (req, res) => {
   try {
     const { problemId, answer, feedback, timeSpent, isEndorsement } = req.body;
     const problem = await prisma.problem.findUnique({ where: { id: problemId } });
     if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
-    // Prevent duplicate: one feedback (of any type) per user per problem
     const existing = await prisma.feedback.findFirst({
       where: { problemId, userId: req.userId },
     });
@@ -196,7 +235,7 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-// GET /feedback/problem/:problemId - all feedback for a problem
+// GET /feedback/problem/:problemId
 router.get('/problem/:problemId', authenticate, async (req, res) => {
   try {
     const feedbacks = await prisma.feedback.findMany({
@@ -212,7 +251,7 @@ router.get('/problem/:problemId', authenticate, async (req, res) => {
   }
 });
 
-// PUT /feedback/:id/reply - problem author or admin adds/edits a reply
+// PUT /feedback/:id/reply
 router.put('/:id/reply', authenticate, async (req, res) => {
   try {
     const { reply } = req.body;
@@ -243,7 +282,7 @@ router.put('/:id/reply', authenticate, async (req, res) => {
   }
 });
 
-// PATCH /feedback/:id - edit feedback (creator or admin only)
+// PATCH /feedback/:id
 router.patch('/:id', authenticate, async (req, res) => {
   try {
     const { comment, answer, isEndorsement } = req.body;
@@ -306,7 +345,7 @@ router.patch('/:id', authenticate, async (req, res) => {
   }
 });
 
-// PUT /feedback/:id/resolve - resolve feedback (problem author or admin)
+// PUT /feedback/:id/resolve
 router.put('/:id/resolve', authenticate, async (req, res) => {
   try {
     const { comment } = req.body;

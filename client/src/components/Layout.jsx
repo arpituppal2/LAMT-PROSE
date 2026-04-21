@@ -48,13 +48,13 @@ const Sidebar = ({ dark, toggleDark }) => {
   };
 
   const links = [
-    { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/write',         icon: PenTool,          label: 'Write' },
-    { to: '/inventory',     icon: List,             label: 'Inventory' },
-    { to: '/exams',         icon: ClipboardList,    label: 'Exams' },
-    { to: '/leaderboard',   icon: Trophy,           label: 'Leaderboard' },
-    { to: '/feedback',      icon: MessageSquare,    label: 'Feedback' },
-    { to: '/archive',       icon: Archive,          label: 'Archive' },
+    { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/write',       icon: PenTool,          label: 'Write' },
+    { to: '/inventory',   icon: List,             label: 'Inventory' },
+    { to: '/exams',       icon: ClipboardList,    label: 'Exams' },
+    { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard' },
+    { to: '/feedback',    icon: MessageSquare,    label: 'Feedback' },
+    { to: '/archive',     icon: Archive,          label: 'Archive' },
   ];
 
   return (
@@ -76,7 +76,7 @@ const Sidebar = ({ dark, toggleDark }) => {
         )}
         <button
           onClick={handleToggleCollapse}
-          className="p-1.5 hover:bg-white/15 active:bg-white/25 transition-colors ml-auto"
+          className="p-1.5 hover:bg-white/15 active:bg-white/25 transition-colors ml-auto rounded-sm"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <Menu size={17} /> : <X size={17} />}
@@ -93,11 +93,11 @@ const Sidebar = ({ dark, toggleDark }) => {
               key={link.to}
               to={link.to}
               className={`
-                flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors duration-150
+                flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium transition-colors duration-150 rounded-sm
                 ${
                   isActive
-                    ? 'bg-white/20 text-white border border-white/25'
-                    : 'text-white/80 hover:bg-white/12 hover:text-white'
+                    ? 'bg-white text-[#2774AE] dark:bg-white dark:text-[#2774AE]'
+                    : 'text-white/80 hover:bg-white/15 hover:text-white'
                 }
               `}
             >
@@ -111,7 +111,7 @@ const Sidebar = ({ dark, toggleDark }) => {
       <div className="px-2 py-2.5 border-t border-white/15 dark:border-white/10 space-y-0.5">
         <button
           onClick={toggleDark}
-          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-white/75 hover:bg-white/12 hover:text-white transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-[14px] font-medium text-white/75 hover:bg-white/15 hover:text-white transition-colors rounded-sm"
         >
           {dark
             ? <Sun  size={17} className="flex-shrink-0" />
@@ -120,7 +120,7 @@ const Sidebar = ({ dark, toggleDark }) => {
         </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-white/75 hover:bg-red-600/30 hover:text-white transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-[14px] font-medium text-white/75 hover:bg-red-600/30 hover:text-white transition-colors rounded-sm"
         >
           <LogOut size={17} className="flex-shrink-0" />
           {!collapsed && <span>Sign out</span>}
@@ -136,7 +136,7 @@ const Layout = ({ children }) => {
     <ThemeContext.Provider value={{ dark }}>
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
-        <main className="flex-1 overflow-y-auto bg-white dark:bg-[#001628] text-black dark:text-white">
+        <main className="flex-1 overflow-y-auto bg-[#F5F7FA] dark:bg-[#001628] text-black dark:text-white">
           <div className="relative p-6 md:p-8 max-w-[1600px] mx-auto">
             {children}
           </div>

@@ -62,10 +62,10 @@ const formatRelativeDate = (dateLike) => {
 const MetricCard = ({ label, value, hint, tone = 'neutral' }) => {
   const toneClass = {
     neutral: 'text-slate-900 dark:text-white',
-    review: 'text-red-700 dark:text-red-300',
-    success: 'text-green-700 dark:text-green-300',
-    idea: 'text-yellow-800 dark:text-yellow-200',
-    resolved: 'text-blue-700 dark:text-blue-300',
+    review:  'status-needs-review-text',
+    success: 'status-endorsed-text',
+    idea:    'status-idea-text',
+    resolved:'status-resolved-text',
   };
 
   return (
@@ -93,7 +93,7 @@ const FilterChip = ({ active, children, onClick, count }) => (
     onClick={onClick}
     className={`inline-flex items-center gap-2 rounded-sm border px-3 py-2 text-sm font-medium transition-colors ${
       active
-        ? 'border-[#2774AE] bg-[#2774AE] text-white dark:border-[#FFD100] dark:bg-[#FFD100] dark:text-[#001628]'
+        ? 'btn-primary'
         : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-[#03111d] dark:text-slate-200 dark:hover:border-white/20'
     }`}
   >
@@ -122,7 +122,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-white/10 bg-white/95 px-5 py-4 backdrop-blur dark:bg-[#001628]/95">
           <div>
             <div className="flex items-center gap-3">
-              <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{data.id}</span>
+              <span className="font-mono text-sm font-semibold prose-id-color">{data.id}</span>
               <StatusBadge status={normStatus(data)} />
             </div>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{(data.topics || []).join(' · ') || 'No topic tags'}</p>
@@ -153,7 +153,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
             </div>
             <div className="rounded-sm border border-slate-200 bg-slate-50 px-4 py-3 text-right dark:border-white/10 dark:bg-white/5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Difficulty</p>
-              <p className="mt-1 text-xl font-semibold text-[#2774AE] dark:text-[#FFD100]">{parseInt(data.quality, 10) || '?'}<span className="text-sm text-slate-500 dark:text-slate-400">/10</span></p>
+              <p className="mt-1 text-xl font-semibold prose-id-color">{parseInt(data.quality, 10) || '?'}<span className="text-sm text-slate-500 dark:text-slate-400">/10</span></p>
             </div>
           </section>
 
@@ -223,7 +223,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => { onClose(); onNavigate(data.id); }}
-              className="inline-flex items-center gap-2 rounded-sm bg-[#2774AE] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1f6395] dark:bg-[#FFD100] dark:text-[#001628] dark:hover:bg-[#f5c800]"
+              className="btn-primary inline-flex items-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold"
             >
               Open full problem
               <ArrowRight size={15} />
@@ -402,7 +402,7 @@ const Dashboard = () => {
             </div>
             <button
               onClick={() => navigate('/write')}
-              className="inline-flex items-center gap-2 rounded-sm bg-[#2774AE] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1f6395] dark:bg-[#FFD100] dark:text-[#001628] dark:hover:bg-[#f5c800]"
+              className="btn-primary inline-flex items-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold"
             >
               <PenTool size={15} />
               New Problem
@@ -472,13 +472,13 @@ const Dashboard = () => {
                       value={query}
                       onChange={(e) => setParam('q', e.target.value)}
                       placeholder="Search ID, preview, topic"
-                      className="w-full rounded-sm border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-[#2774AE] dark:border-white/10 dark:bg-[#03111d] dark:text-white dark:focus:border-[#FFD100]"
+                      className="input-base w-full py-2.5 pl-9 pr-3 text-sm"
                     />
                   </label>
                   <select
                     value={topicFilter}
                     onChange={(e) => setParam('topic', e.target.value, 'all')}
-                    className="w-full rounded-sm border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#2774AE] dark:border-white/10 dark:bg-[#03111d] dark:text-white dark:focus:border-[#FFD100]"
+                    className="input-base w-full px-3 py-2.5 text-sm"
                   >
                     <option value="all">All topics</option>
                     {TOPIC_OPTIONS.map((topic) => (
@@ -518,7 +518,7 @@ const Dashboard = () => {
                               <td className="px-4 py-3 align-top">
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                                    <span className="font-mono text-sm font-semibold prose-id-color">{problem.id}</span>
                                   </div>
                                   <p className="max-w-[420px] text-sm leading-6 text-slate-700 dark:text-slate-300">
                                     {problem.latex ? `${stripLatex(problem.latex)}${problem.latex.length > 110 ? '…' : ''}` : 'No preview available'}
@@ -563,14 +563,14 @@ const Dashboard = () => {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Workflow focus</p>
                     <div className="mt-4 space-y-3 text-sm text-slate-700 dark:text-slate-300">
                       <div className="flex items-start gap-3">
-                        <Clock3 size={16} className="mt-0.5 text-red-500" />
+                        <Clock3 size={16} className="mt-0.5 status-needs-review-icon" />
                         <div>
                           <p className="font-semibold text-slate-900 dark:text-slate-100">Resolve flagged work first</p>
                           <p className="mt-1 leading-6">Keep the queue clear before starting fresh drafts or polishing endorsed inventory.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <Sparkles size={16} className="mt-0.5 text-blue-500" />
+                        <Sparkles size={16} className="mt-0.5 status-resolved-icon" />
                         <div>
                           <p className="font-semibold text-slate-900 dark:text-slate-100">Use concise rows</p>
                           <p className="mt-1 leading-6">The table keeps previews short so you can scan status and act without reading full statements here.</p>
@@ -590,7 +590,7 @@ const Dashboard = () => {
                             onClick={() => navigate(`/problem/${pid}`)}
                             className="flex w-full items-center justify-between rounded-sm border border-slate-200 bg-slate-50 px-3 py-2 text-left hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
                           >
-                            <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{pid}</span>
+                            <span className="font-mono text-sm font-semibold prose-id-color">{pid}</span>
                             <span className="text-xs text-slate-500 dark:text-slate-400">{formatRelativeDate(updatedAt)}</span>
                           </button>
                         ))}
@@ -614,7 +614,7 @@ const Dashboard = () => {
                 <div className="flex h-40 items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading review queue…</div>
               ) : reviewProblems.length === 0 ? (
                 <div className="rounded-sm border border-slate-200 bg-slate-50 px-6 py-16 text-center dark:border-white/10 dark:bg-[#020c16]">
-                  <CheckCircle2 className="mx-auto text-green-500" size={36} />
+                  <CheckCircle2 className="mx-auto status-endorsed-icon" size={36} />
                   <h2 className="mt-4 text-xl font-semibold text-slate-900 dark:text-white">No authored problems need review</h2>
                   <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Your authored queue is clear right now.</p>
                 </div>
@@ -628,14 +628,14 @@ const Dashboard = () => {
                         key={problem.id}
                         type="button"
                         onClick={() => navigate(`/problem/${problem.id}`)}
-                        className="block w-full rounded-sm border border-slate-200 bg-white p-5 text-left hover:border-[#2774AE] hover:bg-slate-50 dark:border-white/10 dark:bg-[#03111d] dark:hover:border-[#FFD100] dark:hover:bg-white/5"
+                        className="block w-full rounded-sm border border-slate-200 bg-white p-5 text-left hover:border-prose-primary hover:bg-slate-50 dark:border-white/10 dark:bg-[#03111d] dark:hover:border-prose-primary-dark dark:hover:bg-white/5"
                       >
                         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                              <span className="font-mono text-sm font-semibold prose-id-color">{problem.id}</span>
                               <StatusBadge status="Needs Review" />
-                              <span className="rounded-sm bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 dark:bg-red-500/15 dark:text-red-300">
+                              <span className={`${STATUS_BADGE_CLASS['Needs Review']} rounded-sm px-2 py-1 text-xs font-semibold`}>
                                 {unresolved.length} unresolved
                               </span>
                             </div>
@@ -654,7 +654,7 @@ const Dashboard = () => {
                           <div className="grid gap-3 xl:w-[360px]">
                             <div className="rounded-sm border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#020c16]">
                               <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                <MessageSquareMore size={15} className="text-red-500" />
+                                <MessageSquareMore size={15} className="status-needs-review-icon" />
                                 Latest reviewer note
                               </div>
                               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -663,7 +663,7 @@ const Dashboard = () => {
                             </div>
                             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500 dark:text-slate-400">
                               <span>Updated {formatRelativeDate(problem.updatedAt || problem.createdAt)}</span>
-                              <span className="inline-flex items-center gap-2 font-semibold text-[#2774AE] dark:text-[#FFD100]">
+                              <span className="inline-flex items-center gap-2 font-semibold prose-id-color">
                                 Open Review
                                 <ArrowRight size={15} />
                               </span>
@@ -694,7 +694,7 @@ const Dashboard = () => {
                   </div>
                   <button
                     onClick={() => navigate('/feedback')}
-                    className="inline-flex items-center gap-2 rounded-sm bg-[#2774AE] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1f6395] dark:bg-[#FFD100] dark:text-[#001628] dark:hover:bg-[#f5c800]"
+                    className="btn-primary inline-flex items-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold"
                   >
                     Give Feedback
                     <ArrowRight size={15} />
@@ -720,7 +720,7 @@ const Dashboard = () => {
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{fb.problemId}</span>
+                              <span className="font-mono text-sm font-semibold prose-id-color">{fb.problemId}</span>
                               <StatusBadge status={outcome} />
                               <span className="text-xs text-slate-500 dark:text-slate-400">{formatRelativeDate(fb.createdAt)}</span>
                             </div>
@@ -736,9 +736,11 @@ const Dashboard = () => {
                               </div>
                             )}
                             {fb.resolutionNotes && (
-                              <div className="mt-3 rounded-sm border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-400/20 dark:bg-blue-500/10">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-300">Resolution</p>
-                                <p className="mt-2 text-sm leading-6 text-blue-900 dark:text-blue-100">{fb.resolutionNotes}</p>
+                              <div className="mt-3 rounded-sm border border-slate-200 bg-slate-50 px-4 py-4 dark:border-white/10 dark:bg-[#020c16]">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                                  <span className="status-resolved-text">Resolution</span>
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">{fb.resolutionNotes}</p>
                               </div>
                             )}
                           </div>

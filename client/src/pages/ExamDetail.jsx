@@ -62,18 +62,28 @@ const STAGES = ['Endorsed', 'Published', 'Needs Review', 'Idea'];
 const TOPIC_WARN_THRESHOLD = 0.4;
 
 // ── Stage config ───────────────────────────────────────────────────────────────
+// dot: colored indicator pip
+// rail: left border on live-preview entries
+// All chip styling now delegates to .status-badge + .status-{key} from index.css
 const STAGE_CFG = {
-  Endorsed:      { dot: 'bg-emerald-500',  chip: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',  rail: 'border-l-emerald-400 dark:border-l-emerald-600' },
-  Published:     { dot: 'bg-sky-500',      chip: 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800',                           rail: 'border-l-sky-400 dark:border-l-sky-600' },
-  'Needs Review':{ dot: 'bg-red-500',      chip: 'bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',                            rail: 'border-l-red-400 dark:border-l-red-600' },
-  Idea:          { dot: 'bg-amber-400',    chip: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',               rail: 'border-l-amber-400 dark:border-l-amber-500' },
+  Endorsed:      { dot: 'bg-[var(--badge-endorsed-text)]',      rail: 'border-l-[var(--badge-endorsed-text)]' },
+  Published:     { dot: 'bg-[var(--ucla-blue)]',                 rail: 'border-l-[var(--ucla-blue)]' },
+  'Needs Review':{ dot: 'bg-[var(--badge-needs-review-text)]',   rail: 'border-l-[var(--badge-needs-review-text)]' },
+  Idea:          { dot: 'bg-[var(--badge-idea-text)]',           rail: 'border-l-[var(--badge-idea-text)]' },
 };
-const stageCfg = (s) => STAGE_CFG[s] || { dot: 'bg-slate-400', chip: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700', rail: 'border-l-slate-300 dark:border-l-slate-600' };
+const stageCfg = (s) => STAGE_CFG[s] || { dot: 'bg-slate-400 dark:bg-slate-500', rail: 'border-l-slate-300 dark:border-l-slate-600' };
 
-const StageChip = ({ stage }) => {
-  const c = stageCfg(stage);
-  return <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-semibold leading-none ${c.chip}`}>{stage}</span>;
-};
+// Maps stage name → CSS modifier class for the status-badge system
+const stageToClass = (s) => ({
+  'Endorsed':      'status-endorsed',
+  'Published':     'status-resolved',
+  'Needs Review':  'status-needs-review',
+  'Idea':          'status-idea',
+}[s] || 'status-archived');
+
+const StageChip = ({ stage }) => (
+  <span className={`status-badge ${stageToClass(stage)}`}>{stage}</span>
+);
 
 // ── Slot map helpers ───────────────────────────────────────────────────────────
 const deriveSlotMap = (exam) => (exam?.slots && Object.keys(exam.slots).length > 0 ? exam.slots : {});
@@ -336,8 +346,8 @@ const topicWarning = (problems) => {
 const DupeBanner = ({ dupeWarnings, onDismiss }) => {
   if (!dupeWarnings || dupeWarnings.length === 0) return null;
   return (
-    <div className="flex items-start gap-2.5 px-4 py-3 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex-shrink-0">
-      <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+    <div className="flex items-start gap-2.5 px-4 py-3 bg-[var(--badge-idea-bg)] border-b border-[var(--badge-idea-border)] text-[var(--badge-idea-text)] flex-shrink-0">
+      <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 opacity-80" />
       <div className="flex-1 min-w-0 text-[12px] leading-relaxed">
         <span className="font-semibold">Cross-exam duplicates: </span>
         {dupeWarnings.map((w, i) => (
@@ -349,7 +359,7 @@ const DupeBanner = ({ dupeWarnings, onDismiss }) => {
           </span>
         ))}
       </div>
-      <button onClick={onDismiss} className="flex-shrink-0 text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 transition">
+      <button onClick={onDismiss} className="flex-shrink-0 opacity-60 hover:opacity-100 transition">
         <X size={12} />
       </button>
     </div>
@@ -360,8 +370,8 @@ const DupeBanner = ({ dupeWarnings, onDismiss }) => {
 const TopicBanner = ({ topic }) => {
   if (!topic) return null;
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 flex-shrink-0 text-[12px]">
-      <AlertTriangle size={13} className="text-amber-500 dark:text-amber-400 flex-shrink-0" />
+    <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--badge-idea-bg)] border-b border-[var(--badge-idea-border)] text-[var(--badge-idea-text)] flex-shrink-0 text-[12px]">
+      <AlertTriangle size={13} className="flex-shrink-0 opacity-70" />
       <span>Over 40% of assigned problems are <strong>{topic}</strong> — consider diversifying.</span>
     </div>
   );
@@ -383,10 +393,12 @@ const SlotCard = ({ slot, problems, canEdit, onDrop, onRemove, onPreview, dragOv
         const from = e.dataTransfer.getData('fromSlot') || null;
         if (pid) onDrop(slot.key, pid, from, slot.multi);
       }}
-      className={`rounded-md border flex flex-col transition min-h-[90px]
-        ${over ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-800/60'
-          : isEmpty ? 'border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/30'
-          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'}`}
+      className={`rounded-[var(--radius-md)] border flex flex-col transition min-h-[90px]
+        ${over
+          ? 'border-[var(--ucla-blue)] bg-[var(--ucla-lightest-blue)]/30 dark:bg-[var(--ucla-blue)]/10'
+          : isEmpty
+            ? 'border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-white/3'
+            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-white/3'}`}
     >
       <div className="flex items-center justify-between px-2.5 pt-2 pb-1">
         <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{slot.label}</span>
@@ -395,7 +407,7 @@ const SlotCard = ({ slot, problems, canEdit, onDrop, onRemove, onPreview, dragOv
 
       {isEmpty ? (
         <div className="flex-1 flex items-center justify-center pb-3">
-          <p className="text-[10px] text-slate-300 dark:text-slate-700 italic select-none">
+          <p className="text-[10px] text-slate-300 dark:text-slate-600 italic select-none">
             {canEdit ? (over ? 'drop here' : 'empty') : '—'}
           </p>
         </div>
@@ -416,10 +428,10 @@ const SlotCard = ({ slot, problems, canEdit, onDrop, onRemove, onPreview, dragOv
                   e.stopPropagation();
                 }}
                 onClick={() => onPreview(p)}
-                className={`group relative rounded border cursor-pointer transition
+                className={`group relative rounded-[var(--radius-sm)] border cursor-pointer transition
                   ${isDupe
-                    ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-slate-300 dark:hover:border-slate-600'}`}
+                    ? 'border-[var(--badge-idea-border)] bg-[var(--badge-idea-bg)]'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--ucla-navy)]/60 hover:border-[var(--ucla-blue)]/50 dark:hover:border-[var(--ucla-blue)]/40'}`}
               >
                 <div className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-l ${sc.dot}`} />
                 <div className="pl-2.5 pr-2 pt-2 pb-1.5">
@@ -427,7 +439,7 @@ const SlotCard = ({ slot, problems, canEdit, onDrop, onRemove, onPreview, dragOv
                     <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate">{p.id}</span>
                     {isDupe && (
                       <span title={`Also on: ${[...dupeMap[p.id]].join(', ')}`}
-                        className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-amber-400 dark:bg-amber-500" />
+                        className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--badge-idea-text)]" />
                     )}
                     {p.quality != null && (
                       <span className="text-[10px] text-slate-400 tabular-nums ml-auto flex-shrink-0">d{p.quality}</span>
@@ -435,7 +447,7 @@ const SlotCard = ({ slot, problems, canEdit, onDrop, onRemove, onPreview, dragOv
                     {canEdit && (
                       <button
                         onClick={(e) => { e.stopPropagation(); onRemove(slot.key, p.id); }}
-                        className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-300 hover:text-slate-600 transition"
+                        className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/8 text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 transition"
                       >
                         <X size={9} />
                       </button>
@@ -481,8 +493,9 @@ const BankRow = ({ problem, assigned, onPreview, dupeMap }) => {
       }}
       onClick={() => !assigned && onPreview(problem)}
       className={`flex items-start gap-2 px-3 py-2.5 border-b border-slate-100 dark:border-slate-800/80 transition select-none
-        ${assigned ? 'opacity-30 pointer-events-none'
-          : 'hover:bg-white dark:hover:bg-slate-900 cursor-grab active:cursor-grabbing'}`}
+        ${assigned
+          ? 'opacity-30 pointer-events-none'
+          : 'hover:bg-[var(--ucla-lightest-blue)]/20 dark:hover:bg-[var(--ucla-blue)]/8 cursor-grab active:cursor-grabbing'}`}
     >
       <span className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${sc.dot}`} />
       <div className="flex-1 min-w-0">
@@ -490,7 +503,7 @@ const BankRow = ({ problem, assigned, onPreview, dupeMap }) => {
           <span className="font-mono text-[11px] font-semibold text-slate-800 dark:text-slate-100">{problem.id}</span>
           {isDupe && !assigned && (
             <span title={`Also on: ${[...dupeMap[problem.id]].join(', ')}`}
-              className="text-[9px] font-medium text-amber-600 dark:text-amber-400 flex-shrink-0">⚑ dup</span>
+              className="text-[9px] font-medium text-[var(--badge-idea-text)] flex-shrink-0">⚑ dup</span>
           )}
           {problem.quality != null && (
             <span className="text-[10px] text-slate-400 tabular-nums ml-auto flex-shrink-0">d{problem.quality}</span>
@@ -541,7 +554,7 @@ const LivePreview = ({ slots, slotMap, byId }) => {
                   <div className="w-20 flex-shrink-0 text-right pt-1">
                     {i === 0 && <span className="text-[11px] font-medium text-slate-400">{slot.label}</span>}
                   </div>
-                  <div className={`flex-1 min-w-0 border-l pl-4 ${sc.rail}`}>
+                  <div className={`flex-1 min-w-0 border-l-2 pl-4 ${sc.rail}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-mono text-[10px] text-slate-400">{pid}</span>
                       <StageChip stage={p?.stage} />
@@ -567,7 +580,7 @@ const ProbModal = ({ p, close, dupeMap }) => {
   const dupes = dupeMap?.[p.id];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4" onClick={close}>
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+      <div className="bg-white dark:bg-[var(--ucla-navy)] rounded-[var(--radius-lg)] border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 dark:border-slate-800">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sc.dot}`} />
@@ -578,31 +591,31 @@ const ProbModal = ({ p, close, dupeMap }) => {
           ))}
           {p.quality != null && <span className="text-xs text-slate-400 ml-1">d{p.quality}/10</span>}
           {dupes && dupes.size > 0 && (
-            <span className="ml-2 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+            <span className="ml-2 text-[11px] font-medium text-[var(--badge-idea-text)]">
               ⚑ also on: {[...dupes].join(', ')}
             </span>
           )}
-          <button onClick={close} className="ml-auto p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-400">
+          <button onClick={close} className="ml-auto p-1.5 rounded-[var(--radius-sm)] hover:bg-slate-100 dark:hover:bg-white/8 transition text-slate-400">
             <X size={14} />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <div>
             <p className="text-[10px] uppercase tracking-wide font-semibold text-slate-400 mb-2">Problem</p>
-            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-md px-5 py-4 text-base leading-loose border border-slate-200 dark:border-slate-800">
+            <div className="bg-slate-50 dark:bg-white/4 rounded-[var(--radius-md)] px-5 py-4 text-base leading-loose border border-slate-200 dark:border-slate-700">
               <KatexRenderer latex={fixLatex(p.latex || '')} />
             </div>
           </div>
           {p.solution && (
             <div>
               <p className="text-[10px] uppercase tracking-wide font-semibold text-slate-400 mb-2">Solution</p>
-              <div className="bg-slate-50 dark:bg-slate-800/60 rounded-md px-5 py-4 text-sm leading-relaxed border border-slate-200 dark:border-slate-800">
+              <div className="bg-slate-50 dark:bg-white/4 rounded-[var(--radius-md)] px-5 py-4 text-sm leading-relaxed border border-slate-200 dark:border-slate-700">
                 <KatexRenderer latex={fixLatex(p.solution)} />
               </div>
             </div>
           )}
           {p.answer && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-slate-200 dark:border-slate-700">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-white/4">
               <span className="text-[10px] uppercase tracking-wide text-slate-400">Answer</span>
               <span className="font-semibold text-slate-800 dark:text-slate-100">{p.answer}</span>
             </div>
@@ -651,7 +664,7 @@ const Discussion = ({ examId, userId, isAdmin }) => {
           ? <p className="text-center text-[11px] text-slate-400 py-4">No comments yet.</p>
           : list.map((c) => (
             <div key={c.id} className="flex gap-2.5 group">
-              <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-600 dark:text-slate-300 flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-[var(--ucla-lightest-blue)] dark:bg-[var(--ucla-blue)]/20 flex items-center justify-center text-[9px] font-bold text-[var(--ucla-darker-blue)] dark:text-[var(--ucla-lighter-blue)] flex-shrink-0">
                 {c.user?.initials}
               </div>
               <div className="flex-1 min-w-0">
@@ -665,7 +678,7 @@ const Discussion = ({ examId, userId, isAdmin }) => {
               </div>
               {(c.user?.id === userId || isAdmin) && (
                 <button onClick={() => del(c.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-300 hover:text-red-500 transition">
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--badge-needs-review-bg)] text-slate-300 hover:text-[var(--badge-needs-review-text)] transition">
                   <X size={10} />
                 </button>
               )}
@@ -678,9 +691,9 @@ const Discussion = ({ examId, userId, isAdmin }) => {
         <textarea value={body} onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); post(e); } }}
           placeholder="Comment… (Enter to send)" rows={1}
-          className="flex-1 px-2.5 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[12px] outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-slate-600 resize-none transition" />
+          className="flex-1 px-2.5 py-1.5 rounded-[var(--radius-sm)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-white/4 text-[12px] outline-none focus:ring-1 focus:ring-[var(--ucla-blue)] dark:focus:ring-[var(--ucla-lighter-blue)] resize-none transition" />
         <button type="submit" disabled={posting || !body.trim()}
-          className="px-2.5 py-1.5 rounded bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:opacity-90 disabled:opacity-40 transition">
+          className="px-2.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--ucla-blue)] text-white hover:bg-[var(--ucla-blue-hover)] disabled:opacity-40 transition">
           {posting ? <Spin /> : <Send size={11} />}
         </button>
       </form>
@@ -878,7 +891,7 @@ export default function ExamDetail() {
     return (
       <Layout>
         <div className="max-w-xl mx-auto px-6 py-12 text-center">
-          <p className="text-red-500 mb-3">{err || 'Not found.'}</p>
+          <p className="text-[var(--badge-needs-review-text)] mb-3">{err || 'Not found.'}</p>
           <button onClick={() => navigate('/exams')} className="underline text-sm text-slate-500">← Back</button>
         </div>
       </Layout>
@@ -887,12 +900,12 @@ export default function ExamDetail() {
 
   return (
     <Layout fullHeight noPadding>
-      <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-slate-950">
+      <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-[var(--app-bg)]">
 
         {/* ── Top bar ─────────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex-shrink-0">
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--app-surface)] flex-shrink-0">
           <button onClick={() => navigate('/exams')}
-            className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition">
+            className="p-1.5 rounded-[var(--radius-sm)] hover:bg-slate-100 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
             <ArrowLeft size={15} />
           </button>
 
@@ -912,11 +925,11 @@ export default function ExamDetail() {
             {canEdit && (
               <div className="relative">
                 <button onClick={() => setShowCopy((v) => !v)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded border border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-sm)] border border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/8 transition">
                   <Copy size={11} /> Copy layout <ChevronDown size={10} />
                 </button>
                 {showCopy && (
-                  <div className="absolute right-0 top-full mt-1 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-xl w-56 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-1 z-30 bg-white dark:bg-[var(--app-surface)] border border-slate-200 dark:border-slate-700 rounded-[var(--radius-md)] shadow-xl w-56 overflow-hidden">
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-3 py-2 border-b border-slate-100 dark:border-slate-800">
                       Copy from
                     </p>
@@ -928,7 +941,7 @@ export default function ExamDetail() {
                             updateMap(() => ({ ...deriveSlotMap(e) }));
                             setShowCopy(false);
                           }}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-50 dark:border-slate-800 transition">
+                          className="w-full text-left px-3 py-2 hover:bg-[var(--ucla-lightest-blue)]/30 dark:hover:bg-white/4 border-b border-slate-50 dark:border-slate-800 transition">
                           <p className="text-[12px] font-medium text-slate-700 dark:text-slate-200 truncate">{e.name}</p>
                           <p className="text-[10px] text-slate-400">{e.author?.firstName} {e.author?.lastName}</p>
                         </button>
@@ -942,9 +955,9 @@ export default function ExamDetail() {
             {/* Save */}
             {canEdit && (
               <button onClick={handleSave} disabled={saveState === 'saving' || !isDirty}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[11px] font-semibold transition
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border text-[11px] font-semibold transition
                   ${isDirty
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent hover:opacity-90'
+                    ? 'bg-[var(--ucla-blue)] text-white border-transparent hover:bg-[var(--ucla-blue-hover)]'
                     : 'text-slate-400 border-slate-200 dark:border-slate-800 cursor-default'}`}>
                 {saveState === 'saving' ? <Spin /> : <Save size={12} />}
                 {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved ✓' : saveState === 'err' ? 'Error' : 'Save'}
@@ -953,10 +966,10 @@ export default function ExamDetail() {
 
             {/* Preview toggle */}
             <button onClick={() => setShowPreview((v) => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[11px] font-semibold transition
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border text-[11px] font-semibold transition
                 ${showPreview
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent'
-                  : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900'}`}>
+                  ? 'bg-[var(--ucla-blue)] text-white border-transparent'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-white/8 dark:text-slate-300'}`}>
               {showPreview ? <EyeOff size={12} /> : <Eye size={12} />}
               {showPreview ? 'Exit preview' : 'Preview'}
             </button>
@@ -966,166 +979,136 @@ export default function ExamDetail() {
                 const tex = buildTexExport(exam, currentMap, byId, gutsPerSet, slots);
                 dl(`${(exam.name || 'exam').replace(/\s+/g, '-').toLowerCase()}.tex`, tex);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
-              <Download size={12} /> .tex
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/8 transition">
+              <Download size={12} /> Export .tex
+            </button>
+
+            {/* Discussion */}
+            <button onClick={() => setDiscOpen((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] border text-[11px] font-semibold transition
+                ${discOpen
+                  ? 'bg-[var(--ucla-blue)] text-white border-transparent'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/8'}`}>
+              <MessageSquare size={12} />
+              Notes
             </button>
           </div>
         </div>
 
         {/* ── Warning banners ──────────────────────────────────────────────── */}
-        {!dupeDismissed && <DupeBanner dupeWarnings={dupeWarnings} onDismiss={() => setDupeDismissed(true)} />}
-        <TopicBanner topic={topicWarn} />
-
-        {isDirty && !showPreview && (
-          <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 text-[11px] text-slate-500">
-            Unsaved changes
-            {canEdit && <button onClick={handleSave} className="underline font-semibold text-slate-700 dark:text-slate-300">Save now</button>}
-            <button onClick={() => setPendingMap(null)} className="underline text-slate-400 ml-auto">Discard</button>
-          </div>
+        {dupeWarnings.length > 0 && !dupeDismissed && (
+          <DupeBanner dupeWarnings={dupeWarnings} onDismiss={() => setDupeDismissed(true)} />
         )}
+        {topicWarn && <TopicBanner topic={topicWarn} />}
 
-        {/* ── Two-pane builder ─────────────────────────────────────────────── */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* ── Body ────────────────────────────────────────────────────────── */}
+        <div className="flex flex-1 overflow-hidden">
 
-          {/* LEFT — Problem bank */}
-          <div className="w-72 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 overflow-hidden">
-
-            <div className="flex-shrink-0 px-3 py-3 space-y-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-              {/* Search */}
-              <div className="relative">
-                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search ID or text…"
-                  className="w-full pl-8 pr-3 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[12px] text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-slate-600 transition" />
-              </div>
-
-              {/* Topics */}
-              <div>
-                <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Topic</p>
-                <div className="flex flex-wrap gap-1">
-                  {['all', ...TOPICS].map((t) => (
-                    <button key={t} onClick={() => setTopicF(t)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-medium border transition
-                        ${topicF === t
-                          ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 border-transparent'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-400'}`}>
-                      {t === 'all' ? 'All' : t}
-                    </button>
-                  ))}
+          {/* Left: slot grid */}
+          <div className={`flex flex-col overflow-hidden transition-all duration-200 ${discOpen ? 'w-[38%]' : showPreview ? 'w-[40%]' : 'w-[42%]'} border-r border-slate-200 dark:border-slate-800`}>
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+              {Object.entries(sections).map(([sec, ss]) => (
+                <div key={sec}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 px-0.5">{sec}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ss.map((slot) => (
+                      <SlotCard
+                        key={slot.key}
+                        slot={slot}
+                        problems={getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean)}
+                        canEdit={canEdit}
+                        onDrop={handleDrop}
+                        onRemove={handleRemove}
+                        onPreview={setPreview}
+                        dragOverKey={dragOver}
+                        onDragEnter={setDragOver}
+                        onDragLeave={() => setDragOver(null)}
+                        dupeMap={dupeMap}
+                      />
+                    ))}
+                  </div>
                 </div>
-                {autoTopics && (
-                  <p className="text-[9px] text-slate-400 mt-1">Pre-filtered to {autoTopics.join(' & ')}</p>
-                )}
-              </div>
-
-              {/* Stages */}
-              <div>
-                <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Stage</p>
-                <div className="flex flex-wrap gap-1">
-                  {['all', ...STAGES].map((s) => {
-                    const active = stageF === s;
-                    const sc = s !== 'all' ? stageCfg(s) : null;
-                    return (
-                      <button key={s} onClick={() => setStageF(s)}
-                        className={`px-2 py-0.5 rounded text-[10px] font-medium border transition
-                          ${active
-                            ? s === 'all'
-                              ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 border-transparent'
-                              : `${sc.chip} border`
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-400'}`}>
-                        {s === 'all' ? 'All' : s}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Difficulty + Sort */}
-              <div className="flex items-center gap-2">
-                <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 flex-shrink-0">d</p>
-                <input type="number" min={1} max={10} value={diffMin}
-                  onChange={(e) => setDiffMin(Math.min(Number(e.target.value), diffMax))}
-                  className="w-10 px-1.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[11px] text-center text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-slate-300" />
-                <span className="text-[10px] text-slate-400">–</span>
-                <input type="number" min={1} max={10} value={diffMax}
-                  onChange={(e) => setDiffMax(Math.max(Number(e.target.value), diffMin))}
-                  className="w-10 px-1.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[11px] text-center text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-slate-300" />
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                  className="ml-auto text-[10px] px-1.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 outline-none">
-                  <option value="id">ID</option>
-                  <option value="diff-asc">d ↑</option>
-                  <option value="diff-desc">d ↓</option>
-                </select>
-              </div>
-
-              <p className="text-[10px] text-slate-400">
-                {probLoading ? 'Loading…' : `${picker.length} problem${picker.length !== 1 ? 's' : ''}`}
-              </p>
-            </div>
-
-            {/* Bank list */}
-            <div className="flex-1 overflow-y-auto">
-              {picker.map((p) => (
-                <BankRow key={p.id} problem={p} assigned={assigned.has(p.id)} onPreview={setPreview} dupeMap={dupeMap} />
               ))}
             </div>
           </div>
 
-          {/* RIGHT — Slot grid or Preview */}
-          <div className="flex-1 min-w-0 overflow-y-auto">
-            {showPreview ? (
+          {/* Middle: preview OR problem bank */}
+          {showPreview ? (
+            <div className="flex-1 overflow-y-auto bg-white dark:bg-[var(--app-surface)]">
               <LivePreview slots={slots} slotMap={currentMap} byId={byId} />
-            ) : (
-              <div className="p-4">
-                {Object.entries(sections).map(([sec, ss]) => {
-                  const isGuts = exam.templateType === 'guts';
-                  const cols = (isGuts && sec.startsWith('Set')) ? 3
-                             : (isGuts && sec === 'Estimation') ? 3
-                             : 2;
-
-                  return (
-                    <div key={sec} className="mb-6">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">{sec}</p>
-                      <div
-                        className="grid gap-2"
-                        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-                      >
-                        {ss.map((slot) => (
-                          <SlotCard
-                            key={slot.key}
-                            slot={slot}
-                            problems={getSlotIds(currentMap, slot.key).map((pid) => byId[pid]).filter(Boolean)}
-                            canEdit={!!canEdit}
-                            onDrop={handleDrop}
-                            onRemove={handleRemove}
-                            onPreview={setPreview}
-                            dragOverKey={dragOver}
-                            onDragEnter={setDragOver}
-                            onDragLeave={() => setDragOver(null)}
-                            dupeMap={dupeMap}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Discussion */}
-                <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-4">
-                  <button onClick={() => setDiscOpen((v) => !v)}
-                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition mb-3">
-                    <MessageSquare size={13} />
-                    Discussion
-                    <ChevronDown size={11} className={`transition-transform ${discOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {discOpen && <Discussion examId={id} userId={me?.id} isAdmin={isAdmin} />}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[var(--app-surface)]">
+              {/* Bank filters */}
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0 flex-wrap">
+                <div className="relative flex-1 min-w-[120px]">
+                  <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 pointer-events-none" />
+                  <input
+                    value={search} onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search…"
+                    className="w-full pl-7 pr-2.5 py-1.5 rounded-[var(--radius-sm)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-white/4 text-[11px] outline-none focus:ring-1 focus:ring-[var(--ucla-blue)] dark:focus:ring-[var(--ucla-lighter-blue)] transition"
+                  />
                 </div>
+                <select value={topicF} onChange={(e) => setTopicF(e.target.value)}
+                  className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-white/4 text-[11px] text-slate-600 dark:text-slate-300 outline-none focus:ring-1 focus:ring-[var(--ucla-blue)]">
+                  <option value="all">All topics</option>
+                  {TOPICS.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <select value={stageF} onChange={(e) => setStageF(e.target.value)}
+                  className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-white/4 text-[11px] text-slate-600 dark:text-slate-300 outline-none focus:ring-1 focus:ring-[var(--ucla-blue)]">
+                  <option value="all">All stages</option>
+                  {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                  className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-white/4 text-[11px] text-slate-600 dark:text-slate-300 outline-none focus:ring-1 focus:ring-[var(--ucla-blue)]">
+                  <option value="id">Sort: ID</option>
+                  <option value="diff-asc">Sort: Easy → Hard</option>
+                  <option value="diff-desc">Sort: Hard → Easy</option>
+                </select>
+                <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                  <span>d</span>
+                  <input type="number" min={1} max={10} value={diffMin} onChange={(e) => setDiffMin(Number(e.target.value))}
+                    className="w-8 px-1 py-1 rounded-[var(--radius-xs)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-white/4 text-[11px] text-center outline-none focus:ring-1 focus:ring-[var(--ucla-blue)]" />
+                  <span>–</span>
+                  <input type="number" min={1} max={10} value={diffMax} onChange={(e) => setDiffMax(Number(e.target.value))}
+                    className="w-8 px-1 py-1 rounded-[var(--radius-xs)] border border-slate-200 dark:border-slate-700 bg-white dark:bg-white/4 text-[11px] text-center outline-none focus:ring-1 focus:ring-[var(--ucla-blue)]" />
+                </div>
+                {probLoading && <Spin size={11} />}
+                <span className="text-[10px] text-slate-400 ml-auto tabular-nums">{picker.length}</span>
               </div>
-            )}
-          </div>
+
+              {/* Bank list */}
+              <div className="flex-1 overflow-y-auto">
+                {picker.length === 0 ? (
+                  <p className="text-center text-[11px] text-slate-400 py-8 italic">No problems match.</p>
+                ) : (
+                  picker.map((p) => (
+                    <BankRow key={p.id} problem={p} assigned={assigned.has(p.id)} onPreview={setPreview} dupeMap={dupeMap} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Right: discussion panel */}
+          {discOpen && (
+            <div className="w-64 flex flex-col border-l border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-[var(--app-surface)]">
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Notes</span>
+                <button onClick={() => setDiscOpen(false)}
+                  className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/8 text-slate-400 transition">
+                  <X size={12} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                <Discussion examId={id} userId={me?.id} isAdmin={isAdmin} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* ── Problem modal ────────────────────────────────────────────────── */}
       {preview && <ProbModal p={preview} close={() => setPreview(null)} dupeMap={dupeMap} />}
     </Layout>
   );

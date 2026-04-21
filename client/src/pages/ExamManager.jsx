@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ClipboardList, Plus, Trash2, X,
@@ -11,8 +11,8 @@ import Layout from '../components/Layout';
 const TEMPLATES = [
   {
     key: 'indiv-alg-nt',
-    label: 'Individual: Algebra & Number Theory',
-    description: '10 problems + 1 Estimation. Topic: Algebra / Number Theory. 50 min.',
+    label: 'Individual: Algebra & NT',
+    description: '10 problems + 1 Estimation. Topics: Algebra / Number Theory. 50 min.',
     slots: 11,
     estimationSlot: true,
     allowedTopics: ['Algebra', 'Number Theory'],
@@ -59,14 +59,27 @@ const TEMPLATES = [
 ];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-const Spinner = () => <Loader2 size={16} className="animate-spin text-ucla-blue dark:text-[#FFD100]" />;
+const Spinner = ({ size = 16 }) => (
+  <Loader2 size={size} className="animate-spin" />
+);
 
 const ErrorMsg = ({ msg }) =>
   msg ? (
-    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm mt-2">
-      <AlertCircle size={14} />{msg}
+    <div className="flex items-center gap-2 text-[var(--badge-needs-review-text)] text-sm mt-2">
+      <AlertCircle size={14} className="flex-shrink-0" />
+      <span>{msg}</span>
     </div>
   ) : null;
+
+// ─── Input / label shared classes ─────────────────────────────────────────────
+const inputCls =
+  'w-full px-3 py-2 rounded-[var(--radius-md)] border border-slate-200 dark:border-white/10 ' +
+  'bg-white dark:bg-white/5 text-slate-800 dark:text-slate-100 text-sm outline-none ' +
+  'focus:ring-2 focus:ring-[var(--ucla-blue)]/25 dark:focus:ring-[var(--ucla-gold)]/20 ' +
+  'placeholder:text-slate-400 dark:placeholder:text-slate-500 transition';
+
+const labelCls =
+  'block text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-1.5 uppercase tracking-wider';
 
 // ─── New Exam Modal ───────────────────────────────────────────────────────────
 const NewExamModal = ({ onClose, onCreate }) => {
@@ -78,8 +91,10 @@ const NewExamModal = ({ onClose, onCreate }) => {
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const applyTemplate = (tpl) => {
-    setSelectedTemplate(tpl);
-    setForm(f => ({ ...f, name: tpl.label }));
+    setSelectedTemplate(tpl.key === selectedTemplate?.key ? null : tpl);
+    if (tpl.key !== selectedTemplate?.key) {
+      setForm(f => ({ ...f, name: tpl.label }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -105,71 +120,164 @@ const NewExamModal = ({ onClose, onCreate }) => {
     }
   };
 
-  const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-ucla-blue/30 dark:focus:ring-[#FFD100]/30 transition';
-  const labelCls = 'block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide';
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-2xl mx-4 p-6 overflow-y-auto max-h-[90vh]">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white">New Exam</h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <X size={18} className="text-slate-500" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div
+        className="bg-white dark:bg-[var(--app-surface)] rounded-[var(--radius-xl)] shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-xl mx-4 overflow-hidden"
+        style={{ maxHeight: '90dvh' }}
+      >
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/8">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">New Exam</h2>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-[var(--radius-sm)] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/8 transition"
+            aria-label="Close"
+          >
+            <X size={16} />
           </button>
         </div>
 
-        <div className="mb-5">
-          <p className={labelCls}>Choose a Template</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {TEMPLATES.map(tpl => (
-              <button key={tpl.key} type="button"
-                onClick={() => applyTemplate(tpl)}
-                className={`text-left px-3 py-2.5 rounded-xl border transition text-sm ${
-                  selectedTemplate?.key === tpl.key
-                    ? 'border-ucla-blue dark:border-[#FFD100] bg-blue-50 dark:bg-[#FFD100]/5'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                }`}>
-                <p className="font-semibold text-slate-800 dark:text-white text-xs">{tpl.label}</p>
-                <p className="text-slate-400 dark:text-slate-500 text-[11px] mt-0.5">{tpl.description}</p>
-              </button>
-            ))}
-          </div>
-          {selectedTemplate && (
-            <div className="mt-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-[#FFD100]/5 border border-blue-100 dark:border-[#FFD100]/20 text-xs text-slate-600 dark:text-slate-300">
-              <strong>Scoring:</strong> {selectedTemplate.scoring}
+        <div className="overflow-y-auto p-5 space-y-5" style={{ maxHeight: 'calc(90dvh - 57px)' }}>
+          {/* Template picker */}
+          <div>
+            <p className={labelCls}>Template <span className="normal-case font-normal text-slate-400">(optional)</span></p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {TEMPLATES.map(tpl => (
+                <button
+                  key={tpl.key}
+                  type="button"
+                  onClick={() => applyTemplate(tpl)}
+                  className={[
+                    'text-left px-3 py-2.5 rounded-[var(--radius-md)] border transition text-xs',
+                    selectedTemplate?.key === tpl.key
+                      ? 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] bg-[var(--ucla-blue)]/5 dark:bg-[var(--ucla-gold)]/5'
+                      : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-white/3',
+                  ].join(' ')}
+                >
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">{tpl.label}</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-[11px] mt-0.5 leading-snug">{tpl.description}</p>
+                </button>
+              ))}
             </div>
-          )}
+            {selectedTemplate && (
+              <div className="mt-2 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--ucla-blue)]/5 dark:bg-[var(--ucla-gold)]/5 border border-[var(--ucla-blue)]/15 dark:border-[var(--ucla-gold)]/15 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                <strong>Scoring:</strong> {selectedTemplate.scoring}
+              </div>
+            )}
+          </div>
+
+          {/* Form fields */}
+          <form onSubmit={handleSubmit} className="space-y-4" id="new-exam-form">
+            <div>
+              <label className={labelCls}>Competition *</label>
+              <input className={inputCls} value={form.competition} onChange={set('competition')} placeholder="e.g. LAMT 2026" autoFocus />
+            </div>
+            <div>
+              <label className={labelCls}>Exam Name *</label>
+              <input className={inputCls} value={form.name} onChange={set('name')} placeholder="e.g. Individual: Algebra & NT" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Version *</label>
+                <input className={inputCls} value={form.version} onChange={set('version')} placeholder="v1" />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Description <span className="normal-case font-normal">— optional</span></label>
+              <textarea className={`${inputCls} resize-none`} rows={2} value={form.description} onChange={set('description')} placeholder="Brief description..." />
+            </div>
+            <ErrorMsg msg={error} />
+          </form>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className={labelCls}>Competition *</label>
-            <input className={inputCls} value={form.competition} onChange={set('competition')} placeholder="e.g. LAMT 2026" />
+        {/* Sticky footer actions */}
+        <div className="px-5 py-4 border-t border-slate-100 dark:border-white/8 flex gap-2.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2 rounded-[var(--radius-md)] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-white/5 transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="new-exam-form"
+            disabled={loading}
+            className="flex-1 py-2 rounded-[var(--radius-md)] bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] text-white dark:text-slate-900 text-sm font-semibold hover:bg-[var(--ucla-blue-hover)] dark:hover:bg-[var(--ucla-gold-hover)] disabled:opacity-50 transition flex items-center justify-center gap-2"
+          >
+            {loading ? <Spinner size={15} /> : <Plus size={15} />}
+            {loading ? 'Creating…' : 'Create Exam'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Exam card ────────────────────────────────────────────────────────────────
+const ExamCard = ({ exam, canEdit, onDelete, onClick }) => {
+  const problemCount = exam.problems?.length ?? 0;
+
+  return (
+    <div
+      onClick={onClick}
+      className="group relative cursor-pointer rounded-[var(--radius-lg)] border border-slate-200 dark:border-white/8 bg-white dark:bg-[var(--app-surface)] px-4 py-3.5 hover:border-slate-300 dark:hover:border-white/15 hover:shadow-sm transition-all"
+    >
+      <div className="flex items-center gap-3">
+        {/* Main info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{exam.name}</p>
+            {exam.templateType && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--ucla-blue)]/10 dark:bg-[var(--ucla-gold)]/10 text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] border border-[var(--ucla-blue)]/15 dark:border-[var(--ucla-gold)]/15">
+                {exam.templateType}
+              </span>
+            )}
           </div>
-          <div>
-            <label className={labelCls}>Exam Name *</label>
-            <input className={inputCls} value={form.name} onChange={set('name')} placeholder="e.g. Team Round" />
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{exam.competition}</span>
+            <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-slate-100 dark:bg-white/8 text-slate-500 dark:text-slate-400">
+              {exam.version}
+            </span>
+            <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+              {problemCount} problem{problemCount !== 1 ? 's' : ''}
+            </span>
+            {(exam.author?.firstName || exam.author?.lastName) && (
+              <>
+                <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">
+                  {[exam.author.firstName, exam.author.lastName].filter(Boolean).join(' ')}
+                </span>
+              </>
+            )}
+            {exam.updatedAt && (
+              <>
+                <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">
+                  {new Date(exam.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              </>
+            )}
           </div>
-          <div>
-            <label className={labelCls}>Version *</label>
-            <input className={inputCls} value={form.version} onChange={set('version')} placeholder="e.g. v1" />
-          </div>
-          <div>
-            <label className={labelCls}>Description <span className="normal-case font-normal">(optional)</span></label>
-            <textarea className={inputCls} rows={2} value={form.description} onChange={set('description')} placeholder="Brief description..." />
-          </div>
-          <ErrorMsg msg={error} />
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-              Cancel
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {canEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(exam.id); }}
+              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-[var(--radius-sm)] text-slate-300 dark:text-slate-600 hover:text-[var(--badge-needs-review-text)] hover:bg-[var(--badge-needs-review-bg)] transition"
+              title="Delete exam"
+              aria-label="Delete exam"
+            >
+              <Trash2 size={13} />
             </button>
-            <button type="submit" disabled={loading}
-              className="flex-1 py-2 rounded-lg bg-ucla-blue dark:bg-[#FFD100] text-white dark:text-slate-900 text-sm font-bold hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
-              {loading ? <Spinner /> : <Plus size={15} />} Create
-            </button>
-          </div>
-        </form>
+          )}
+          <ChevronRight size={14} className="text-slate-300 dark:text-slate-600" />
+        </div>
       </div>
     </div>
   );
@@ -224,100 +332,66 @@ const ExamManager = () => {
   return (
     <Layout>
       <div className="max-w-[960px] mx-auto">
+
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <ClipboardList size={26} className="text-ucla-blue dark:text-[#FFD100]" />
+          <div className="flex items-center gap-2.5">
+            <ClipboardList size={20} className="text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] flex-shrink-0" />
             <div>
-              <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Exams</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Build and manage competition exam sets</p>
+              <h1 className="text-lg font-semibold text-slate-900 dark:text-white leading-tight">Exams</h1>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Build and manage competition exam sets</p>
             </div>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-ucla-blue dark:bg-[#FFD100] text-white dark:text-slate-900 rounded-lg font-bold text-sm hover:opacity-90 transition shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] text-white dark:text-slate-900 rounded-[var(--radius-md)] font-semibold text-sm hover:bg-[var(--ucla-blue-hover)] dark:hover:bg-[var(--ucla-gold-hover)] transition shadow-sm"
           >
-            <Plus size={16} /> New Exam
+            <Plus size={15} /> New Exam
           </button>
         </div>
 
         {/* Exam list */}
         {examsLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 size={20} className="animate-spin text-ucla-blue dark:text-[#FFD100]" />
+          <div className="flex items-center justify-center py-20 text-slate-400 dark:text-slate-600">
+            <Spinner size={20} />
           </div>
         ) : examsError ? (
-          <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
-            <AlertCircle size={14} />{examsError}
+          <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--badge-needs-review-bg)] border border-[var(--badge-needs-review-border)] text-[var(--badge-needs-review-text)] text-sm">
+            <AlertCircle size={14} className="flex-shrink-0" />{examsError}
           </div>
         ) : exams.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <FileText size={40} className="text-slate-300 dark:text-slate-700 mb-3" />
-            <p className="text-slate-500 dark:text-slate-400 font-medium">No exams yet.</p>
-            <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Create your first exam to get started.</p>
+          <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-[var(--radius-xl)]">
+            <FileText size={32} className="text-slate-200 dark:text-slate-700 mb-3" />
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No exams yet</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 mb-4">Create your first exam to get started.</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] text-white dark:text-slate-900 rounded-[var(--radius-md)] font-semibold text-sm hover:bg-[var(--ucla-blue-hover)] dark:hover:bg-[var(--ucla-gold-hover)] transition"
+            >
+              <Plus size={14} /> New Exam
+            </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {exams.map(exam => (
-              <div
+              <ExamCard
                 key={exam.id}
+                exam={exam}
+                canEdit={canEditExam(exam)}
+                onDelete={handleDeleteExam}
                 onClick={() => navigate(`/exams/${exam.id}`)}
-                className="group relative cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-sm text-slate-800 dark:text-white truncate">{exam.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{exam.competition}</p>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {canEditExam(exam) && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteExam(exam.id); }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition"
-                        title="Delete exam"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                    <ChevronRight size={14} className="text-slate-400 dark:text-slate-600" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-    {exam.version}
-  </span>
-  <span className="text-[10px] text-slate-400 dark:text-slate-500">
-    {exam.problems?.length ?? 0} problem{exam.problems?.length !== 1 ? 's' : ''}
-  </span>
-  {exam.templateType && (
-    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-ucla-blue/10 dark:bg-[#FFD100]/10 text-ucla-blue dark:text-[#FFD100]">
-      {exam.templateType}
-    </span>
-  )}
-  {(exam.author?.firstName || exam.author?.lastName) && (
-    <>
-      <span className="text-[10px] text-slate-300 dark:text-slate-700">·</span>
-      <span className="text-[10px] text-slate-400 dark:text-slate-500">
-        {[exam.author.firstName, exam.author.lastName].filter(Boolean).join(' ')}
-      </span>
-    </>
-  )}
-  {exam.updatedAt && (
-    <>
-      <span className="text-[10px] text-slate-300 dark:text-slate-700">·</span>
-      <span className="text-[10px] text-slate-400 dark:text-slate-500">
-        {new Date(exam.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-      </span>
-    </>
-  )}
-</div>
-              </div>
+              />
             ))}
           </div>
         )}
       </div>
 
-      {showModal && <NewExamModal onClose={() => setShowModal(false)} onCreate={handleCreated} />}
+      {showModal && (
+        <NewExamModal
+          onClose={() => setShowModal(false)}
+          onCreate={handleCreated}
+        />
+      )}
     </Layout>
   );
 };

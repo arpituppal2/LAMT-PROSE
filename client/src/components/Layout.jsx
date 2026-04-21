@@ -76,7 +76,7 @@ const Sidebar = ({ dark, toggleDark }) => {
         )}
         <button
           onClick={handleToggleCollapse}
-          className="p-1.5 rounded-lg hover:bg-white/15 active:bg-white/25 transition-colors ml-auto"
+          className="p-1.5 hover:bg-white/15 active:bg-white/25 transition-colors ml-auto"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <Menu size={17} /> : <X size={17} />}
@@ -93,7 +93,7 @@ const Sidebar = ({ dark, toggleDark }) => {
               key={link.to}
               to={link.to}
               className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150
+                flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors duration-150
                 ${
                   isActive
                     ? 'bg-white/20 text-white border border-white/25'
@@ -111,7 +111,7 @@ const Sidebar = ({ dark, toggleDark }) => {
       <div className="px-2 py-2.5 border-t border-white/15 dark:border-white/10 space-y-0.5">
         <button
           onClick={toggleDark}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/12 hover:text-white transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-white/75 hover:bg-white/12 hover:text-white transition-colors"
         >
           {dark
             ? <Sun  size={17} className="flex-shrink-0" />
@@ -120,7 +120,7 @@ const Sidebar = ({ dark, toggleDark }) => {
         </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-white/75 hover:bg-red-600/30 hover:text-white transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-white/75 hover:bg-red-600/30 hover:text-white transition-colors"
         >
           <LogOut size={17} className="flex-shrink-0" />
           {!collapsed && <span>Sign out</span>}

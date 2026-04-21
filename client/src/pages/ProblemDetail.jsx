@@ -474,7 +474,7 @@ const ProblemDetail = () => {
                               className={`flex h-12 w-full items-center justify-center text-[9px] font-semibold uppercase transition-colors ${
                                 img.destination === 'problem'
                                   ? 'bg-slate-100 text-[var(--ucla-blue)] dark:bg-white/8 dark:text-[var(--ucla-gold)]'
-                                  : 'bg-slate-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                  : 'border-t border-[var(--badge-endorsed-border)] bg-[var(--badge-endorsed-bg)] text-[var(--badge-endorsed-text)]'
                               }`}
                             >
                               → {img.destination}
@@ -671,9 +671,9 @@ const ProblemDetail = () => {
                           <div className="flex items-center gap-2.5">
                             <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
                               fb.isEndorsement
-                                ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
+                                ? 'border border-[var(--badge-endorsed-border)] bg-[var(--badge-endorsed-bg)] text-[var(--badge-endorsed-text)]'
                                 : fb.resolved
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+                                ? 'border border-[var(--badge-resolved-border)] bg-[var(--badge-resolved-bg)] text-[var(--badge-resolved-text)]'
                                 : 'bg-slate-100 text-slate-600 dark:bg-white/8 dark:text-slate-300'
                             }`}>
                               {fb.user.firstName[0]}{fb.user.lastName[0]}
@@ -684,9 +684,9 @@ const ProblemDetail = () => {
                                 {new Date(fb.createdAt).toLocaleDateString()} &bull;
                                 <span className={`ml-1 ${
                                   fb.isEndorsement
-                                    ? 'text-green-700 dark:text-green-300'
+                                    ? 'text-[var(--badge-endorsed-text)]'
                                     : fb.resolved
-                                    ? 'text-blue-700 dark:text-blue-300'
+                                    ? 'text-[var(--badge-resolved-text)]'
                                     : 'text-slate-500 dark:text-slate-400'
                                 }`}>
                                   {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved' : 'Review'}
@@ -808,8 +808,8 @@ const ProblemDetail = () => {
                                   onClick={() => setEditedFeedbackIsEndorsement(true)}
                                   className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                                     editedFeedbackIsEndorsement
-                                      ? 'border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-500 dark:text-slate-900'
-                                      : 'border-slate-200 bg-white text-slate-500 hover:border-green-500 dark:border-white/8 dark:bg-white/4 dark:text-slate-300 dark:hover:border-green-400'
+                                      ? 'border-[var(--badge-endorsed-border)] bg-[var(--badge-endorsed-bg)] text-[var(--badge-endorsed-text)]'
+                                      : 'border-slate-200 bg-white text-slate-500 hover:border-[var(--badge-endorsed-border)] dark:border-white/8 dark:bg-white/4 dark:text-slate-300'
                                   }`}
                                 >
                                   Endorsement
@@ -857,9 +857,9 @@ const ProblemDetail = () => {
                         )}
 
                         {fb.resolved && fbResolveNote && (
-                          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/20 dark:bg-blue-500/10">
-                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-300">Resolution Note</p>
-                            <p className="text-sm leading-relaxed text-blue-800 dark:text-blue-200">{fbResolveNote}</p>
+                          <div className="mt-3 rounded-lg border border-[var(--badge-resolved-border)] bg-[var(--badge-resolved-bg)] p-3">
+                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--badge-resolved-text)]">Resolution Note</p>
+                            <p className="text-sm leading-relaxed text-[var(--badge-resolved-text)]">{fbResolveNote}</p>
                           </div>
                         )}
 

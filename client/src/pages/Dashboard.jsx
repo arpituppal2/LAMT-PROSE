@@ -495,7 +495,6 @@ const Dashboard = () => {
                         <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Topics</th>
                         <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Diff</th>
                         <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Status</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Stars</th>
                         <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Date</th>
                       </tr>
                     </thead>
@@ -532,11 +531,6 @@ const Dashboard = () => {
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${STATUS_BADGE_CLASS[st] || STATUS_BADGE_CLASS.Idea}`}>
                               {st}
                             </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {problem.endorsements > 0
-                              ? <span className="flex items-center gap-1 text-xs text-[#2774AE] dark:text-[#FFD100] font-semibold"><Star size={11} fill="currentColor" /> {problem.endorsements}</span>
-                              : <span className="text-slate-400 text-xs">—</span>}
                           </td>
                           <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                             {new Date(problem.createdAt).toLocaleDateString()}

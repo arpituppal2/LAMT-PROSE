@@ -34,7 +34,6 @@ const GiveFeedback = () => {
   const topics = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
   const stages = ['Idea', 'Needs Review', 'Resolved', 'Endorsed'];
 
-  // Stable ref approach — avoids infinite loop from useBlocker + useCallback
   const isDirtyRef = useRef(false);
   useEffect(() => {
     isDirtyRef.current = !!(problem && hasSubmittedAnswer && (answer || work || feedback));
@@ -94,6 +93,26 @@ const GiveFeedback = () => {
       }
     } catch {
       setMessage('Failed to load a problem. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Skip: calls /feedback/skip — random Idea, fallback Endorsed
+  const skipProblem = useCallback(async () => {
+    setLoading(true);
+    setProblem(null);
+    setMessage('');
+    try {
+      const res = await api.get('/feedback/skip');
+      if (!res.data) {
+        setMessage('No problems available to skip to right now.');
+      } else {
+        const detail = await api.get(`/problems/${res.data.id}`);
+        setProblem(detail.data);
+      }
+    } catch {
+      setMessage('Failed to skip. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -208,9 +227,7 @@ const GiveFeedback = () => {
       <div className="max-w-5xl mx-auto">
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Give Feedback</h1>
-          </div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Give Feedback</h1>
           <div className="flex items-center gap-2">
             {['random', 'browse'].map(m => (
               <button
@@ -222,10 +239,10 @@ const GiveFeedback = () => {
                   }
                   setMode(m);
                 }}
-                className={`px-4 py-2 rounded-xl text-base font-medium transition-colors ${
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   mode === m
                     ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                    : 'bg-white/60 dark:bg-white/[0.05] backdrop-blur-sm text-gray-700 dark:text-gray-300 border border-white/60 dark:border-white/10 hover:bg-white/80 dark:hover:bg-white/10'
+                    : 'bg-white dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10'
                 }`}>
                 {m === 'random' ? 'Random Problem' : 'Browse Problems'}
               </button>
@@ -234,7 +251,7 @@ const GiveFeedback = () => {
         </div>
 
         {message && (
-          <div className={`mb-5 p-3.5 rounded-xl border text-base ${
+          <div className={`mb-5 p-3.5 rounded-md border text-sm ${
             message.includes('submitted') || message.includes('endorsed') || message.includes('!')
               ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
               : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
@@ -271,7 +288,7 @@ const GiveFeedback = () => {
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2774AE] dark:border-[#FFD100]" />
               </div>
             ) : reviewableProblems.length === 0 ? (
-              <div className="text-center py-10 text-base text-gray-400 dark:text-gray-500">No problems found matching your criteria.</div>
+              <div className="text-center py-10 text-sm text-gray-400 dark:text-gray-500">No problems found matching your criteria.</div>
             ) : (
               <div className="space-y-2">
                 {reviewableProblems.map(rp => (
@@ -280,16 +297,16 @@ const GiveFeedback = () => {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2.5 mb-2">
-                          <span className="font-mono text-base font-semibold text-[#2774AE] dark:text-[#FFD100]">{rp.id}</span>
+                          <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{rp.id}</span>
                           <span className="px-2 py-0.5 text-xs font-semibold rounded border border-slate-200 dark:border-white/15 text-black dark:text-white">{rp._displayStatus || rp.stage}</span>
                           {rp.quality && <span className="text-sm text-gray-400">{rp.quality}/10</span>}
                         </div>
-                        <div className="text-base text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
                           {rp.latex ? <KatexRenderer latex={rp.latex} /> : null}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {(rp.topics || []).map(t => (
-                            <span key={t} className="px-2 py-0.5 text-sm rounded-lg bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400">{t}</span>
+                            <span key={t} className="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400">{t}</span>
                           ))}
                         </div>
                       </div>
@@ -323,7 +340,7 @@ const GiveFeedback = () => {
                   </div>
                 )}
                 {mode === 'random' && (
-                  <button onClick={loadNextProblem} title="Skip to another problem"
+                  <button onClick={skipProblem} title="Skip to a fresh Idea problem"
                     className="ml-auto flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors">
                     <RefreshCw size={13} /> Skip
                   </button>
@@ -331,7 +348,7 @@ const GiveFeedback = () => {
               </div>
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {(problem.topics || []).map(t => (
-                  <span key={t} className="px-2 py-0.5 text-sm rounded-lg bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400">{t}</span>
+                  <span key={t} className="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400">{t}</span>
                 ))}
               </div>
               <div className="text-base text-black dark:text-white leading-relaxed prose-math">
@@ -367,35 +384,35 @@ const GiveFeedback = () => {
                     />
                   </div>
                   <button onClick={submitAnswer} disabled={!answer.trim()}
-                    className="px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-xl text-base font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity shadow-sm">
+                    className="px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-md text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
                     Continue to Review
                   </button>
                 </div>
               ) : (
                 <div className="space-y-5">
-                  <div className="p-4 bg-white/50 dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/8">
+                  <div className="p-4 bg-white/50 dark:bg-white/[0.04] rounded-md border border-gray-100 dark:border-white/8">
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCircle className="text-green-600 dark:text-green-400" size={16} />
-                      <span className="text-base font-medium text-gray-900 dark:text-white">Your answer: <span className="font-mono">{answer}</span></span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Your answer: <span className="font-mono">{answer}</span></span>
                     </div>
                     {work && (
                       <div className="mt-3">
                         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
                           <FileEdit size={12} /> Your work
                         </div>
-                        <div className="rounded-lg border border-gray-100 dark:border-white/8 bg-white/70 dark:bg-white/[0.03] px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                        <div className="rounded border border-gray-100 dark:border-white/8 bg-white/70 dark:bg-white/[0.03] px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                           {work}
                         </div>
                       </div>
                     )}
                     <button onClick={() => setShowSolution(!showSolution)}
-                      className="flex items-center gap-1.5 text-base text-[#2774AE] dark:text-[#FFD100] hover:underline mt-3">
+                      className="flex items-center gap-1.5 text-sm text-[#2774AE] dark:text-[#FFD100] hover:underline mt-3">
                       {showSolution ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      {showSolution ? 'Hide' : 'Show'} Author’s Solution
+                      {showSolution ? 'Hide' : 'Show'} Author's Solution
                     </button>
                     {showSolution && problem.solution && (
                       <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/8">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Author’s Solution</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Author's Solution</p>
                         <div className="text-base text-gray-800 dark:text-gray-200 leading-relaxed">
                           <KatexRenderer latex={problem.solution} />
                         </div>
@@ -408,7 +425,7 @@ const GiveFeedback = () => {
                     <div className="relative">
                       <MessageSquare className="absolute left-3.5 top-3.5 text-gray-400" size={15} />
                       <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={5}
-                        placeholder="After reviewing the author’s solution: comment on correctness, clarity, difficulty calibration, notation, or what you’d change..."
+                        placeholder="After reviewing the author's solution: comment on correctness, clarity, difficulty calibration, notation, or what you'd change..."
                         className={`${inputCls} resize-y pl-10`} />
                     </div>
                   </div>
@@ -417,22 +434,22 @@ const GiveFeedback = () => {
                     <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Decision</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button onClick={() => setReviewType('feedback')}
-                        className={`p-4 rounded-xl border-2 text-left transition-colors ${
+                        className={`p-4 rounded-md border-2 text-left transition-colors ${
                           reviewType === 'feedback'
                             ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
                             : 'border-gray-200 dark:border-white/10 hover:border-amber-300 dark:hover:border-amber-600'
                         }`}>
-                        <div className="text-base font-semibold text-gray-900 dark:text-white mb-0.5">Needs Review</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">Flag for revisions — your comment explains what to fix</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Needs Review</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Flag for revisions — your comment explains what to fix</div>
                       </button>
                       <button onClick={() => setReviewType('endorse')}
-                        className={`p-4 rounded-xl border-2 text-left transition-colors ${
+                        className={`p-4 rounded-md border-2 text-left transition-colors ${
                           reviewType === 'endorse'
                             ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                             : 'border-gray-200 dark:border-white/10 hover:border-green-400 dark:hover:border-green-600'
                         }`}>
-                        <div className="text-base font-semibold text-gray-900 dark:text-white mb-0.5">Endorse</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">Problem is ready as-is</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Endorse</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Problem is ready as-is</div>
                       </button>
                     </div>
                   </div>
@@ -442,7 +459,7 @@ const GiveFeedback = () => {
                       <button
                         onClick={() => submitFeedback(reviewType === 'endorse')}
                         disabled={loading || !feedback.trim()}
-                        className={`px-5 py-2.5 rounded-xl text-base font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
+                        className={`px-5 py-2.5 rounded-md text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                           reviewType === 'endorse' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'
                         }`}>
                         {loading ? 'Submitting...' : reviewType === 'endorse' ? 'Endorse Problem' : 'Submit Needs Review'}
@@ -459,9 +476,9 @@ const GiveFeedback = () => {
           <div className="text-center py-16">
             <Info className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={40} />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Problem Available</h3>
-            <p className="text-base text-gray-400 dark:text-gray-500 mb-6">There are no problems available for review right now, or you’ve written all the problems!</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">There are no problems available for review right now, or you've written all the problems!</p>
             <button onClick={loadNextProblem}
-              className="px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-xl text-base font-semibold hover:opacity-90 transition-opacity shadow-sm">
+              className="px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-md text-sm font-semibold hover:opacity-90 transition-opacity">
               Try Again
             </button>
           </div>

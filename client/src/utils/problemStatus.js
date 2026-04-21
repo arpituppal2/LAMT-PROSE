@@ -21,10 +21,10 @@ export function getProblemStatus(problem, feedbacks) {
 
 /** Badge styles: high contrast, UCLA-aligned */
 export const STATUS_BADGE_CLASS = {
-  Idea: 'bg-[#DAEBFE] text-[#003B5C] dark:bg-[#003B5C] dark:text-white border border-[#2774AE]/25 dark:border-white/20',
-  'Needs Review': 'bg-[#FFB81C]/25 text-[#003B5C] dark:bg-[#FFB81C]/20 dark:text-white border border-[#FFB81C]/50',
-  Endorsed: 'bg-[#FFD100] text-[#001628] dark:bg-[#FFD100] dark:text-[#001628] border border-[#005587]/30',
-  Resolved: 'bg-[#8BB8E8]/35 text-[#003B5C] dark:bg-[#2774AE] dark:text-white border border-[#2774AE]/40',
+  Idea: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200 border border-yellow-300/60 dark:border-yellow-600/40',
+  'Needs Review': 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 border border-red-300/60 dark:border-red-600/40',
+  Endorsed: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 border border-green-300/60 dark:border-green-600/40',
+  Resolved: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border border-blue-300/60 dark:border-blue-600/40',
   Archived: 'bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-600',
 };
 

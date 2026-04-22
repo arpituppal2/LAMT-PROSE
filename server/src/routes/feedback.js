@@ -60,21 +60,29 @@ router.get('/next', authenticate, async (req, res) => {
 // GET /feedback/skip
 // Returns a random Idea problem not authored/reviewed by the user.
 // Falls back to a random Endorsed problem not yet reviewed by the user.
+// Accepts ?exclude=<problemId> to prevent returning the currently-viewed problem.
 router.get('/skip', authenticate, async (req, res) => {
   try {
+    const { exclude } = req.query;
+
     const alreadyReviewed = await prisma.feedback.findMany({
       where: { userId: req.userId },
       select: { problemId: true },
     });
     const reviewedIds = alreadyReviewed.map((f) => f.problemId);
 
+    // Build exclusion list: already-reviewed + currently-viewed problem
+    const excludedIds = exclude
+      ? [...new Set([...reviewedIds, exclude])]
+      : reviewedIds;
+
     const baseWhere = {
       authorId: { not: req.userId },
       stage: { not: 'Archived' },
-      ...(reviewedIds.length > 0 ? { id: { notIn: reviewedIds } } : {}),
+      ...(excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}),
     };
 
-    // First: try to find Idea problems (no feedback at all)
+    // First: try to find Idea problems
     const ideaProblems = await prisma.problem.findMany({
       where: { ...baseWhere, stage: 'Idea' },
       include: {

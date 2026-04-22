@@ -98,13 +98,16 @@ const GiveFeedback = () => {
     }
   }, []);
 
-  // Skip: calls /feedback/skip — random Idea, fallback Endorsed
-  const skipProblem = useCallback(async () => {
+  // Skip: calls /feedback/skip with exclude=currentProblemId to prevent returning the same problem
+  const skipProblem = useCallback(async (currentProblemId) => {
     setLoading(true);
     setProblem(null);
     setMessage('');
     try {
-      const res = await api.get('/feedback/skip');
+      const params = new URLSearchParams();
+      if (currentProblemId) params.set('exclude', currentProblemId);
+      const qs = params.toString();
+      const res = await api.get(`/feedback/skip${qs ? `?${qs}` : ''}`);
       if (!res.data) {
         setMessage('No problems available to skip to right now.');
       } else {
@@ -340,7 +343,7 @@ const GiveFeedback = () => {
                   </div>
                 )}
                 {mode === 'random' && (
-                  <button onClick={skipProblem} title="Skip to a fresh Idea problem"
+                  <button onClick={() => skipProblem(problem.id)} title="Skip to a fresh Idea problem"
                     className="ml-auto flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors">
                     <RefreshCw size={13} /> Skip
                   </button>

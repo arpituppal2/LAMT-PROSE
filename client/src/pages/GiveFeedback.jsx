@@ -107,7 +107,10 @@ const GiveFeedback = () => {
     setProblem(null);
     setMessage('');
     try {
-      const res = await api.get('/feedback/skip');
+      const params = new URLSearchParams();
+      if (currentProblemId) params.set('exclude', currentProblemId);
+      const qs = params.toString();
+      const res = await api.get(`/feedback/skip${qs ? `?${qs}` : ''}`);
       if (!res.data) {
         setMessage('No problems available to skip to right now.');
       } else {

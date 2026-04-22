@@ -9,7 +9,7 @@ import {
   Eye,
   FileText,
   Filter,
-  MessageSquareMore,
+  MessageSquare,
   PenTool,
   Search,
   Sparkles,
@@ -654,7 +654,7 @@ const Dashboard = () => {
                           <div className="grid gap-3 xl:w-[360px]">
                             <div className="rounded-sm border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#020c16]">
                               <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                <MessageSquareMore size={15} className="status-needs-review-icon" />
+                                <MessageSquare size={15} className="status-needs-review-icon" />
                                 Latest reviewer note
                               </div>
                               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">

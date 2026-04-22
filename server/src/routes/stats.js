@@ -58,7 +58,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         if (badges[category] !== undefined) badges[category] = (badges[category] || 0) + 1;
       });
       const reviewsGiven = user.feedbacks.length;
-      score += reviewsGiven * 0.25;
+      score += reviewsGiven * 0.5;
       score = Math.round(score * 100) / 100;
       return {
         userId: user.id,

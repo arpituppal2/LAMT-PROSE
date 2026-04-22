@@ -1,38 +1,42 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Clock, Search, CheckCircle, ChevronDown, ChevronUp,
-  Info, RefreshCw, FileEdit, MessageSquare
+  CheckCircle2, ChevronDown, ChevronUp, Clock3,
+  FileEdit, Info, MessageSquare, RefreshCw, Search
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
+import { STATUS_BADGE_CLASS } from '../utils/problemStatus';
+
+const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
+const STAGES = ['Idea', 'Needs Review', 'Resolved', 'Endorsed'];
+
+const inputCls =
+  'w-full px-3 py-2.5 text-sm bg-white dark:bg-[#020c16] border border-slate-200 dark:border-white/10 rounded-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition focus:border-[#2774AE] dark:focus:border-[#FFD100]';
 
 const GiveFeedback = () => {
   const { problemId: routeProblemId } = useParams();
   const navigate = useNavigate();
 
-  const [problem, setProblem] = useState(null);
-  const [answer, setAnswer] = useState('');
-  const [work, setWork] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [elapsed, setElapsed] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [problem, setProblem]               = useState(null);
+  const [answer, setAnswer]                 = useState('');
+  const [work, setWork]                     = useState('');
+  const [feedback, setFeedback]             = useState('');
+  const [elapsed, setElapsed]               = useState(0);
+  const [loading, setLoading]               = useState(false);
+  const [message, setMessage]               = useState('');
   const [hasSubmittedAnswer, setHasSubmittedAnswer] = useState(false);
-  const [showSolution, setShowSolution] = useState(false);
-  const [reviewType, setReviewType] = useState(null);
+  const [showSolution, setShowSolution]     = useState(false);
+  const [reviewType, setReviewType]         = useState(null);
 
-  const [mode, setMode] = useState(routeProblemId ? 'targeted' : 'random');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterTopic, setFilterTopic] = useState('');
-  const [filterStage, setFilterStage] = useState('');
+  const [mode, setMode]                     = useState(routeProblemId ? 'targeted' : 'random');
+  const [searchQuery, setSearchQuery]       = useState('');
+  const [filterTopic, setFilterTopic]       = useState('');
+  const [filterStage, setFilterStage]       = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('');
   const [reviewableProblems, setReviewableProblems] = useState([]);
-  const [reviewableLoading, setReviewableLoading] = useState(false);
-
-  const topics = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
-  const stages = ['Idea', 'Needs Review', 'Resolved', 'Endorsed'];
+  const [reviewableLoading, setReviewableLoading]   = useState(false);
 
   const isDirtyRef = useRef(false);
   useEffect(() => {
@@ -49,23 +53,23 @@ const GiveFeedback = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
-  const searchQueryRef = useRef(searchQuery);
-  const filterTopicRef = useRef(filterTopic);
-  const filterStageRef = useRef(filterStage);
-  const filterDifficultyRef = useRef(filterDifficulty);
-  useEffect(() => { searchQueryRef.current = searchQuery; }, [searchQuery]);
-  useEffect(() => { filterTopicRef.current = filterTopic; }, [filterTopic]);
-  useEffect(() => { filterStageRef.current = filterStage; }, [filterStage]);
-  useEffect(() => { filterDifficultyRef.current = filterDifficulty; }, [filterDifficulty]);
+  const searchQueryRef     = useRef(searchQuery);
+  const filterTopicRef     = useRef(filterTopic);
+  const filterStageRef     = useRef(filterStage);
+  const filterDiffRef      = useRef(filterDifficulty);
+  useEffect(() => { searchQueryRef.current  = searchQuery; },     [searchQuery]);
+  useEffect(() => { filterTopicRef.current  = filterTopic; },     [filterTopic]);
+  useEffect(() => { filterStageRef.current  = filterStage; },     [filterStage]);
+  useEffect(() => { filterDiffRef.current   = filterDifficulty; },[filterDifficulty]);
 
   const loadReviewableProblems = useCallback(async () => {
     setReviewableLoading(true);
     try {
       const params = new URLSearchParams();
-      if (searchQueryRef.current) params.set('search', searchQueryRef.current);
-      if (filterTopicRef.current) params.set('topic', filterTopicRef.current);
-      if (filterStageRef.current) params.set('stage', filterStageRef.current);
-      if (filterDifficultyRef.current) params.set('difficulty', filterDifficultyRef.current);
+      if (searchQueryRef.current)  params.set('search',     searchQueryRef.current);
+      if (filterTopicRef.current)  params.set('topic',      filterTopicRef.current);
+      if (filterStageRef.current)  params.set('stage',      filterStageRef.current);
+      if (filterDiffRef.current)   params.set('difficulty', filterDiffRef.current);
       const qs = params.toString();
       const res = await api.get(`/feedback/reviewable${qs ? `?${qs}` : ''}`);
       setReviewableProblems(res.data || []);
@@ -82,7 +86,7 @@ const GiveFeedback = () => {
     setMessage('');
     try {
       const params = new URLSearchParams();
-      if (filterDifficultyRef.current) params.set('difficulty', filterDifficultyRef.current);
+      if (filterDiffRef.current) params.set('difficulty', filterDiffRef.current);
       const qs = params.toString();
       const res = await api.get(`/feedback/next${qs ? `?${qs}` : ''}`);
       if (!res.data) {
@@ -98,8 +102,7 @@ const GiveFeedback = () => {
     }
   }, []);
 
-  // Skip: calls /feedback/skip with exclude=currentProblemId to prevent returning the same problem
-  const skipProblem = useCallback(async (currentProblemId) => {
+  const skipProblem = useCallback(async () => {
     setLoading(true);
     setProblem(null);
     setMessage('');
@@ -135,19 +138,9 @@ const GiveFeedback = () => {
   }, []);
 
   useEffect(() => {
-    if (routeProblemId) {
-      loadSpecificProblem(routeProblemId);
-      return;
-    }
-    if (mode === 'random') {
-      loadNextProblem();
-      return;
-    }
-    if (mode === 'browse') {
-      setProblem(null);
-      setMessage('');
-      loadReviewableProblems();
-    }
+    if (routeProblemId) { loadSpecificProblem(routeProblemId); return; }
+    if (mode === 'random') { loadNextProblem(); return; }
+    if (mode === 'browse') { setProblem(null); setMessage(''); loadReviewableProblems(); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, routeProblemId]);
 
@@ -171,7 +164,7 @@ const GiveFeedback = () => {
 
   useEffect(() => {
     if (!problem || hasSubmittedAnswer) return;
-    const interval = setInterval(() => setElapsed(prev => prev + 1), 1000);
+    const interval = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(interval);
   }, [problem, hasSubmittedAnswer]);
 
@@ -211,173 +204,222 @@ const GiveFeedback = () => {
     }
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   const selectProblem = async (selected) => {
     await loadSpecificProblem(selected.id);
     setMode('targeted');
   };
 
-  const panelCls = 'bg-white dark:bg-[#001628] border border-slate-200 dark:border-white/15 rounded-lg';
-  const inputCls = 'w-full px-4 py-2.5 text-base bg-white dark:bg-[#020c16] border border-slate-200 dark:border-white/15 rounded-md text-black dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2774AE] dark:focus:ring-[#FFD100]';
+  const statusForProblem = (p) => p._displayStatus || p.stage || 'Idea';
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto">
+      <div className="mx-auto max-w-4xl space-y-5">
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Give Feedback</h1>
+        {/* ── Page header ──────────────────────────────────────────── */}
+        <header className="flex flex-col gap-4 rounded-sm border border-slate-200 bg-white px-5 py-5 dark:border-white/10 dark:bg-[#03111d] sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Feedback workspace</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">Give Feedback</h1>
+          </div>
           <div className="flex items-center gap-2">
-            {['random', 'browse'].map(m => (
+            {['random', 'browse'].map((m) => (
               <button
                 key={m}
+                type="button"
                 onClick={() => {
-                  if (m === 'browse') {
-                    setProblem(null);
-                    setMessage('');
-                  }
+                  if (m === 'browse') { setProblem(null); setMessage(''); }
                   setMode(m);
                 }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`rounded-sm px-4 py-2 text-sm font-semibold transition-colors ${
                   mode === m
                     ? 'bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628]'
-                    : 'bg-white dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10'
-                }`}>
-                {m === 'random' ? 'Random Problem' : 'Browse Problems'}
+                    : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-[#03111d] dark:text-slate-200 dark:hover:border-white/20'
+                }`}
+              >
+                {m === 'random' ? 'Random' : 'Browse'}
               </button>
             ))}
           </div>
-        </div>
+        </header>
 
+        {/* ── Toast message ─────────────────────────────────────────── */}
         {message && (
-          <div className={`mb-5 p-3.5 rounded-md border text-sm ${
-            message.includes('submitted') || message.includes('endorsed') || message.includes('!')
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
-              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
-          }`}>{message}</div>
+          <div className={`rounded-sm border px-4 py-3 text-sm font-medium ${
+            message.includes('!') || message.includes('submitted') || message.includes('endorsed')
+              ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-500/25 dark:bg-green-500/10 dark:text-green-300'
+              : 'border-red-200 bg-red-50 text-red-800 dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-300'
+          }`}>
+            {message}
+          </div>
         )}
 
-        {/* Browse mode */}
+        {/* ── Browse panel ──────────────────────────────────────────── */}
         {mode === 'browse' && !routeProblemId && (
-          <div className={`${panelCls} p-5 mb-6`}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
-                <input type="text" placeholder="Search problems..."
-                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`${inputCls} pl-10`} />
-              </div>
-              <select value={filterTopic} onChange={(e) => setFilterTopic(e.target.value)} className={inputCls}>
-                <option value="">All Topics</option>
-                {topics.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className={inputCls}>
-                <option value="">All Stages</option>
-                {stages.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select value={filterDifficulty} onChange={(e) => setFilterDifficulty(e.target.value)} className={inputCls}>
-                <option value="">All Difficulties</option>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map(d => (
-                  <option key={d} value={d}>{d}/10</option>
-                ))}
-              </select>
+          <section className="rounded-sm border border-slate-200 bg-white dark:border-white/10 dark:bg-[#03111d]">
+            <div className="border-b border-slate-200 px-5 py-4 dark:border-white/10">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Browse problems</p>
             </div>
-            {reviewableLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2774AE] dark:border-[#FFD100]" />
+            <div className="p-5 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="relative block">
+                  <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search ID or topic"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={`${inputCls} pl-8`}
+                  />
+                </label>
+                <select value={filterTopic} onChange={(e) => setFilterTopic(e.target.value)} className={inputCls}>
+                  <option value="">All topics</option>
+                  {TOPICS.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className={inputCls}>
+                  <option value="">All stages</option>
+                  {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select value={filterDifficulty} onChange={(e) => setFilterDifficulty(e.target.value)} className={inputCls}>
+                  <option value="">All difficulties</option>
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((d) => (
+                    <option key={d} value={d}>{d}/10</option>
+                  ))}
+                </select>
               </div>
-            ) : reviewableProblems.length === 0 ? (
-              <div className="text-center py-10 text-sm text-gray-400 dark:text-gray-500">No problems found matching your criteria.</div>
-            ) : (
-              <div className="space-y-2">
-                {reviewableProblems.map(rp => (
-                  <div key={rp.id} onClick={() => selectProblem(rp)}
-                    className="p-4 border border-slate-200 dark:border-white/10 rounded-md hover:border-[#2774AE] dark:hover:border-[#FFD100] cursor-pointer transition-colors bg-slate-50/80 dark:bg-[#020c16]">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2.5 mb-2">
-                          <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{rp.id}</span>
-                          <span className="px-2 py-0.5 text-xs font-semibold rounded border border-slate-200 dark:border-white/15 text-black dark:text-white">{rp._displayStatus || rp.stage}</span>
-                          {rp.quality && <span className="text-sm text-gray-400">{rp.quality}/10</span>}
+
+              {reviewableLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-[#2774AE] dark:border-white/10 dark:border-t-[#FFD100]" />
+                </div>
+              ) : reviewableProblems.length === 0 ? (
+                <div className="py-12 text-center text-sm text-slate-400 dark:text-slate-500">No problems match the current filters.</div>
+              ) : (
+                <div className="divide-y divide-slate-200 dark:divide-white/10 rounded-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+                  {reviewableProblems.map((rp) => (
+                    <button
+                      key={rp.id}
+                      type="button"
+                      onClick={() => selectProblem(rp)}
+                      className="block w-full px-4 py-4 text-left hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{rp.id}</span>
+                            <span className={STATUS_BADGE_CLASS[statusForProblem(rp)] || STATUS_BADGE_CLASS.Idea}>
+                              {statusForProblem(rp)}
+                            </span>
+                            {rp.quality && (
+                              <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{rp.quality}/10</span>
+                            )}
+                          </div>
+                          <div className="text-sm leading-6 text-slate-600 dark:text-slate-400 line-clamp-2">
+                            {rp.latex ? <KatexRenderer latex={rp.latex} /> : null}
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(rp.topics || []).map((t) => (
+                              <span key={t} className="rounded-sm border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                                {t}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                          {rp.latex ? <KatexRenderer latex={rp.latex} /> : null}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {(rp.topics || []).map(t => (
-                            <span key={t} className="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400">{t}</span>
-                          ))}
-                        </div>
+                        <span className="shrink-0 text-xs tabular-nums text-slate-400 dark:text-slate-500">
+                          {rp.feedbacks?.length || 0} reviews
+                        </span>
                       </div>
-                      <div className="text-right text-sm text-gray-400 dark:text-gray-500 shrink-0">
-                        <div>{rp.feedbacks?.length || 0} reviews</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
         )}
 
+        {/* ── Loading spinner ───────────────────────────────────────── */}
         {loading && !problem && (
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#2774AE] dark:border-[#FFD100]" />
+          <div className="flex h-48 items-center justify-center">
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-[#2774AE] dark:border-white/10 dark:border-t-[#FFD100]" />
           </div>
         )}
 
+        {/* ── Problem card ──────────────────────────────────────────── */}
         {problem && (
-          <div className={`${panelCls} overflow-hidden`}>
-            <div className="p-6 border-b border-slate-200 dark:border-white/10">
-              <div className="flex flex-wrap items-center gap-2.5 mb-3">
-                <span className="font-mono text-lg font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
-                <span className="px-2.5 py-0.5 text-xs font-semibold rounded border border-slate-200 dark:border-white/15 text-black dark:text-white">{problem._displayStatus || problem.stage}</span>
-                {problem.quality && <span className="text-sm text-gray-400">Difficulty: {problem.quality}/10</span>}
-                {!hasSubmittedAnswer && (
-                  <div className="flex items-center gap-1 text-sm text-gray-400 ml-auto font-mono">
-                    <Clock size={13} />{formatTime(elapsed)}
-                  </div>
+          <section className="rounded-sm border border-slate-200 bg-white dark:border-white/10 dark:bg-[#03111d] overflow-hidden">
+
+            {/* Problem header */}
+            <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-white/10 dark:bg-[#020c16]">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="font-mono text-sm font-semibold text-[#2774AE] dark:text-[#FFD100]">{problem.id}</span>
+                <span className={STATUS_BADGE_CLASS[statusForProblem(problem)] || STATUS_BADGE_CLASS.Idea}>
+                  {statusForProblem(problem)}
+                </span>
+                {problem.quality && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">Difficulty {problem.quality}/10</span>
                 )}
-                {mode === 'random' && (
-                  <button onClick={() => skipProblem(problem.id)} title="Skip to a fresh Idea problem"
-                    className="ml-auto flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#2774AE] dark:hover:text-[#FFD100] transition-colors">
-                    <RefreshCw size={13} /> Skip
-                  </button>
-                )}
+                <div className="ml-auto flex items-center gap-3">
+                  {!hasSubmittedAnswer && (
+                    <span className="flex items-center gap-1.5 font-mono text-sm text-slate-500 dark:text-slate-400">
+                      <Clock3 size={13} />
+                      {formatTime(elapsed)}
+                    </span>
+                  )}
+                  {mode === 'random' && (
+                    <button
+                      type="button"
+                      onClick={skipProblem}
+                      className="inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+                    >
+                      <RefreshCw size={13} />
+                      Skip
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {(problem.topics || []).map(t => (
-                  <span key={t} className="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-gray-400">{t}</span>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {(problem.topics || []).map((t) => (
+                  <span key={t} className="rounded-sm border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                    {t}
+                  </span>
                 ))}
               </div>
-              <div className="text-base text-black dark:text-white leading-relaxed prose-math">
-                {problem.latex ? <KatexRenderer latex={problem.latex} /> : null}
+            </div>
+
+            {/* Problem body */}
+            <div className="px-5 py-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Problem</p>
+              <div className="mt-3 text-[15px] leading-7 text-slate-900 dark:text-slate-100 prose-math">
+                {problem.latex ? <KatexRenderer latex={problem.latex} /> : <span className="italic text-slate-400">No problem text.</span>}
               </div>
               {problem.notes && (
-                <div className="mt-5 pt-4 border-t border-slate-200 dark:border-white/10">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Author notes</p>
-                  <div className="text-sm text-black dark:text-white prose-math">
+                <div className="mt-5 rounded-sm border border-slate-200 bg-amber-50/40 px-4 py-4 dark:border-white/10 dark:bg-amber-500/10">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Author notes</p>
+                  <div className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300 prose-math">
                     <KatexRenderer latex={problem.notes} />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-6">
+            <div className="border-t border-slate-200 px-5 py-5 dark:border-white/10 space-y-5">
               {!hasSubmittedAnswer ? (
-                <div className="space-y-4">
+                /* ── Answer entry ──────────────────────────────────── */
+                <>
                   <div>
-                    <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Your Answer</label>
-                    <input type="text" value={answer} onChange={(e) => setAnswer(e.target.value)}
+                    <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2">Your answer</label>
+                    <input
+                      type="text"
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && answer.trim() && submitAnswer()}
-                      placeholder="Enter your answer..." className={inputCls} />
+                      placeholder="Enter your answer and press Enter"
+                      className={inputCls}
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Your Work</label>
+                    <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2">Your work</label>
                     <textarea
                       value={work}
                       onChange={(e) => setWork(e.target.value)}
@@ -386,106 +428,137 @@ const GiveFeedback = () => {
                       className={`${inputCls} resize-y`}
                     />
                   </div>
-                  <button onClick={submitAnswer} disabled={!answer.trim()}
-                    className="px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-md text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
-                    Continue to Review
+                  <button
+                    type="button"
+                    onClick={submitAnswer}
+                    disabled={!answer.trim()}
+                    className="inline-flex items-center gap-2 rounded-sm bg-[#2774AE] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1f6395] disabled:opacity-50 disabled:cursor-not-allowed dark:bg-[#FFD100] dark:text-[#001628] dark:hover:bg-[#f5c800]"
+                  >
+                    Continue to review
                   </button>
-                </div>
+                </>
               ) : (
-                <div className="space-y-5">
-                  <div className="p-4 bg-white/50 dark:bg-white/[0.04] rounded-md border border-gray-100 dark:border-white/8">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="text-green-600 dark:text-green-400" size={16} />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">Your answer: <span className="font-mono">{answer}</span></span>
+                /* ── Review stage ──────────────────────────────────── */
+                <>
+                  {/* Answer recap */}
+                  <div className="rounded-sm border border-slate-200 bg-slate-50 px-4 py-4 dark:border-white/10 dark:bg-[#020c16] space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-green-600 dark:text-green-400" />
+                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        Your answer: <span className="font-mono">{answer}</span>
+                      </span>
                     </div>
                     {work && (
-                      <div className="mt-3">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 mb-2">
                           <FileEdit size={12} /> Your work
                         </div>
-                        <div className="rounded border border-gray-100 dark:border-white/8 bg-white/70 dark:bg-white/[0.03] px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                        <div className="rounded-sm border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-700 whitespace-pre-wrap dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                           {work}
                         </div>
                       </div>
                     )}
-                    <button onClick={() => setShowSolution(!showSolution)}
-                      className="flex items-center gap-1.5 text-sm text-[#2774AE] dark:text-[#FFD100] hover:underline mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowSolution((s) => !s)}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[#2774AE] hover:underline dark:text-[#FFD100]"
+                    >
                       {showSolution ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      {showSolution ? 'Hide' : 'Show'} Author's Solution
+                      {showSolution ? 'Hide' : 'Show'} author solution
                     </button>
                     {showSolution && problem.solution && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/8">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Author's Solution</p>
-                        <div className="text-base text-gray-800 dark:text-gray-200 leading-relaxed">
+                      <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2">Author solution</p>
+                        <div className="text-[15px] leading-7 text-slate-800 dark:text-slate-200 prose-math">
                           <KatexRenderer latex={problem.solution} />
                         </div>
                       </div>
                     )}
                   </div>
 
+                  {/* Comment box */}
                   <div>
-                    <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Comments</label>
-                    <div className="relative">
-                      <MessageSquare className="absolute left-3.5 top-3.5 text-gray-400" size={15} />
-                      <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={5}
-                        placeholder="After reviewing the author's solution: comment on correctness, clarity, difficulty calibration, notation, or what you'd change..."
-                        className={`${inputCls} resize-y pl-10`} />
-                    </div>
+                    <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2">
+                      <MessageSquare size={12} />
+                      Review comments
+                    </label>
+                    <textarea
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      rows={5}
+                      placeholder="Comment on correctness, clarity, difficulty calibration, notation, or what you'd change..."
+                      className={`${inputCls} resize-y`}
+                    />
                   </div>
 
+                  {/* Decision cards */}
                   <div>
-                    <label className="block text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Decision</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button onClick={() => setReviewType('feedback')}
-                        className={`p-4 rounded-md border-2 text-left transition-colors ${
-                          reviewType === 'feedback'
-                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                            : 'border-gray-200 dark:border-white/10 hover:border-amber-300 dark:hover:border-amber-600'
-                        }`}>
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Needs Review</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Flag for revisions — your comment explains what to fix</div>
-                      </button>
-                      <button onClick={() => setReviewType('endorse')}
-                        className={`p-4 rounded-md border-2 text-left transition-colors ${
-                          reviewType === 'endorse'
-                            ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                            : 'border-gray-200 dark:border-white/10 hover:border-green-400 dark:hover:border-green-600'
-                        }`}>
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Endorse</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Problem is ready as-is</div>
-                      </button>
-                    </div>
-                  </div>
-
-                  {reviewType && (
-                    <div className="flex gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-3">Decision</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <button
-                        onClick={() => submitFeedback(reviewType === 'endorse')}
-                        disabled={loading || !feedback.trim()}
-                        className={`px-5 py-2.5 rounded-md text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                          reviewType === 'endorse' ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'
-                        }`}>
-                        {loading ? 'Submitting...' : reviewType === 'endorse' ? 'Endorse Problem' : 'Submit Needs Review'}
+                        type="button"
+                        onClick={() => setReviewType('feedback')}
+                        className={`rounded-sm border-2 p-4 text-left transition-colors ${
+                          reviewType === 'feedback'
+                            ? 'border-red-500 bg-red-50 dark:border-red-400/60 dark:bg-red-500/10'
+                            : 'border-slate-200 hover:border-red-300 dark:border-white/10 dark:hover:border-red-400/40'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Needs Review</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Flag for revisions — your comment explains what to fix</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReviewType('endorse')}
+                        className={`rounded-sm border-2 p-4 text-left transition-colors ${
+                          reviewType === 'endorse'
+                            ? 'border-green-500 bg-green-50 dark:border-green-400/60 dark:bg-green-500/10'
+                            : 'border-slate-200 hover:border-green-400 dark:border-white/10 dark:hover:border-green-400/40'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Endorse</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Problem is ready as-is — no changes needed</p>
                       </button>
                     </div>
+                  </div>
+
+                  {/* Submit */}
+                  {reviewType && (
+                    <button
+                      type="button"
+                      onClick={() => submitFeedback(reviewType === 'endorse')}
+                      disabled={loading || !feedback.trim()}
+                      className={`inline-flex items-center gap-2 rounded-sm px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        reviewType === 'endorse'
+                          ? 'bg-green-700 hover:bg-green-800 dark:bg-green-600 dark:hover:bg-green-700'
+                          : 'bg-red-700 hover:bg-red-800 dark:bg-red-600 dark:hover:bg-red-700'
+                      }`}
+                    >
+                      {loading ? 'Submitting…' : reviewType === 'endorse' ? 'Endorse problem' : 'Submit — Needs Review'}
+                    </button>
                   )}
-                </div>
+                </>
               )}
             </div>
-          </div>
+          </section>
         )}
 
+        {/* ── Empty state ───────────────────────────────────────────── */}
         {!problem && !loading && mode === 'random' && (
-          <div className="text-center py-16">
-            <Info className="mx-auto text-gray-300 dark:text-gray-600 mb-4" size={40} />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Problem Available</h3>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">There are no problems available for review right now, or you've written all the problems!</p>
-            <button onClick={loadNextProblem}
-              className="px-5 py-2.5 bg-[#2774AE] text-white dark:bg-[#FFD100] dark:text-[#001628] rounded-md text-sm font-semibold hover:opacity-90 transition-opacity">
-              Try Again
+          <div className="rounded-sm border border-slate-200 bg-white px-6 py-16 text-center dark:border-white/10 dark:bg-[#03111d]">
+            <Info className="mx-auto text-slate-300 dark:text-slate-600" size={36} />
+            <h2 className="mt-4 text-xl font-semibold text-slate-900 dark:text-white">No problem available</h2>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">There are no problems available for review right now, or you've authored all the problems.</p>
+            <button
+              type="button"
+              onClick={loadNextProblem}
+              className="mt-6 inline-flex items-center gap-2 rounded-sm bg-[#2774AE] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1f6395] dark:bg-[#FFD100] dark:text-[#001628] dark:hover:bg-[#f5c800]"
+            >
+              Try again
             </button>
           </div>
         )}
+
       </div>
     </Layout>
   );

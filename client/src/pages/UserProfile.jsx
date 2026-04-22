@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Star, ArrowLeft, BookOpen, Clock } from 'lucide-react';
+import { Star, ArrowLeft, BookOpen, Clock, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
 const STAGE_CONFIG = {
-  'On Test':      { color: 'bg-[#2774AE]/10 text-[#2774AE] dark:bg-[#2774AE]/20 dark:text-[#8BB8E8]', label: 'In Testing' },
-  'Endorsed':     { color: 'bg-[#FFD100]/10 text-yellow-700 dark:bg-[#FFD100]/10 dark:text-[#FFD100]', label: 'Endorsed' },
-  'Published':    { color: 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400',       label: 'Published' },
-  'Review':       { color: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300',  label: 'Under Review' },
-  'Idea':         { color: 'bg-gray-100 text-gray-500 dark:bg-white/8 dark:text-gray-400',             label: 'Idea' },
-  'Needs Review': { color: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400',              label: 'Needs Edits' },
+  'On Test':      { cls: 'status-badge status-on-test',         label: 'In Testing' },
+  'Endorsed':     { cls: 'status-badge status-endorsed',        label: 'Endorsed' },
+  'Published':    { cls: 'status-badge status-published',       label: 'Published' },
+  'Review':       { cls: 'status-badge status-review',         label: 'Under Review' },
+  'Idea':         { cls: 'status-badge status-idea',           label: 'Idea' },
+  'Needs Review': { cls: 'status-badge status-needs-review',   label: 'Needs Edits' },
 };
 
 const UserProfile = () => {
@@ -49,7 +49,10 @@ const UserProfile = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64 text-gray-400 text-base">Loading...</div>
+        <div className="flex items-center justify-center h-64 gap-3 text-gray-400">
+          <Loader2 size={18} className="animate-spin text-[var(--ucla-blue)]" />
+          <span className="text-base">Loading profile...</span>
+        </div>
       </Layout>
     );
   }
@@ -60,7 +63,7 @@ const UserProfile = () => {
         <div className="max-w-sm mx-auto text-center py-20">
           <p className="text-base text-gray-500 dark:text-gray-400 mb-4">{error}</p>
           <button onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-base text-[#2774AE] dark:text-[#FFD100] hover:underline">
+            className="inline-flex items-center gap-1.5 text-base text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] hover:underline">
             <ArrowLeft size={14} /> Go back
           </button>
         </div>
@@ -81,7 +84,7 @@ const UserProfile = () => {
           {/* Left: profile card */}
           <div className="lg:col-span-4 space-y-4">
             <div className={`${cardCls} p-6`}>
-              <div className="w-14 h-14 rounded-xl bg-[#2774AE] flex items-center justify-center text-white text-lg font-bold mb-4">
+              <div className="w-14 h-14 rounded-xl bg-[var(--ucla-blue)] flex items-center justify-center text-white text-lg font-bold mb-4">
                 {profile.initials}
               </div>
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -102,7 +105,7 @@ const UserProfile = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-400 dark:text-gray-500 mb-0.5">Endorsed</p>
-                  <p className="text-2xl font-semibold text-[#FFD100] tabular-nums">{stats.totalEndorsements}</p>
+                  <p className="text-2xl font-semibold text-[var(--ucla-gold)] tabular-nums">{stats.totalEndorsements}</p>
                 </div>
               </div>
             </div>
@@ -111,9 +114,9 @@ const UserProfile = () => {
               <p className="text-sm font-medium text-gray-400 dark:text-gray-500 mb-3">By status</p>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(stats.counts).map(([stage, count]) => {
-                  const config = STAGE_CONFIG[stage] || { color: 'bg-gray-100 text-gray-500', label: stage };
+                  const config = STAGE_CONFIG[stage] || { cls: 'status-badge status-idea', label: stage };
                   return (
-                    <span key={stage} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-medium ${config.color}`}>
+                    <span key={stage} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-medium ${config.cls}`}>
                       <span className="tabular-nums">{count}</span>
                       <span>{config.label}</span>
                     </span>
@@ -139,7 +142,7 @@ const UserProfile = () => {
                     className="group flex items-center justify-between px-5 py-4 hover:bg-white/40 dark:hover:bg-white/[0.04] transition-colors">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-base font-semibold text-[#2774AE] dark:text-[#FFD100]">{p.id}</span>
+                        <span className="font-mono text-base font-semibold text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)]">{p.id}</span>
                         <div className="flex gap-1">
                           {(p.topics || []).map(t => (
                             <span key={t} className="px-2 py-0.5 bg-gray-100 dark:bg-white/8 text-gray-400 dark:text-gray-500 text-xs rounded-lg">{t}</span>
@@ -155,13 +158,13 @@ const UserProfile = () => {
 
                     <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                       {p.endorsements > 0 && (
-                        <span className="flex items-center gap-1 text-sm text-[#FFD100]">
+                        <span className="flex items-center gap-1 text-sm text-[var(--ucla-gold)]">
                           <Star size={11} fill="currentColor" />
                           {p.endorsements}
                         </span>
                       )}
                       <span className={`px-2.5 py-0.5 text-sm rounded-lg font-medium ${
-                        STAGE_CONFIG[p.stage]?.color || 'bg-gray-100 text-gray-500'
+                        STAGE_CONFIG[p.stage]?.cls || 'status-badge status-idea'
                       }`}>
                         {STAGE_CONFIG[p.stage]?.label || p.stage}
                       </span>

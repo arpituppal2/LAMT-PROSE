@@ -7,14 +7,12 @@
 /*
  * ══════════════════════════════════════════════════════════════
  *  UCLA BRAND PALETTE — CSS VARIABLES
- *  Source: UCLA Brand Guidelines (brand.ucla.edu)
- *  Rule: Blue is dominant. Gold is an accent, never the field.
- *  Rule: Tertiary/vibrant colors for graphics only — never text.
+ *  Primary: Blue dominant. Gold is accent, never the field.
+ *  Tertiary/vibrant colors: graphics only — never text.
  * ══════════════════════════════════════════════════════════════
- *
  *  Primary
- *    --ucla-blue           #2774AE   PANTONE 2383C  RGB 39 116 174
- *    --ucla-gold           #FFD100   PANTONE 109C   RGB 255 209 0
+ *    --ucla-blue           #2774AE   PANTONE 2383C
+ *    --ucla-gold           #FFD100   PANTONE 109C
  *
  *  Secondary Blues (dark → light)
  *    --ucla-darkest-blue   #003B5C   PANTONE 302C
@@ -22,12 +20,12 @@
  *    --ucla-lighter-blue   #8BB8E8   PANTONE 278C
  *    --ucla-lightest-blue  #DAEBFE   PANTONE 2707C
  *
- *  Secondary Golds (dark → light)
+ *  Secondary Golds
  *    --ucla-darkest-gold   #FFB81C   PANTONE 1235C
  *    --ucla-darker-gold    #FFC72C   PANTONE 123C
  *
  *  Dark-mode surface
- *    --ucla-navy           #001628   (deep blue-black sidebar/bg)
+ *    --ucla-navy           #001628
  * ══════════════════════════════════════════════════════════════
  */
 :root {
@@ -45,7 +43,7 @@
   --ucla-darkest-gold:   #FFB81C;
   --ucla-darker-gold:    #FFC72C;
 
-  /* Dark-mode surface blue */
+  /* Dark-mode surface */
   --ucla-navy:           #001628;
 
   /* Semantic hover/active aliases */
@@ -54,9 +52,20 @@
   --ucla-gold-hover:     #FFC72C;
   --ucla-gold-active:    #FFB81C;
 
-  /* App surfaces (light mode) */
-  --app-bg:              #EEF4FB;
+  /* App surfaces */
+  --app-bg:              #f1f5fb;
   --app-surface:         #FFFFFF;
+
+  /* Radius scale — sharp/professional */
+  --radius-xs:  2px;
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
+  --radius-xl:  12px;
+  --radius-full: 9999px;
+
+  /* Transition */
+  --transition-ui: 150ms cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Glass system */
   --glass-blur:          16px;
@@ -67,41 +76,119 @@
   --glass-dark-bg:       rgba(0, 22, 40, 0.55);
   --glass-dark-border:   rgba(255, 255, 255, 0.08);
   --glass-dark-shadow:   0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0,0,0,0.4);
+
+  /* Status badge — light mode */
+  --badge-needs-review-bg:    #fff1f2;
+  --badge-needs-review-text:  #be123c;
+  --badge-needs-review-border:#fecdd3;
+
+  --badge-endorsed-bg:    #f0fdf4;
+  --badge-endorsed-text:  #15803d;
+  --badge-endorsed-border:#bbf7d0;
+
+  --badge-resolved-bg:    #eff6ff;
+  --badge-resolved-text:  #1d4ed8;
+  --badge-resolved-border:#bfdbfe;
+
+  --badge-idea-bg:        #fefce8;
+  --badge-idea-text:      #a16207;
+  --badge-idea-border:    #fde68a;
+
+  --badge-archived-bg:    #f8fafc;
+  --badge-archived-text:  #64748b;
+  --badge-archived-border:#cbd5e1;
 }
 
 .dark {
   --app-bg:      #020c16;
   --app-surface: #001628;
+
+  /* Status badge — dark mode */
+  --badge-needs-review-bg:    rgba(190, 18, 60, 0.15);
+  --badge-needs-review-text:  #fda4af;
+  --badge-needs-review-border:rgba(190, 18, 60, 0.30);
+
+  --badge-endorsed-bg:    rgba(21, 128, 61, 0.15);
+  --badge-endorsed-text:  #86efac;
+  --badge-endorsed-border:rgba(21, 128, 61, 0.30);
+
+  --badge-resolved-bg:    rgba(29, 78, 216, 0.15);
+  --badge-resolved-text:  #93c5fd;
+  --badge-resolved-border:rgba(29, 78, 216, 0.30);
+
+  --badge-idea-bg:        rgba(161, 98, 7, 0.15);
+  --badge-idea-text:      #fcd34d;
+  --badge-idea-border:    rgba(161, 98, 7, 0.30);
+
+  --badge-archived-bg:    rgba(100, 116, 139, 0.12);
+  --badge-archived-text:  #94a3b8;
+  --badge-archived-border:rgba(100, 116, 139, 0.25);
 }
 
 @layer base {
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
+    /* Inter loaded via index.html or CDN; system-ui as reliable fallback */
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+                 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply bg-white text-black dark:bg-[#001628] dark:text-white;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    @apply bg-white text-slate-900 dark:bg-[#001628] dark:text-slate-100;
+  }
+
+  /* Tighter heading defaults */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    font-weight: 600;
+  }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; }
+  th    { font-weight: 600; text-align: left; }
+
+  /* Focus rings */
+  :focus-visible {
+    outline: 2px solid var(--ucla-blue);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  .dark :focus-visible {
+    outline-color: var(--ucla-gold);
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(39, 116, 174, 0.18);
+    color: inherit;
+  }
+  .dark ::selection {
+    background: rgba(255, 209, 0, 0.18);
   }
 }
 
 @layer utilities {
   /* ── Opacity shorthands ───────────────────────────────────────── */
-  .hover\:bg-white\/8:hover  { background-color: rgba(255,255,255,0.08); }
-  .hover\:bg-white\/4:hover  { background-color: rgba(255,255,255,0.04); }
-  .hover\:bg-white\/3:hover  { background-color: rgba(255,255,255,0.03); }
-  .dark\:hover\:bg-white\/3:hover { background-color: rgba(255,255,255,0.03); }
-  .dark\:hover\:bg-white\/4:hover { background-color: rgba(255,255,255,0.04); }
-  .dark\:hover\:bg-white\/8:hover { background-color: rgba(255,255,255,0.08); }
-  .bg-white\/3  { background-color: rgba(255,255,255,0.03); }
-  .bg-white\/4  { background-color: rgba(255,255,255,0.04); }
-  .bg-white\/8  { background-color: rgba(255,255,255,0.08); }
+  .hover\:bg-white\/8:hover         { background-color: rgba(255,255,255,0.08); }
+  .hover\:bg-white\/4:hover         { background-color: rgba(255,255,255,0.04); }
+  .hover\:bg-white\/3:hover         { background-color: rgba(255,255,255,0.03); }
+  .dark\:hover\:bg-white\/3:hover   { background-color: rgba(255,255,255,0.03); }
+  .dark\:hover\:bg-white\/4:hover   { background-color: rgba(255,255,255,0.04); }
+  .dark\:hover\:bg-white\/8:hover   { background-color: rgba(255,255,255,0.08); }
+  .bg-white\/3    { background-color: rgba(255,255,255,0.03); }
+  .bg-white\/4    { background-color: rgba(255,255,255,0.04); }
+  .bg-white\/8    { background-color: rgba(255,255,255,0.08); }
   .dark\:bg-white\/3 { background-color: rgba(255,255,255,0.03); }
   .dark\:bg-white\/4 { background-color: rgba(255,255,255,0.04); }
   .dark\:bg-white\/5 { background-color: rgba(255,255,255,0.05); }
   .dark\:bg-white\/8 { background-color: rgba(255,255,255,0.08); }
-  .border-white\/8   { border-color: rgba(255,255,255,0.08); }
+  .border-white\/8     { border-color: rgba(255,255,255,0.08); }
   .dark\:border-white\/8 { border-color: rgba(255,255,255,0.08); }
   .dark\:divide-white\/5 > * + * { border-color: rgba(255,255,255,0.05); }
+
+  /* ── Tabular nums for all stat/count displays ─────────────────── */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
 
   /* ── UCLA gradients ───────────────────────────────────────────── */
   .bg-ucla-gradient {
@@ -112,38 +199,30 @@
   }
 
   /* ── Frosted glass utilities ──────────────────────────────────── */
-  /*
-   * .glass        — standard panel (cards, modals, filter bars)
-   * .glass-heavy  — stronger blur for overlays / preview panels
-   * .glass-sidebar — sidebar-specific (more opaque, full height)
-   *
-   * Light mode: white-tinted frosted glass over the blue gradient bg
-   * Dark mode:  navy-tinted frosted glass over the dark gradient bg
-   */
   .glass {
-    background:    var(--glass-light-bg);
-    border:        1px solid var(--glass-light-border);
-    box-shadow:    var(--glass-light-shadow);
+    background:      var(--glass-light-bg);
+    border:          1px solid var(--glass-light-border);
+    box-shadow:      var(--glass-light-shadow);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
   }
   .dark .glass {
-    background:    var(--glass-dark-bg);
-    border-color:  var(--glass-dark-border);
-    box-shadow:    var(--glass-dark-shadow);
+    background:   var(--glass-dark-bg);
+    border-color: var(--glass-dark-border);
+    box-shadow:   var(--glass-dark-shadow);
   }
 
   .glass-heavy {
-    background:    rgba(255, 255, 255, 0.72);
-    border:        1px solid rgba(255, 255, 255, 0.80);
-    box-shadow:    0 8px 40px rgba(39, 116, 174, 0.14), 0 2px 4px rgba(0,0,0,0.08);
+    background:      rgba(255, 255, 255, 0.72);
+    border:          1px solid rgba(255, 255, 255, 0.80);
+    box-shadow:      0 8px 40px rgba(39, 116, 174, 0.14), 0 2px 4px rgba(0,0,0,0.08);
     backdrop-filter: blur(var(--glass-blur-heavy)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(1.8);
   }
   .dark .glass-heavy {
-    background:    rgba(0, 16, 32, 0.72);
-    border-color:  rgba(255,255,255,0.10);
-    box-shadow:    0 8px 40px rgba(0,0,0,0.50), 0 2px 4px rgba(0,0,0,0.50);
+    background:   rgba(0, 16, 32, 0.72);
+    border-color: rgba(255,255,255,0.10);
+    box-shadow:   0 8px 40px rgba(0,0,0,0.50), 0 2px 4px rgba(0,0,0,0.50);
   }
 
   .glass-sidebar {
@@ -153,13 +232,60 @@
 }
 
 @layer components {
+  /* ── Status badge system ──────────────────────────────────────── */
+  /*
+   * Usage: <span class="status-badge status-needs-review">Needs Review</span>
+   * All badges share .status-badge base; one modifier class sets colors.
+   */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-xs);
+    border-width: 1px;
+    border-style: solid;
+    font-size: 0.6875rem;   /* 11px */
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    line-height: 1.5;
+  }
+
+  .status-needs-review {
+    background-color: var(--badge-needs-review-bg);
+    color:            var(--badge-needs-review-text);
+    border-color:     var(--badge-needs-review-border);
+  }
+  .status-endorsed {
+    background-color: var(--badge-endorsed-bg);
+    color:            var(--badge-endorsed-text);
+    border-color:     var(--badge-endorsed-border);
+  }
+  .status-resolved {
+    background-color: var(--badge-resolved-bg);
+    color:            var(--badge-resolved-text);
+    border-color:     var(--badge-resolved-border);
+  }
+  .status-idea {
+    background-color: var(--badge-idea-bg);
+    color:            var(--badge-idea-text);
+    border-color:     var(--badge-idea-border);
+  }
+  .status-archived {
+    background-color: var(--badge-archived-bg);
+    color:            var(--badge-archived-text);
+    border-color:     var(--badge-archived-border);
+  }
+
+  /* ── Prose / math rendering ───────────────────────────────────── */
   .dark .prose,
   .dark .preview-container,
   .dark .prose-math {
-    @apply text-white;
+    @apply text-slate-100;
   }
   .prose-math {
-    @apply text-black;
+    @apply text-slate-900;
   }
   .dark .prose strong,
   .dark .prose h1,
@@ -167,23 +293,66 @@
   .dark .prose h3 {
     @apply text-white;
   }
+
+  /* ── Recharts dark-mode overrides ─────────────────────────────── */
   .dark .recharts-text { fill: #e5e7eb; }
   .dark .recharts-cartesian-grid-horizontal line,
-  .dark .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.12); }
-  .katex-render-root .katex { color: inherit; }
-  .dark .katex-render-root .katex { color: #fff; }
+  .dark .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.10); }
+
+  /* ── KaTeX ────────────────────────────────────────────────────── */
+  .katex-render-root .katex      { color: inherit; }
+  .dark .katex-render-root .katex { color: #f1f5f9; }
+
+  /* ── Table polish ─────────────────────────────────────────────── */
+  .prose-table thead th {
+    background: #f8fafc;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  .dark .prose-table thead th {
+    background: #020c16;
+    color: #94a3b8;
+  }
+  .prose-table tbody tr:hover {
+    background: #f8fafc;
+  }
+  .dark .prose-table tbody tr:hover {
+    background: rgba(255,255,255,0.04);
+  }
 }
 
-code {
-  font-family: 'SF Mono', 'Fira Code', Menlo, Monaco, Consolas, 'Courier New', monospace;
+/* ── Code font ────────────────────────────────────────────────────── */
+code, .font-mono {
+  font-family: 'SF Mono', 'Fira Code', ui-monospace, Menlo, Monaco,
+               Consolas, 'Courier New', monospace;
+  font-feature-settings: 'liga' 0;
 }
 
+/* ── KaTeX display overflow ───────────────────────────────────────── */
 .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
 }
 
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+/* ── Custom scrollbar ─────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar       { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--ucla-blue); border-radius: 2px; }
-.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,209,0,0.4); }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--ucla-blue);
+  border-radius: 2px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 209, 0, 0.35);
+}
+
+/* ── Thin global scrollbar (all elements) ─────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(39,116,174,0.3) transparent;
+}
+.dark * {
+  scrollbar-color: rgba(255,209,0,0.2) transparent;
+}

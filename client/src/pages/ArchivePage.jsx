@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, ArchiveRestore, Search, Filter } from 'lucide-react';
+import { Archive, ArchiveRestore, Search, Filter, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
@@ -11,7 +11,7 @@ const ArchivePage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [unarchiving, setUnarchiving] = useState(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState({ text: '', type: '' });
   const [confirmId, setConfirmId] = useState(null);
 
   useEffect(() => { fetchArchived(); }, []);
@@ -34,13 +34,13 @@ const ArchivePage = () => {
     setConfirmId(null);
     try {
       await api.put(`/problems/${id}/unarchive`);
-      setMessage(`Problem ${id} restored to Idea.`);
+      setMessage({ text: `Problem ${id} restored to Idea.`, type: 'success' });
       setProblems(prev => prev.filter(p => p.id !== id));
     } catch (err) {
-      setMessage('Failed to unarchive problem.');
+      setMessage({ text: 'Failed to unarchive problem.', type: 'error' });
     } finally {
       setUnarchiving(null);
-      setTimeout(() => setMessage(''), 3000);
+      setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     }
   };
 
@@ -53,14 +53,14 @@ const ArchivePage = () => {
   const confirmProblem = confirmId ? problems.find(p => p.id === confirmId) : null;
 
   const cardCls = 'bg-white/70 dark:bg-white/[0.05] backdrop-blur-md border border-white/60 dark:border-white/10 rounded-2xl';
-  const inputCls = 'w-full px-4 py-2.5 text-base bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#2774AE]/30 dark:focus:ring-[#FFD100]/20 transition';
+  const inputCls = 'w-full px-4 py-2.5 text-base bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--ucla-blue)]/30 dark:focus:ring-[var(--ucla-gold)]/20 transition';
 
   if (loading) {
     return (
       <Layout>
         <div className="h-64 flex items-center justify-center">
           <div className="flex items-center gap-3 text-gray-400">
-            <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#2774AE] border-t-transparent" />
+            <Loader2 size={18} className="animate-spin text-[var(--ucla-blue)]" />
             <span className="text-base">Loading archive...</span>
           </div>
         </div>
@@ -72,7 +72,7 @@ const ArchivePage = () => {
     <Layout>
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
-          <Archive size={22} className="text-[#2774AE] dark:text-[#FFD100]" />
+          <Archive size={22} className="text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)]" />
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Archive</h1>
             <p className="text-base text-gray-400 dark:text-gray-500 mt-0.5">
@@ -81,13 +81,13 @@ const ArchivePage = () => {
           </div>
         </div>
 
-        {message && (
+        {message.text && (
           <div className={`mb-5 px-4 py-3 rounded-xl text-base font-medium ${
-            message.includes('Failed')
-              ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
-              : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+            message.type === 'error'
+              ? 'status-badge status-needs-review border border-[var(--badge-needs-review-border)]'
+              : 'status-badge status-endorsed border border-[var(--badge-endorsed-border)]'
           }`}>
-            {message}
+            {message.text}
           </div>
         )}
 
@@ -125,7 +125,7 @@ const ArchivePage = () => {
                   >
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-2">
-                        <span className="text-[#2774AE] dark:text-[#FFD100] font-semibold text-base">
+                        <span className="text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] font-semibold text-base">
                           {problem.id}
                         </span>
                         <div
@@ -152,10 +152,11 @@ const ArchivePage = () => {
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmId(problem.id); }}
                         disabled={unarchiving === problem.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-[#2774AE]/10 text-[#2774AE] dark:bg-[#2774AE]/20 dark:text-[#8BB8E8] hover:bg-[#2774AE] hover:text-white transition-all disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-[var(--ucla-blue)]/10 text-[var(--ucla-blue)] dark:bg-[var(--ucla-blue)]/20 dark:text-[#8BB8E8] hover:bg-[var(--ucla-blue)] hover:text-white transition-all disabled:opacity-50"
                       >
-                        <ArchiveRestore size={14} />
-                        {unarchiving === problem.id ? 'Restoring...' : 'Restore'}
+                        {unarchiving === problem.id
+                          ? <><Loader2 size={13} className="animate-spin" /> Restoring...</>
+                          : <><ArchiveRestore size={14} /> Restore</>}
                       </button>
                     </td>
                   </tr>
@@ -179,7 +180,7 @@ const ArchivePage = () => {
               Restore this problem?
             </h3>
             <p className="text-base text-gray-500 dark:text-gray-400 mb-3">
-              <span className="font-mono font-semibold text-[#2774AE] dark:text-[#FFD100]">{confirmId}</span>{' '}
+              <span className="font-mono font-semibold text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)]">{confirmId}</span>{' '}
               will be moved back to <strong>Idea</strong> stage and become visible in the inventory.
             </p>
             {confirmProblem?.latex && (
@@ -193,7 +194,7 @@ const ArchivePage = () => {
                 Cancel
               </button>
               <button onClick={() => handleUnarchive(confirmId)}
-                className="px-4 py-2 text-base rounded-xl bg-[#2774AE] hover:bg-[#005587] text-white font-semibold transition">
+                className="px-4 py-2 text-base rounded-xl bg-[var(--ucla-blue)] hover:bg-[var(--ucla-blue-dark)] text-white font-semibold transition">
                 Restore to Idea
               </button>
             </div>

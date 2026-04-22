@@ -62,8 +62,8 @@ const Sidebar = ({ dark, toggleDark }) => {
       className={`
         h-screen text-white flex flex-col flex-shrink-0
         ${collapsed ? 'w-14' : 'w-56'}
-        bg-[#2774AE] dark:bg-[#001628]
-        border-r border-[#005587] dark:border-white/10
+        bg-[var(--ucla-blue)] dark:bg-[#0a1628]
+        border-r border-[var(--ucla-blue-dark)] dark:border-white/10
         transition-[width] duration-200 ease-in-out
         relative z-20
       `}
@@ -96,7 +96,7 @@ const Sidebar = ({ dark, toggleDark }) => {
                 flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium transition-colors duration-150 rounded-sm
                 ${
                   isActive
-                    ? 'bg-white text-[#2774AE] dark:bg-white dark:text-[#2774AE]'
+                    ? 'bg-white text-[var(--ucla-blue)] dark:bg-white dark:text-[var(--ucla-blue)]'
                     : 'text-white/80 hover:bg-white/15 hover:text-white'
                 }
               `}
@@ -120,7 +120,7 @@ const Sidebar = ({ dark, toggleDark }) => {
         </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 text-[14px] font-medium text-white/75 hover:bg-red-600/30 hover:text-white transition-colors rounded-sm"
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-[14px] font-medium text-white/75 hover:bg-red-500/20 hover:text-red-300 transition-colors rounded-sm"
         >
           <LogOut size={17} className="flex-shrink-0" />
           {!collapsed && <span>Sign out</span>}
@@ -136,7 +136,7 @@ const Layout = ({ children }) => {
     <ThemeContext.Provider value={{ dark }}>
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
-        <main className="flex-1 overflow-y-auto bg-[#F5F7FA] dark:bg-[#001628] text-black dark:text-white">
+        <main className="flex-1 overflow-y-auto bg-[#EEF4FB] dark:bg-[#020c16] text-gray-900 dark:text-white">
           <div className="relative p-6 md:p-8 max-w-[1600px] mx-auto">
             {children}
           </div>

@@ -6,6 +6,7 @@ import {
   MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList, Archive
 } from 'lucide-react';
 
+/* ── Theme context ──────────────────────────────────────────── */
 export const ThemeContext = createContext({ dark: false });
 export const useTheme = () => useContext(ThemeContext);
 
@@ -13,25 +14,34 @@ export const useDarkMode = () => {
   const [dark, setDark] = useState(() => localStorage.getItem('darkMode') === 'true');
 
   useEffect(() => {
-    if (dark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', dark);
   }, [dark]);
 
-  const toggle = () => {
-    setDark(prev => {
+  const toggle = () =>
+    setDark((prev) => {
       const next = !prev;
       localStorage.setItem('darkMode', String(next));
       return next;
     });
-  };
+
   return [dark, toggle];
 };
 
+/* ── Sidebar (LAMT treatment — collapsible, UCLA palette) ─── */
+const NAV_LINKS = [
+  { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/write',       icon: PenTool,          label: 'Write' },
+  { to: '/inventory',   icon: List,             label: 'Inventory' },
+  { to: '/exams',       icon: ClipboardList,    label: 'Exams' },
+  { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard' },
+  { to: '/feedback',    icon: MessageSquare,    label: 'Feedback' },
+  { to: '/archive',     icon: Archive,          label: 'Archive' },
+];
+
 const Sidebar = ({ dark, toggleDark }) => {
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('sidebarCollapsed') === 'true',
+  );
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -41,88 +51,83 @@ const Sidebar = ({ dark, toggleDark }) => {
     navigate('/login');
   };
 
-  const handleToggleCollapse = () => {
+  const handleToggle = () => {
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem('sidebarCollapsed', String(next));
   };
 
-  const links = [
-    { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/write',       icon: PenTool,          label: 'Write' },
-    { to: '/inventory',   icon: List,             label: 'Inventory' },
-    { to: '/exams',       icon: ClipboardList,    label: 'Exams' },
-    { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard' },
-    { to: '/feedback',    icon: MessageSquare,    label: 'Feedback' },
-    { to: '/archive',     icon: Archive,          label: 'Archive' },
-  ];
-
   return (
     <aside
       className={`
         h-screen text-white flex flex-col flex-shrink-0
-        ${collapsed ? 'w-14' : 'w-56'}
-        bg-[var(--ucla-blue)] dark:bg-[#0a1628]
-        border-r border-[var(--ucla-blue-dark)] dark:border-white/10
-        transition-[width] duration-200 ease-in-out
+        ${collapsed ? 'w-[52px]' : 'w-52'}
+        bg-[var(--ucla-blue)] dark:bg-black
+        border-r border-white/10
+        transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]
         relative z-20
       `}
     >
-      <div className="flex items-center justify-between px-3 py-3.5 border-b border-white/15 dark:border-white/10">
+      {/* ── Brand + collapse toggle ── */}
+      <div className="flex items-center justify-between px-3 py-3 border-b border-white/15">
         {!collapsed && (
-          <span className="font-bold text-[15px] tracking-widest uppercase px-1 text-white select-none">
+          <span className="font-display text-[13px] font-bold tracking-[0.25em] uppercase select-none px-0.5">
             PROSE
           </span>
         )}
         <button
-          onClick={handleToggleCollapse}
+          onClick={handleToggle}
           className="p-1.5 hover:bg-white/15 active:bg-white/25 transition-colors ml-auto rounded-sm"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <Menu size={17} /> : <X size={17} />}
+          {collapsed ? <Menu size={16} /> : <X size={16} />}
         </button>
       </div>
 
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {links.map(link => {
-          const Icon = link.icon;
-          const isActive = location.pathname === link.to ||
-            (link.to === '/dashboard' && location.pathname === '/');
+      {/* ── Navigation ── */}
+      <nav className="flex-1 px-1.5 py-2 space-y-0.5 overflow-y-auto">
+        {NAV_LINKS.map(({ to, icon: Icon, label }) => {
+          const isActive =
+            location.pathname === to ||
+            (to === '/dashboard' && location.pathname === '/');
+
           return (
             <Link
-              key={link.to}
-              to={link.to}
+              key={to}
+              to={to}
               className={`
-                flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium transition-colors duration-150 rounded-sm
+                flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold
+                transition-colors duration-150 rounded-sm
                 ${
                   isActive
-                    ? 'bg-white text-[var(--ucla-blue)] dark:bg-white dark:text-[var(--ucla-blue)]'
-                    : 'text-white/80 hover:bg-white/15 hover:text-white'
+                    ? 'bg-white/20 text-white border-b-2 border-[var(--ucla-gold)]'
+                    : 'text-white/75 hover:bg-white/10 hover:text-white border-b-2 border-transparent'
                 }
               `}
             >
-              <Icon size={17} className="flex-shrink-0" />
-              {!collapsed && <span className="tracking-[-0.01em]">{link.label}</span>}
+              <Icon size={16} className="flex-shrink-0" />
+              {!collapsed && <span>{label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-2 py-2.5 border-t border-white/15 dark:border-white/10 space-y-0.5">
+      {/* ── Footer controls ── */}
+      <div className="px-1.5 py-2 border-t border-white/15 space-y-0.5">
         <button
           onClick={toggleDark}
-          className="flex items-center gap-3 w-full px-3 py-2.5 text-[14px] font-medium text-white/75 hover:bg-white/15 hover:text-white transition-colors rounded-sm"
+          className="flex items-center gap-2.5 w-full px-2.5 py-2 text-[13px] font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors rounded-sm"
         >
           {dark
-            ? <Sun  size={17} className="flex-shrink-0" />
-            : <Moon size={17} className="flex-shrink-0" />}
+            ? <Sun  size={16} className="flex-shrink-0" />
+            : <Moon size={16} className="flex-shrink-0" />}
           {!collapsed && <span>{dark ? 'Light mode' : 'Dark mode'}</span>}
         </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 text-[14px] font-medium text-white/75 hover:bg-red-500/20 hover:text-red-300 transition-colors rounded-sm"
+          className="flex items-center gap-2.5 w-full px-2.5 py-2 text-[13px] font-medium text-white/70 hover:bg-red-500/20 hover:text-red-300 transition-colors rounded-sm"
         >
-          <LogOut size={17} className="flex-shrink-0" />
+          <LogOut size={16} className="flex-shrink-0" />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>
@@ -130,14 +135,18 @@ const Sidebar = ({ dark, toggleDark }) => {
   );
 };
 
+/* ── Layout wrapper ─────────────────────────────────────────── */
 const Layout = ({ children }) => {
   const [dark, toggleDark] = useDarkMode();
   return (
     <ThemeContext.Provider value={{ dark }}>
       <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
         <Sidebar dark={dark} toggleDark={toggleDark} />
-        <main className="flex-1 overflow-y-auto bg-[#EEF4FB] dark:bg-[#020c16] text-gray-900 dark:text-white">
-          <div className="relative p-6 md:p-8 max-w-[1600px] mx-auto">
+        <main
+          className="flex-1 overflow-y-auto"
+          style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}
+        >
+          <div className="page-content relative p-5 md:p-7 max-w-[1500px] mx-auto">
             {children}
           </div>
         </main>

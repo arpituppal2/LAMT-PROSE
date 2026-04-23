@@ -9,6 +9,7 @@ import feedbackRoutes from './routes/feedback.js';
 import testRoutes from './routes/test.js';
 import statsRoutes from './routes/stats.js';
 import adminRoutes from './routes/admin.js';
+import { APP_NAME, TOPICS, ALLOWED_EMAIL_DOMAIN } from './config/env.js';
 dotenv.config();
 
 const app = express();
@@ -43,6 +44,16 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Public config — lets the client know topics, app name, etc. without hardcoding them.
+app.get('/api/config', (req, res) => {
+  res.json({
+    appName: APP_NAME,
+    topics: TOPICS,
+    emailDomain: ALLOWED_EMAIL_DOMAIN,
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

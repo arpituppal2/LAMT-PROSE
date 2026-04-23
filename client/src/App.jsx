@@ -13,7 +13,6 @@ import UserProfile from './pages/UserProfile';
 import ExamManager from './pages/ExamManager';
 import ExamDetail from './pages/ExamDetail';
 import ArchivePage from './pages/ArchivePage';
-import TransferGuest from './pages/TransferGuest';
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) {

@@ -11,9 +11,7 @@ const TOPIC_OPTIONS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 const PreviewSection = ({ label, content, placeholder, minH = 'min-h-[80px]' }) => (
   <div>
     <p className="section-label">{label}</p>
-    <div
-      className={`${minH} rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm leading-relaxed mt-2`}
-    >
+    <div className={`${minH} rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm leading-relaxed mt-2`}>
       {content
         ? <KatexRenderer latex={content} />
         : <span className="italic text-[var(--color-text-faint)]">{placeholder}</span>}
@@ -21,16 +19,14 @@ const PreviewSection = ({ label, content, placeholder, minH = 'min-h-[80px]' }) 
   </div>
 );
 
-/* ── Full preview card (used in both steps) ─────────────────── */
+/* ── Full preview card ──────────────────────────────────────── */
 const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, images }) => (
   <div className="surface-card overflow-hidden">
     <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
       <span className="section-label" style={{ marginBottom: 0 }}>Live Preview</span>
     </div>
     <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-
       <PreviewSection label="Problem" content={latex} placeholder="Waiting for input…" minH="min-h-[100px]" />
-
       {images.filter(img => img.destination === 'problem').length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {images.filter(img => img.destination === 'problem').map((img, i) => (
@@ -38,10 +34,7 @@ const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, image
           ))}
         </div>
       )}
-
       <PreviewSection label="Solution" content={solution} placeholder="No solution yet…" />
-
-      {/* Answer KaTeX preview */}
       {answer && (
         <div>
           <p className="section-label">Answer</p>
@@ -50,8 +43,6 @@ const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, image
           </div>
         </div>
       )}
-
-      {/* Author Notes */}
       {notes && (
         <div>
           <p className="section-label">Author Notes</p>
@@ -60,22 +51,74 @@ const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, image
           </div>
         </div>
       )}
-
-      {/* Difficulty + topics summary */}
       <div className="flex items-center gap-2 flex-wrap pt-1">
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15">
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
           Difficulty {difficulty}/10
         </span>
         {topics.map(t => (
-          <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-[var(--color-surface)] text-[var(--color-text-muted)]">
+          <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]">
             {t}
           </span>
         ))}
       </div>
-
     </div>
   </div>
 );
+
+/* ── Difficulty Slider ──────────────────────────────────────── */
+const DifficultySlider = ({ value, onChange }) => {
+  const pct = ((value - 1) / 9) * 100;
+  return (
+    <div className="surface-card p-4 space-y-3 mt-2">
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-2xl font-bold tabular-nums text-[var(--color-accent)]">{value}</span>
+        <span className="text-sm text-[var(--color-text-faint)]">/10</span>
+      </div>
+
+      {/* custom track */}
+      <div className="relative h-5 flex items-center">
+        {/* track bg */}
+        <div className="absolute inset-x-0 h-[6px] rounded-full bg-[var(--color-border)]" />
+        {/* filled portion */}
+        <div
+          className="absolute left-0 h-[6px] rounded-full bg-[var(--color-accent)] transition-all"
+          style={{ width: `${pct}%` }}
+        />
+        {/* native input overlaid — invisible but interactive */}
+        <input
+          type="range" min="1" max="10" step="1"
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
+          style={{ margin: 0 }}
+        />
+        {/* thumb dot */}
+        <div
+          className="absolute w-4 h-4 rounded-full border-2 border-[var(--color-accent)] bg-[var(--color-bg)] shadow transition-all pointer-events-none"
+          style={{ left: `calc(${pct}% - 8px)` }}
+        />
+      </div>
+
+      {/* tick labels */}
+      <div className="flex justify-between">
+        {[1,2,3,4,5,6,7,8,9,10].map(n => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className={`text-[10px] font-semibold w-5 text-center transition-colors ${
+              n === value
+                ? 'text-[var(--color-accent)]'
+                : 'text-[var(--color-text-faint)] hover:text-[var(--color-text-muted)]'
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 /* ── Main component ─────────────────────────────────────────── */
 const WriteProblem = () => {
@@ -114,7 +157,7 @@ const WriteProblem = () => {
     });
   };
 
-  const removeImage   = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
+  const removeImage     = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
   const toggleImageDest = (idx) =>
     setImages(prev =>
       prev.map((img, i) =>
@@ -235,8 +278,6 @@ const WriteProblem = () => {
           {/* Left: inputs */}
           <div className="lg:col-span-7">
             <form onSubmit={goToStep2} className="space-y-4">
-
-              {/* Problem Statement */}
               <div>
                 <label className="section-label">Problem Statement</label>
                 <textarea
@@ -248,8 +289,6 @@ const WriteProblem = () => {
                   required
                 />
               </div>
-
-              {/* Solution */}
               <div>
                 <label className="section-label">Solution</label>
                 <textarea
@@ -261,8 +300,6 @@ const WriteProblem = () => {
                   required
                 />
               </div>
-
-              {/* Answer */}
               <div>
                 <label className="section-label">Answer</label>
                 <input
@@ -274,55 +311,31 @@ const WriteProblem = () => {
                   required
                 />
               </div>
-
-              {/* Error banner */}
               <MessageBanner />
-
-              {/* Next step */}
               <div className="pt-3 border-t border-[var(--color-border)]">
-                <button
-                  type="submit"
-                  className="btn-filled w-full flex items-center justify-center gap-2 py-2.5 text-sm"
-                >
+                <button type="submit" className="btn-filled w-full flex items-center justify-center gap-2 py-2.5 text-sm">
                   Go to Next Step <ArrowRight size={13} />
                 </button>
               </div>
-
             </form>
           </div>
 
           {/* Right: live preview + attachments */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-6">
-            <FullPreview
-              latex={latex}
-              solution={solution}
-              answer={answer}
-              notes={notes}
-              difficulty={difficulty}
-              topics={topics}
-              images={images}
-            />
-
-            {/* Attachments */}
+            <FullPreview latex={latex} solution={solution} answer={answer} notes={notes} difficulty={difficulty} topics={topics} images={images} />
             <div className="surface-card p-4 space-y-3">
               <p className="section-label" style={{ marginBottom: 0 }}>Attachments</p>
               <div className="flex flex-wrap gap-2.5">
                 {images.map((img, idx) => (
-                  <div
-                    key={idx}
-                    className="relative w-24 h-28 rounded-sm overflow-hidden border border-[var(--color-border)] group bg-[var(--color-surface)]"
-                  >
+                  <div key={idx} className="relative w-24 h-28 rounded-sm overflow-hidden border border-[var(--color-border)] group bg-[var(--color-surface)]">
                     <img src={img.dataUrl} alt="upload" className="w-full h-16 object-cover" />
                     <button
                       type="button"
                       onClick={() => toggleImageDest(idx)}
                       className={[
                         'w-full h-12 flex items-center justify-center gap-1 text-[9px] font-bold uppercase transition-colors',
-                        img.destination === 'problem'
-                          ? 'bg-[var(--ucla-blue)] text-white'
-                          : 'bg-[var(--ucla-gold)] text-black',
+                        img.destination === 'problem' ? 'bg-[var(--ucla-blue)] text-white' : 'bg-[var(--ucla-gold)] text-black',
                       ].join(' ')}
-                      title={`Currently: ${img.destination} — click to switch`}
                     >
                       {img.destination} <ArrowRightLeft size={9} />
                     </button>
@@ -330,7 +343,6 @@ const WriteProblem = () => {
                       type="button"
                       onClick={() => removeImage(idx)}
                       className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label="Remove image"
                     >
                       <X size={10} />
                     </button>
@@ -389,39 +401,24 @@ const WriteProblem = () => {
               {/* Difficulty slider */}
               <div>
                 <label className="section-label">Difficulty</label>
-                <div className="surface-card p-3 space-y-2 mt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold tabular-nums text-[var(--color-accent)]">{difficulty}</span>
-                    <span className="text-xs text-[var(--color-text-faint)] tabular-nums">/ 10</span>
-                  </div>
-                  <input
-                    type="range" min="1" max="10" step="1"
-                    value={difficulty}
-                    onChange={e => setDifficulty(Number(e.target.value))}
-                    className="w-full h-1 rounded-full appearance-none cursor-pointer accent-[#2774AE] dark:accent-[#FFD100]"
-                  />
-                  <div className="flex justify-between text-[10px] text-[var(--color-text-faint)] font-medium">
-                    {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                      <span key={n}>{n}</span>
-                    ))}
-                  </div>
-                </div>
+                <DifficultySlider value={difficulty} onChange={setDifficulty} />
               </div>
 
               {/* Topics */}
               <div>
                 <label className="section-label">Topics</label>
-                <div className="flex flex-wrap gap-1.5 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {TOPIC_OPTIONS.map(topic => (
                     <button
                       key={topic}
                       type="button"
                       onClick={() => handleTopicToggle(topic)}
                       className={[
-                        'px-3 py-1.5 rounded-sm text-xs font-semibold border transition-all',
+                        'px-3 py-1.5 text-xs font-semibold transition-all',
+                        'border-2 rounded-sm',
                         topics.includes(topic)
                           ? 'bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-white dark:text-black'
-                          : 'bg-[var(--color-bg)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]',
+                          : 'bg-transparent border-[var(--color-text-muted)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
                       ].join(' ')}
                     >
                       {topic}
@@ -450,15 +447,7 @@ const WriteProblem = () => {
 
           {/* Right: full live preview */}
           <div className="lg:col-span-5 lg:sticky lg:top-6">
-            <FullPreview
-              latex={latex}
-              solution={solution}
-              answer={answer}
-              notes={notes}
-              difficulty={difficulty}
-              topics={topics}
-              images={images}
-            />
+            <FullPreview latex={latex} solution={solution} answer={answer} notes={notes} difficulty={difficulty} topics={topics} images={images} />
           </div>
 
         </div>

@@ -80,10 +80,6 @@ const ArchivePage = () => {
           >
             Archive
           </h1>
-          <p className="prose mt-1">
-            {problems.length} archived problem{problems.length !== 1 ? 's' : ''} — restore any to
-            move it back to Idea.
-          </p>
         </header>
 
         {/* ── Toast ── */}

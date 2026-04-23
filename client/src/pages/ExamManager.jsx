@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, X, ChevronRight, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { Plus, Trash2, X, ChevronRight, AlertCircle, Loader2, FileText, Eye } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
@@ -65,6 +65,127 @@ const ErrorMsg = ({ msg }) =>
       <span>{msg}</span>
     </div>
   ) : null;
+
+/* ── KaTeX renderer (reuse window.katex if available) ─────────── */
+const renderMath = (tex, display = false) => {
+  if (typeof window !== 'undefined' && window.katex) {
+    try {
+      return window.katex.renderToString(tex, { throwOnError: false, displayMode: display });
+    } catch { return tex; }
+  }
+  return tex;
+};
+
+const MathText = ({ text }) => {
+  if (!text) return null;
+  // Split on $...$ and $$...$$
+  const parts = [];
+  let remaining = text;
+  const pattern = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g;
+  let last = 0;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > last) parts.push({ type: 'text', val: text.slice(last, match.index) });
+    const raw = match[0];
+    const display = raw.startsWith('$$');
+    const inner = display ? raw.slice(2, -2) : raw.slice(1, -1);
+    parts.push({ type: 'math', val: inner, display });
+    last = match.index + raw.length;
+  }
+  if (last < text.length) parts.push({ type: 'text', val: text.slice(last) });
+  return (
+    <span>
+      {parts.map((p, i) =>
+        p.type === 'text' ? (
+          <span key={i}>{p.val}</span>
+        ) : (
+          <span
+            key={i}
+            dangerouslySetInnerHTML={{ __html: renderMath(p.val, p.display) }}
+          />
+        )
+      )}
+    </span>
+  );
+};
+
+/* ── Preview Modal ───────────────────────────────────────────── */
+const PreviewModal = ({ exam, onClose }) => {
+  const problems = exam.problems ?? [];
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="surface-card shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
+        style={{ maxHeight: '90dvh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold truncate">{exam.name}</h2>
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+              {exam.competition} · {exam.version} · {problems.length} problem{problems.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="ml-4 flex-shrink-0 p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Problem list */}
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(90dvh - 65px)' }}>
+          {problems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <FileText size={28} className="text-[var(--color-text-faint)] mb-2" />
+              <p className="text-sm text-[var(--color-text-muted)]">No problems in this exam yet.</p>
+            </div>
+          ) : (
+            <ol className="divide-y divide-[var(--color-border)]">
+              {problems.map((p, idx) => (
+                <li key={p.id} className="px-5 py-4">
+                  <div className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 text-right text-xs font-semibold tabular-nums text-[var(--color-text-muted)] pt-0.5">
+                      {idx + 1}.
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {p.topic && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
+                            {p.topic}
+                          </span>
+                        )}
+                        {p.subtopic && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-faint)]">
+                            {p.subtopic}
+                          </span>
+                        )}
+                        {p.difficulty != null && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
+                            D{p.difficulty}
+                          </span>
+                        )}
+                      </div>
+                      {/* Problem statement */}
+                      <p className="text-sm leading-relaxed">
+                        <MathText text={p.problem} />
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /* ── New Exam Modal ──────────────────────────────────────────── */
 const NewExamModal = ({ onClose, onCreate }) => {
@@ -200,52 +321,66 @@ const NewExamModal = ({ onClose, onCreate }) => {
 };
 
 /* ── Exam card ───────────────────────────────────────────────── */
-const ExamCard = ({ exam, canEdit, onDelete, onClick }) => {
-  const problemCount = exam.problems?.length ?? 0;
+const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
+  // problems array is always included from the API; fall back to problemIds length
+  const problemCount =
+    Array.isArray(exam.problems)
+      ? exam.problems.length
+      : Array.isArray(exam.problemIds)
+      ? exam.problemIds.length
+      : 0;
 
   return (
     <div
       onClick={onClick}
-      className="group relative cursor-pointer surface-card px-5 py-4 hover:bg-[var(--color-surface)] transition-all"
+      className="group relative cursor-pointer surface-card px-5 py-3.5 hover:bg-[var(--color-surface)] transition-all"
     >
-      <div className="flex items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-sm truncate">{exam.name}</p>
-            {exam.templateType && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15">
-                {exam.templateType}
+      {/* Single-line layout: name · competition · version · N problems · author */}
+      <div className="flex items-center gap-2 min-w-0">
+        {/* Left: all meta on one line */}
+        <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+          <span className="font-semibold text-sm whitespace-nowrap">{exam.name}</span>
+
+          {exam.templateType && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15 whitespace-nowrap">
+              {exam.templateType}
+            </span>
+          )}
+
+          <span className="text-[var(--color-text-faint)] text-xs">·</span>
+          <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap truncate max-w-[160px]">{exam.competition}</span>
+
+          <span className="text-[var(--color-text-faint)] text-xs">·</span>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] whitespace-nowrap">
+            {exam.version}
+          </span>
+
+          <span className="text-[var(--color-text-faint)] text-xs">·</span>
+          <span className="text-xs text-[var(--color-text-muted)] tabular-nums whitespace-nowrap">
+            {problemCount} problem{problemCount !== 1 ? 's' : ''}
+          </span>
+
+          {(exam.author?.firstName || exam.author?.lastName) && (
+            <>
+              <span className="text-[var(--color-text-faint)] text-xs">·</span>
+              <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap">
+                {[exam.author.firstName, exam.author.lastName].filter(Boolean).join(' ')}
               </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-[var(--color-text-muted)]">
-            <span className="truncate">{exam.competition}</span>
-            <span className="text-[var(--color-text-faint)]">·</span>
-            <span className="font-medium px-1.5 py-0.5 rounded-sm bg-[var(--color-surface)] text-[10px]">
-              {exam.version}
-            </span>
-            <span className="text-[var(--color-text-faint)]">·</span>
-            <span className="tabular-nums">
-              {problemCount} problem{problemCount !== 1 ? 's' : ''}
-            </span>
-            {(exam.author?.firstName || exam.author?.lastName) && (
-              <>
-                <span className="text-[var(--color-text-faint)]">·</span>
-                <span>{[exam.author.firstName, exam.author.lastName].filter(Boolean).join(' ')}</span>
-              </>
-            )}
-            {exam.updatedAt && (
-              <>
-                <span className="text-[var(--color-text-faint)]">·</span>
-                <span>
-                  {new Date(exam.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </span>
-              </>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
+        {/* Right: action buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onPreview(exam); }}
+            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-sm text-[var(--color-text-faint)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent)]/8 transition"
+            title="Preview problems"
+            aria-label="Preview problems"
+          >
+            <Eye size={13} />
+          </button>
+
           {canEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(exam.id); }}
@@ -256,6 +391,7 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick }) => {
               <Trash2 size={13} />
             </button>
           )}
+
           <ChevronRight size={14} className="text-[var(--color-text-faint)]" />
         </div>
       </div>
@@ -273,6 +409,7 @@ const ExamManager = () => {
   const [examsLoading, setExamsLoading] = useState(true);
   const [examsError, setExamsError] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [previewExam, setPreviewExam] = useState(null);
 
   useEffect(() => {
     api.get('/auth/me').then((r) => setCurrentUser(r.data.user)).catch(() => {});
@@ -322,7 +459,6 @@ const ExamManager = () => {
             <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
               Exams
             </h1>
-            <p className="prose mt-1">Build and manage competition exam sets.</p>
           </div>
           <button onClick={() => setShowModal(true)} className="btn-filled flex items-center gap-1.5 px-4 py-2.5 text-sm">
             <Plus size={15} /> New Exam
@@ -348,7 +484,7 @@ const ExamManager = () => {
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {exams.map((exam) => (
               <ExamCard
                 key={exam.id}
@@ -356,6 +492,7 @@ const ExamManager = () => {
                 canEdit={canEditExam(exam)}
                 onDelete={handleDeleteExam}
                 onClick={() => navigate(`/exams/${exam.id}`)}
+                onPreview={setPreviewExam}
               />
             ))}
           </div>
@@ -364,6 +501,10 @@ const ExamManager = () => {
 
       {showModal && (
         <NewExamModal onClose={() => setShowModal(false)} onCreate={handleCreated} />
+      )}
+
+      {previewExam && (
+        <PreviewModal exam={previewExam} onClose={() => setPreviewExam(null)} />
       )}
     </Layout>
   );

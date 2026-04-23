@@ -2,18 +2,10 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
 import { computeDisplayStatus } from '../lib/problemDisplayStatus.js';
+import { ADMIN_EMAILS } from '../config/env.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
-
-const ADMIN_EMAILS = [
-  'arpituppal@ucla.edu',
-  'kennethren271@ucla.edu',
-  'brookswang@ucla.edu',
-  'zhangv29@ucla.edu',
-  'tomwu@g.ucla.edu',
-  'muztabasyed@ucla.edu',
-];
 
 // GET /feedback/next
 router.get('/next', authenticate, async (req, res) => {

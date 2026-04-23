@@ -67,7 +67,7 @@ const Sidebar = ({ dark, toggleDark }) => {
       <div className="sidebar__brand">
         {!collapsed && (
           <div className="sidebar__wordmark">
-            <span className="sidebar__prose-label">P.R.O.S.E.</span>
+            <span className="sidebar__prose-label">PROSE</span>
             <span className="sidebar__lamt-label">by Arpit Uppal</span>
           </div>
         )}

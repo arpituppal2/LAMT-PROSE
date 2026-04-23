@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ChevronDown, ChevronUp, Clock3,
-  RefreshCw, Search, Loader2,
+  RefreshCw, Search, Loader2, Settings, X,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
@@ -13,7 +13,7 @@ const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 const STAGES = ['Idea', 'Needs Review', 'Resolved', 'Endorsed'];
 
 /* ══════════════════════════════════════════════════════════════
-   GIVE FEEDBACK  —  lamt.net treatment + skip fix
+   GIVE FEEDBACK  —  lamt.net treatment + skip fix + preferences
 ══════════════════════════════════════════════════════════════ */
 const GiveFeedback = () => {
   const { problemId: routeProblemId } = useParams();
@@ -38,6 +38,33 @@ const GiveFeedback = () => {
   const [reviewableProblems, setReviewableProblems] = useState([]);
   const [reviewableLoading, setReviewableLoading]   = useState(false);
 
+  /* ── Preferences ── */
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [prefDiffMin, setPrefDiffMin]         = useState(1);
+  const [prefDiffMax, setPrefDiffMax]         = useState(10);
+  const [prefTopics, setPrefTopics]           = useState([...TOPICS]);
+  // draft state inside the modal
+  const [draftMin, setDraftMin]   = useState(1);
+  const [draftMax, setDraftMax]   = useState(10);
+  const [draftTopics, setDraftTopics] = useState([...TOPICS]);
+
+  const openPreferences = () => {
+    setDraftMin(prefDiffMin);
+    setDraftMax(prefDiffMax);
+    setDraftTopics([...prefTopics]);
+    setShowPreferences(true);
+  };
+  const savePreferences = () => {
+    setPrefDiffMin(draftMin);
+    setPrefDiffMax(draftMax);
+    setPrefTopics([...draftTopics]);
+    setShowPreferences(false);
+  };
+  const toggleDraftTopic = (t) =>
+    setDraftTopics((prev) =>
+      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+    );
+
   /* ── Unsaved-work guard ── */
   const isDirtyRef = useRef(false);
   useEffect(() => {
@@ -54,10 +81,30 @@ const GiveFeedback = () => {
   const filterTopicRef = useRef(filterTopic);
   const filterStageRef = useRef(filterStage);
   const filterDiffRef  = useRef(filterDifficulty);
+  const prefDiffMinRef = useRef(prefDiffMin);
+  const prefDiffMaxRef = useRef(prefDiffMax);
+  const prefTopicsRef  = useRef(prefTopics);
   useEffect(() => { searchQueryRef.current = searchQuery; },     [searchQuery]);
   useEffect(() => { filterTopicRef.current = filterTopic; },     [filterTopic]);
   useEffect(() => { filterStageRef.current = filterStage; },     [filterStage]);
   useEffect(() => { filterDiffRef.current  = filterDifficulty; },[filterDifficulty]);
+  useEffect(() => { prefDiffMinRef.current = prefDiffMin; },     [prefDiffMin]);
+  useEffect(() => { prefDiffMaxRef.current = prefDiffMax; },     [prefDiffMax]);
+  useEffect(() => { prefTopicsRef.current  = prefTopics; },      [prefTopics]);
+
+  /* ── Preference params builder ── */
+  const buildPrefParams = () => {
+    const params = new URLSearchParams();
+    const min = prefDiffMinRef.current;
+    const max = prefDiffMaxRef.current;
+    const topics = prefTopicsRef.current;
+    if (min > 1)  params.set('diffMin', min);
+    if (max < 10) params.set('diffMax', max);
+    if (topics.length > 0 && topics.length < TOPICS.length) {
+      params.set('topics', topics.join(','));
+    }
+    return params;
+  };
 
   /* ── Data fetchers ── */
   const loadReviewableProblems = useCallback(async () => {
@@ -83,7 +130,7 @@ const GiveFeedback = () => {
     setProblem(null);
     setMessage('');
     try {
-      const params = new URLSearchParams();
+      const params = buildPrefParams();
       if (filterDiffRef.current) params.set('difficulty', filterDiffRef.current);
       const qs = params.toString();
       const res = await api.get(`/feedback/next${qs ? `?${qs}` : ''}`);
@@ -98,19 +145,20 @@ const GiveFeedback = () => {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ── FIXED skip — uses /feedback/next?exclude=… instead of broken /feedback/skip ── */
+  /* ── FIXED skip — uses /feedback/skip with preference params ── */
   const skipProblem = useCallback(async () => {
     if (!problem) return;
     setLoading(true);
     setProblem(null);
     setMessage('');
     try {
-      const params = new URLSearchParams();
+      const params = buildPrefParams();
       params.set('exclude', problem.id);
       if (filterDiffRef.current) params.set('difficulty', filterDiffRef.current);
-      const res = await api.get(`/feedback/skip?exclude=${problem.id}&${filterDiffRef.current ? 'difficulty=' + filterDiffRef.current : ''}`);
+      const res = await api.get(`/feedback/skip?${params.toString()}`);
       if (!res.data) {
         setMessage('No other problems available right now.');
       } else {
@@ -122,6 +170,7 @@ const GiveFeedback = () => {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problem]);
 
   const loadSpecificProblem = useCallback(async (problemId) => {
@@ -208,6 +257,9 @@ const GiveFeedback = () => {
   const selectProblem = async (selected) => { await loadSpecificProblem(selected.id); setMode('targeted'); };
   const statusForProblem = (p) => p._displayStatus || p.stage || 'Idea';
 
+  /* ── Preferences summary for header badge ── */
+  const prefIsDefault = prefDiffMin === 1 && prefDiffMax === 10 && prefTopics.length === TOPICS.length;
+
   /* ═══════════════════════════════════════════════════════════
      RENDER
   ═══════════════════════════════════════════════════════════ */
@@ -237,6 +289,21 @@ const GiveFeedback = () => {
                 {m === 'random' ? 'Random' : 'Browse'}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={openPreferences}
+              className={[
+                'btn-outline px-4 py-2 text-sm flex items-center gap-1.5',
+                !prefIsDefault ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : '',
+              ].join(' ')}
+              title="Preferences"
+            >
+              <Settings size={14} />
+              Preferences
+              {!prefIsDefault && (
+                <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
+              )}
+            </button>
           </div>
         </header>
 
@@ -305,7 +372,6 @@ const GiveFeedback = () => {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1 space-y-2">
-                          {/* Topics in first row per instructions */}
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono text-sm font-semibold text-[var(--color-accent)]">{rp.id}</span>
                             {(rp.topics || []).map((t) => (
@@ -347,7 +413,7 @@ const GiveFeedback = () => {
         {problem && (
           <section className="surface-card overflow-hidden">
 
-            {/* Problem header — topics in first row */}
+            {/* Problem header */}
             <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4">
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="font-mono text-sm font-semibold text-[var(--color-accent)]">{problem.id}</span>
@@ -435,21 +501,13 @@ const GiveFeedback = () => {
                 </>
               ) : (
                 <>
-                  {/* Answer recap */}
+                  {/* Answer recap — work intentionally omitted here; it's already saved */}
                   <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">
                         Your answer: <span className="font-mono">{answer}</span>
                       </span>
                     </div>
-                    {work && (
-                      <div>
-                        <p className="section-label">Your work</p>
-                        <div className="mt-2 rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-3 text-sm leading-6 text-[var(--color-text-muted)] whitespace-pre-wrap">
-                          {work}
-                        </div>
-                      </div>
-                    )}
                     <button
                       type="button"
                       onClick={() => setShowSolution((s) => !s)}
@@ -480,35 +538,33 @@ const GiveFeedback = () => {
                     />
                   </div>
 
-                  {/* Decision cards */}
+                  {/* Decision — labels only, no subtitles */}
                   <div>
                     <p className="section-label mb-3">Decision</p>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex gap-3">
                       <button
                         type="button"
                         onClick={() => setReviewType('feedback')}
                         className={[
-                          'rounded-sm border-2 p-4 text-left transition-colors',
+                          'flex-1 rounded-sm border-2 px-4 py-3 text-sm font-semibold transition-colors',
                           reviewType === 'feedback'
-                            ? 'border-[var(--badge-needs-review-border)] bg-[var(--badge-needs-review-bg)]'
-                            : 'border-[var(--color-border)] hover:border-[var(--badge-needs-review-border)]',
+                            ? 'border-[var(--badge-needs-review-border)] bg-[var(--badge-needs-review-bg)] text-[var(--badge-needs-review-text)]'
+                            : 'border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--badge-needs-review-border)]',
                         ].join(' ')}
                       >
-                        <p className="text-sm font-semibold">Needs Review</p>
-                        <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">Flag for revisions — your comment explains what to fix</p>
+                        Needs Review
                       </button>
                       <button
                         type="button"
                         onClick={() => setReviewType('endorse')}
                         className={[
-                          'rounded-sm border-2 p-4 text-left transition-colors',
+                          'flex-1 rounded-sm border-2 px-4 py-3 text-sm font-semibold transition-colors',
                           reviewType === 'endorse'
-                            ? 'border-[var(--badge-endorsed-border)] bg-[var(--badge-endorsed-bg)]'
-                            : 'border-[var(--color-border)] hover:border-[var(--badge-endorsed-border)]',
+                            ? 'border-[var(--badge-endorsed-border)] bg-[var(--badge-endorsed-bg)] text-[var(--badge-endorsed-text)]'
+                            : 'border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--badge-endorsed-border)]',
                         ].join(' ')}
                       >
-                        <p className="text-sm font-semibold">Endorse</p>
-                        <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">Problem is ready as-is — no changes needed</p>
+                        Endorse
                       </button>
                     </div>
                   </div>
@@ -519,10 +575,7 @@ const GiveFeedback = () => {
                       type="button"
                       onClick={() => submitFeedback(reviewType === 'endorse')}
                       disabled={loading || !feedback.trim()}
-                      className={[
-                        'btn-filled px-5 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed',
-                        reviewType === 'endorse' ? '' : '',
-                      ].join(' ')}
+                      className="btn-filled px-5 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? 'Submitting…' : reviewType === 'endorse' ? 'Endorse problem' : 'Submit — Needs Review'}
                     </button>
@@ -549,6 +602,139 @@ const GiveFeedback = () => {
         )}
 
       </div>
+
+      {/* ══════════════════════════════════════════════════════
+          PREFERENCES MODAL
+      ══════════════════════════════════════════════════════ */}
+      {showPreferences && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPreferences(false); }}
+        >
+          <div className="w-full max-w-sm rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl">
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+              <p className="text-sm font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Preferences</p>
+              <button
+                type="button"
+                onClick={() => setShowPreferences(false)}
+                className="rounded p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-6 px-5 py-5">
+
+              {/* Difficulty range */}
+              <div>
+                <p className="section-label mb-3">
+                  Difficulty range
+                  <span className="ml-2 font-mono font-normal normal-case tracking-normal text-[var(--color-text-muted)]">
+                    {draftMin}–{draftMax}
+                  </span>
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 text-right text-xs tabular-nums text-[var(--color-text-muted)]">Min</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={10}
+                      step={1}
+                      value={draftMin}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setDraftMin(v);
+                        if (v > draftMax) setDraftMax(v);
+                      }}
+                      className="flex-1 h-1.5 cursor-pointer appearance-none rounded-full bg-[var(--color-border)] accent-[var(--color-accent)]"
+                    />
+                    <span className="w-5 text-xs tabular-nums text-[var(--color-accent)] font-semibold">{draftMin}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 text-right text-xs tabular-nums text-[var(--color-text-muted)]">Max</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={10}
+                      step={1}
+                      value={draftMax}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setDraftMax(v);
+                        if (v < draftMin) setDraftMin(v);
+                      }}
+                      className="flex-1 h-1.5 cursor-pointer appearance-none rounded-full bg-[var(--color-border)] accent-[var(--color-accent)]"
+                    />
+                    <span className="w-5 text-xs tabular-nums text-[var(--color-accent)] font-semibold">{draftMax}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Topics */}
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="section-label">Topics</p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDraftTopics(draftTopics.length === TOPICS.length ? [] : [...TOPICS])
+                    }
+                    className="text-xs text-[var(--color-accent)] hover:underline"
+                  >
+                    {draftTopics.length === TOPICS.length ? 'Deselect all' : 'Select all'}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {TOPICS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => toggleDraftTopic(t)}
+                      className={[
+                        'rounded-sm border px-3 py-1.5 text-xs font-semibold transition-colors',
+                        draftTopics.includes(t)
+                          ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-white'
+                          : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]',
+                      ].join(' ')}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                {draftTopics.length === 0 && (
+                  <p className="mt-2 text-xs text-[var(--badge-needs-review-text)]">Select at least one topic.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 border-t border-[var(--color-border)] px-5 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setDraftMin(1);
+                  setDraftMax(10);
+                  setDraftTopics([...TOPICS]);
+                }}
+                className="btn-outline flex-1 py-2 text-sm"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={savePreferences}
+                disabled={draftTopics.length === 0}
+                className="btn-filled flex-1 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

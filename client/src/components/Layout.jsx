@@ -137,7 +137,7 @@ const Layout = ({ children }) => {
         <Sidebar dark={dark} toggleDark={toggleDark} />
         <main
           className="flex-1 overflow-y-auto"
-          style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}
+          style={{ background: 'var(--color-bg)', color: 'var(--color-text)', paddingTop: '3vh' }}
         >
           {children}
         </main>

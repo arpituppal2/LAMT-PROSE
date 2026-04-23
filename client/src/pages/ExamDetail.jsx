@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  ArrowLeft, ChevronDown, ChevronUp, Copy, Download, Eye,
-  GripVertical, Loader2, MessageSquare, Plus, Save, Search,
-  Trash2, X, AlertTriangle, FileText,
+  ArrowLeft, ChevronDown, ChevronUp,
+  GripVertical, Loader2, X, AlertTriangle,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -24,6 +23,13 @@ const TEMPLATE_LABELS = {
 const STAGES = ['Idea', 'Needs Review', 'Resolved', 'Endorsed'];
 const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
+const TOPIC_ABBR = {
+  Algebra: 'ALG',
+  Geometry: 'GEO',
+  Combinatorics: 'COMBO',
+  'Number Theory': 'NT',
+};
+
 const STAGE_CFG = {
   Idea:           { dot: 'bg-amber-400',  rail: 'bg-amber-100 dark:bg-amber-900/30' },
   'Needs Review': { dot: 'bg-rose-500',   rail: 'bg-rose-100 dark:bg-rose-900/30' },
@@ -34,7 +40,6 @@ const STAGE_CFG = {
 /* ── Slot builders per template ─────────────────────────────── */
 const buildSlots = (templateType) => {
   if (!templateType) return Array.from({ length: 10 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' }));
-
   switch (templateType) {
     case 'indiv-alg-nt':
     case 'indiv-geo':
@@ -77,7 +82,6 @@ const deriveSlotMap = (slots) => {
   (Array.isArray(slots) ? slots : Object.values(slots)).forEach((s, i) => {
     if (s && typeof s === 'object') {
       if (s.problemId) map[i] = { problemId: s.problemId };
-      else if (typeof s === 'string') map[i] = { problemId: s };
     } else if (typeof s === 'string' && s) {
       map[i] = { problemId: s };
     }
@@ -93,11 +97,6 @@ const slotsToPayload = (slotMap, totalSlots) => {
   }
   return arr;
 };
-
-/* ── LaTeX helpers ──────────────────────────────────────────── */
-const stripLatex = (str = '') =>
-  str.replace(/\$\$[\s\S]*?\$\$/g, '[…]').replace(/\$[^$]*?\$/g, (m) => m.slice(1, -1))
-    .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1').replace(/[\\{}]/g, '').replace(/\s+/g, ' ').trim().slice(0, 90);
 
 const fixLatex = (str = '') => str.replace(/\$([\s\S]*?)\$/g, (_, m) => `$${m}$`);
 
@@ -115,7 +114,6 @@ const buildLatex = (exam, slotDefs, slotMap, problemMap, includeSolutions) => {
     `{\\large ${exam.competition || ''}}\\end{center}`,
     '\\vspace{1em}',
   ];
-
   slotDefs.forEach((slot, i) => {
     const entry = slotMap[i];
     const problem = entry ? problemMap[entry.problemId] : null;
@@ -132,7 +130,6 @@ const buildLatex = (exam, slotDefs, slotMap, problemMap, includeSolutions) => {
     }
     lines.push('\\vspace{1em}');
   });
-
   lines.push('\\end{document}');
   return lines.join('\n');
 };
@@ -171,90 +168,181 @@ const useDuplicates = (examId, slotMap) => {
   return dupes;
 };
 
-/* ── Components ─────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   SUB-COMPONENTS
+══════════════════════════════════════════════════════════════ */
+
 const StageChip = ({ stage }) => {
   const cfg = STAGE_CFG[stage] || STAGE_CFG.Idea;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-[10px] font-semibold ${cfg.rail}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+    <span className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${cfg.rail}`}>
+      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
       {stage}
     </span>
   );
 };
 
-/* ── SlotCard ───────────────────────────────────────────────── */
+/* ── SlotCard — fixed height, 2-row design ──────────────────── */
 const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) => {
   const [over, setOver] = useState(false);
+
+  const topics = problem ? (problem.topics || []).map(t => TOPIC_ABBR[t] || t) : [];
+  const diff = problem ? (problem.quality || '?') : null;
 
   return (
     <div
       className={[
-        'surface-card px-2.5 py-2 flex flex-col gap-1 transition-all border',
-        over ? 'border-[var(--ucla-blue)] bg-[var(--color-accent)]/5' : '',
+        'border rounded-sm flex flex-col transition-all cursor-pointer',
+        over ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5' : 'border-[var(--color-border)]',
         slot.slotType === 'estimation' ? 'border-l-2 border-l-[var(--ucla-gold)]' : '',
+        problem ? 'bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]' : 'bg-[var(--color-bg)]',
       ].join(' ')}
+      style={{ height: '72px' }}
+      onClick={() => problem && onPreview(problem)}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData('problemId'); if (id) onDrop(index, id); }}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{slot.label}</span>
-        {problem && (
-          <button onClick={() => onRemove(index)} className="p-0.5 text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)] transition-colors">
-            <X size={11} />
-          </button>
+      {/* ROW 1 */}
+      <div className="flex items-center gap-1.5 px-2 pt-1.5 pb-0.5" style={{ minHeight: '28px' }}>
+        {/* 6-dot grip */}
+        <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
+          {[0,1,2,3,4,5].map(i => (
+            <div key={i} className="w-[3px] h-[3px] rounded-full bg-[var(--color-text-muted)]" />
+          ))}
+        </div>
+        {/* Slot label */}
+        <span className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider flex-shrink-0">{slot.label}</span>
+
+        {problem ? (
+          <>
+            {/* Problem ID */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onPreview(problem); }}
+              className="font-mono text-[10px] font-bold text-[var(--color-accent)] hover:underline leading-none flex-shrink-0"
+            >
+              {problem.id}
+            </button>
+            {/* Difficulty */}
+            <span className="text-[9px] tabular-nums font-semibold text-[var(--color-text-faint)] flex-shrink-0">{diff}/10</span>
+            {/* Topics */}
+            <div className="flex items-center gap-0.5 flex-wrap">
+              {topics.map(t => (
+                <span key={t} className="text-[8px] font-medium px-1 py-0 rounded-sm bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)] leading-4">{t}</span>
+              ))}
+            </div>
+            {/* Remove */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemove(index); }}
+              className="ml-auto flex-shrink-0 p-0.5 text-[var(--color-text-faint)] hover:text-rose-500 transition-colors"
+            >
+              <X size={10} />
+            </button>
+          </>
+        ) : (
+          <span className="text-[9px] text-[var(--color-text-faint)] italic ml-1">Drop here</span>
         )}
       </div>
 
-      {problem ? (
-        <div className="space-y-0.5">
-          <button onClick={() => onPreview(problem)} className="text-left w-full group">
-            <span className="font-mono text-[10px] font-semibold text-[var(--color-accent)] group-hover:underline">{problem.id}</span>
-          </button>
-          <div className="flex items-center gap-1 flex-wrap">
-            {(problem.topics || []).map((t) => (
-              <span key={t} className="text-[8px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">{t}</span>
-            ))}
-            <span className="text-[8px] tabular-nums font-semibold text-[var(--color-text-faint)] ml-auto">{problem.quality || '?'}/10</span>
+      {/* ROW 2–3: LaTeX preview */}
+      <div className="px-2 pb-1.5 flex-1 overflow-hidden">
+        {problem ? (
+          <div className="text-[10px] text-[var(--color-text-muted)] leading-tight line-clamp-2 pointer-events-none">
+            <KatexRenderer latex={(problem.latex || '').slice(0, 300)} />
           </div>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center py-3 text-[10px] text-[var(--color-text-faint)] italic">
-          Drop here
-        </div>
-      )}
+        ) : (
+          <div className="h-full" />
+        )}
+      </div>
     </div>
   );
 };
 
-/* ── BankRow ────────────────────────────────────────────────── */
-const BankRow = ({ problem, isUsed, onPreview }) => {
+/* ── ShortlistRow — thin 1-per-row ──────────────────────────── */
+const ShortlistRow = ({ problem, isUsed, onPreview, onDrop }) => {
+  const [over, setOver] = useState(false);
   const status = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
-  const isGuts = problem.id && /^GU/.test(problem.id);
+  const topics = (problem.topics || []).map(t => TOPIC_ABBR[t] || t);
 
   return (
     <div
       draggable
       onDragStart={(e) => e.dataTransfer.setData('problemId', problem.id)}
       className={[
-        'px-4 py-2 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
+        'flex items-center gap-2 px-3 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
+        isUsed ? 'opacity-40' : 'hover:bg-[var(--color-surface)]',
+        over ? 'bg-[var(--color-accent)]/5' : '',
+      ].join(' ')}
+      style={{ height: '28px' }}
+      onClick={() => onPreview(problem)}
+    >
+      <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
+        {[0,1,2,3,4,5].map(i => (
+          <div key={i} className="w-[3px] h-[3px] rounded-full bg-[var(--color-text-muted)]" />
+        ))}
+      </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onPreview(problem); }}
+        className="font-mono text-[10px] font-bold text-[var(--color-accent)] hover:underline leading-none flex-shrink-0"
+      >
+        {problem.id}
+      </button>
+      <StageChip stage={status} />
+      <div className="flex items-center gap-0.5">
+        {topics.map(t => (
+          <span key={t} className="text-[8px] font-medium px-1 py-0 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] leading-4">{t}</span>
+        ))}
+      </div>
+      <span className="ml-auto text-[9px] tabular-nums font-semibold text-[var(--color-text-faint)]">{problem.quality || '?'}/10</span>
+      {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)] flex-shrink-0">✓</span>}
+    </div>
+  );
+};
+
+/* ── BankRow ────────────────────────────────────────────────── */
+const BankRow = ({ problem, isUsed, onPreview, onAddToShortlist, isShortlisted }) => {
+  const status = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
+  const topics = (problem.topics || []).map(t => TOPIC_ABBR[t] || t);
+
+  return (
+    <div
+      draggable
+      onDragStart={(e) => e.dataTransfer.setData('problemId', problem.id)}
+      className={[
+        'px-4 py-1.5 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
         isUsed ? 'opacity-40' : 'hover:bg-[var(--color-surface)]',
       ].join(' ')}
     >
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <GripVertical size={12} className="flex-shrink-0 text-[var(--color-text-faint)]" />
-        <button onClick={() => onPreview(problem)} className="font-mono text-[11px] font-semibold text-[var(--color-accent)] hover:underline leading-none">
+      <div className="flex items-center gap-1.5">
+        <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
+          {[0,1,2,3,4,5].map(i => (
+            <div key={i} className="w-[3px] h-[3px] rounded-full bg-[var(--color-text-muted)]" />
+          ))}
+        </div>
+        <button
+          onClick={() => onPreview(problem)}
+          className="font-mono text-[11px] font-semibold text-[var(--color-accent)] hover:underline leading-none flex-shrink-0"
+        >
           {problem.id}
         </button>
-        {isGuts && problem.setNumber && (
-          <span className="text-[9px] font-bold text-[var(--color-text-faint)] tabular-nums">(Set {problem.setNumber})</span>
-        )}
         <StageChip stage={status} />
-        {(problem.topics || []).map((t) => (
-          <span key={t} className="text-[9px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">{t}</span>
-        ))}
+        <div className="flex items-center gap-0.5">
+          {topics.map(t => (
+            <span key={t} className="text-[9px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">{t}</span>
+          ))}
+        </div>
         <span className="ml-auto text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)]">{problem.quality || '?'}/10</span>
-        {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)]">✓</span>}
+        <button
+          onClick={() => onAddToShortlist(problem)}
+          className={`text-[9px] px-1.5 py-0.5 rounded-sm border transition-colors flex-shrink-0 ${
+            isShortlisted
+              ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10'
+              : 'border-[var(--color-border)] text-[var(--color-text-faint)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]'
+          }`}
+        >
+          {isShortlisted ? '★' : '☆'}
+        </button>
+        {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)] flex-shrink-0">✓</span>}
       </div>
       <div className="mt-0.5 ml-5 text-[11px] text-[var(--color-text-muted)] leading-snug line-clamp-1">
         <KatexRenderer latex={(problem.latex || '').slice(0, 220)} />
@@ -293,7 +381,10 @@ const ProbModal = ({ problem, onClose }) => {
           )}
           {problem.solution && (
             <div className="rounded-sm border border-[var(--color-border)] overflow-hidden">
-              <button onClick={() => setShowSol((s) => !s)} className="w-full flex items-center justify-between px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] transition-colors text-sm font-semibold text-[var(--color-accent)]">
+              <button
+                onClick={() => setShowSol((s) => !s)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] transition-colors text-sm font-semibold text-[var(--color-accent)]"
+              >
                 {showSol ? 'Hide' : 'Show'} solution
                 {showSol ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
@@ -305,67 +396,6 @@ const ProbModal = ({ problem, onClose }) => {
             </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-};
-
-/* ── Discussion panel ───────────────────────────────────────── */
-const Discussion = ({ examId, comments, setComments }) => {
-  const [body, setBody] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const submit = async () => {
-    if (!body.trim()) return;
-    setLoading(true);
-    try {
-      const res = await api.post(`/tests/${examId}/comments`, { body });
-      setComments((prev) => [...prev, res.data]);
-      setBody('');
-    } catch { /* ignore */ }
-    setLoading(false);
-  };
-
-  const remove = async (commentId) => {
-    try {
-      await api.delete(`/tests/${examId}/comments/${commentId}`);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-    } catch { /* ignore */ }
-  };
-
-  return (
-    <div className="space-y-3">
-      <p className="section-label">Discussion</p>
-      {comments.length === 0 && (
-        <p className="text-xs text-[var(--color-text-muted)] italic">No comments yet.</p>
-      )}
-      <div className="space-y-2 max-h-60 overflow-y-auto">
-        {comments.map((c) => (
-          <div key={c.id} className="surface-card px-3 py-2.5 group">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold">{c.user?.firstName} {c.user?.lastName}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-[var(--color-text-muted)]">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}</span>
-                <button onClick={() => remove(c.id)} className="opacity-0 group-hover:opacity-100 text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)]">
-                  <Trash2 size={11} />
-                </button>
-              </div>
-            </div>
-            <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">{c.body}</p>
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
-          placeholder="Add a comment…"
-          className="input-base flex-1 text-sm"
-        />
-        <button onClick={submit} disabled={loading || !body.trim()} className="btn-filled px-3 py-1.5 text-xs disabled:opacity-50">
-          Post
-        </button>
       </div>
     </div>
   );
@@ -401,39 +431,39 @@ const LivePreview = ({ slotDefs, slotMap, problemMap, includeSolutions }) => (
 );
 
 /* ══════════════════════════════════════════════════════════════
-   EXAM DETAIL  — main component
+   EXAM DETAIL — main component
 ══════════════════════════════════════════════════════════════ */
 const ExamDetail = () => {
   const { id: examId } = useParams();
   const navigate = useNavigate();
 
-  const [exam, setExam]                 = useState(null);
-  const [problems, setProblems]         = useState([]);
-  const [slotMap, setSlotMap]           = useState({});
-  const [comments, setComments]         = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [saving, setSaving]             = useState(false);
-  const [dirty, setDirty]               = useState(false);
+  const [exam, setExam]                   = useState(null);
+  const [problems, setProblems]           = useState([]);
+  const [slotMap, setSlotMap]             = useState({});
+  const [loading, setLoading]             = useState(true);
+  const [saving, setSaving]               = useState(false);
+  const [dirty, setDirty]                 = useState(false);
   const [previewProblem, setPreviewProblem] = useState(null);
-  const [showPreview, setShowPreview]   = useState(false);
+  const [showPreview, setShowPreview]     = useState(false);
   const [previewWithSolutions, setPreviewWithSolutions] = useState(false);
+  const [shortlist, setShortlist]         = useState([]);
 
   /* ── Filters ── */
-  const [bankSearch, setBankSearch]       = useState('');
-  const [bankTopic, setBankTopic]         = useState('');
-  const [bankStage, setBankStage]         = useState('');
-  const [bankDiffMin, setBankDiffMin]     = useState(1);
-  const [bankDiffMax, setBankDiffMax]     = useState(10);
+  const [bankSearch, setBankSearch]   = useState('');
+  const [bankTopic, setBankTopic]     = useState('');
+  const [bankStage, setBankStage]     = useState('');
+  const [bankDiffMin, setBankDiffMin] = useState(1);
+  const [bankDiffMax, setBankDiffMax] = useState(10);
 
   /* ── Resizable split ── */
   const containerRef = useRef(null);
   const isDragging   = useRef(false);
-  const [splitPct, setSplitPct] = useState(25);
+  const [splitPct, setSplitPct] = useState(28);
 
   const onDividerMouseDown = useCallback(() => {
     isDragging.current = true;
-    document.body.style.cursor      = 'col-resize';
-    document.body.style.userSelect  = 'none';
+    document.body.style.cursor     = 'col-resize';
+    document.body.style.userSelect = 'none';
   }, []);
 
   useEffect(() => {
@@ -469,25 +499,21 @@ const ExamDetail = () => {
 
   const usedIds = useMemo(() => {
     const set = new Set();
-    Object.values(slotMap).forEach((e) => {
-      if (e.problemId) set.add(e.problemId);
-    });
+    Object.values(slotMap).forEach((e) => { if (e.problemId) set.add(e.problemId); });
     return set;
   }, [slotMap]);
+
+  const shortlistIds = useMemo(() => new Set(shortlist.map(p => p.id)), [shortlist]);
 
   const dupes = useDuplicates(examId, slotMap);
 
   const bankProblems = useMemo(() => {
     let list = problems.filter((p) => p.stage !== 'Archived');
-
     if (topicRestriction) list = list.filter((p) => (p.topics || []).some((t) => topicRestriction.includes(t)));
     if (bankSearch) list = list.filter((p) => `${p.id} ${p.latex || ''} ${(p.topics || []).join(' ')}`.toLowerCase().includes(bankSearch.toLowerCase()));
     if (bankTopic) list = list.filter((p) => (p.topics || []).includes(bankTopic));
     if (bankStage) list = list.filter((p) => (p._displayStatus || getProblemStatus(p, p.feedbacks)) === bankStage);
-    list = list.filter((p) => {
-      const d = parseInt(p.quality) || 5;
-      return d >= bankDiffMin && d <= bankDiffMax;
-    });
+    list = list.filter((p) => { const d = parseInt(p.quality) || 5; return d >= bankDiffMin && d <= bankDiffMax; });
     return list;
   }, [problems, bankSearch, bankTopic, bankStage, bankDiffMin, bankDiffMax, topicRestriction]);
 
@@ -500,7 +526,6 @@ const ExamDetail = () => {
         setExam(examRes.data);
         setProblems(probRes.data || []);
         setSlotMap(deriveSlotMap(examRes.data.slots));
-        setComments(examRes.data.comments || []);
       } catch {
         console.error('Failed to load exam');
       }
@@ -510,14 +535,16 @@ const ExamDetail = () => {
   }, [examId]);
 
   /* ── Slot actions ── */
-  const assignSlot = (index, problemId) => {
-    setSlotMap((prev) => ({ ...prev, [index]: { problemId } }));
-    setDirty(true);
-  };
+  const assignSlot  = (index, problemId) => { setSlotMap((prev) => ({ ...prev, [index]: { problemId } })); setDirty(true); };
+  const removeSlot  = (index) => { setSlotMap((prev) => { const next = { ...prev }; delete next[index]; return next; }); setDirty(true); };
 
-  const removeSlot = (index) => {
-    setSlotMap((prev) => { const next = { ...prev }; delete next[index]; return next; });
-    setDirty(true);
+  /* ── Shortlist ── */
+  const toggleShortlist = (problem) => {
+    setShortlist(prev =>
+      prev.some(p => p.id === problem.id)
+        ? prev.filter(p => p.id !== problem.id)
+        : [...prev, problem]
+    );
   };
 
   /* ── Save ── */
@@ -533,11 +560,9 @@ const ExamDetail = () => {
     setSaving(false);
   };
 
-  /* ── Export helpers ── */
   const doExport = (withSolutions) => {
     const tex = buildLatex(exam, slotDefs, slotMap, problemMap, withSolutions);
-    const suffix = withSolutions ? 'solutions' : 'problems';
-    downloadTex(tex, `${exam?.name || 'exam'}_${suffix}.tex`);
+    downloadTex(tex, `${exam?.name || 'exam'}_${withSolutions ? 'solutions' : 'problems'}.tex`);
   };
 
   if (loading) {
@@ -562,30 +587,27 @@ const ExamDetail = () => {
     );
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     RENDER
-  ═══════════════════════════════════════════════════════════ */
   return (
     <Layout>
-      <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
+      <div className="flex flex-col" style={{ height: 'calc(100vh - 3vh)', overflow: 'hidden' }}>
 
         {/* ── Top bar ─────────────────────────────────────── */}
-        <div className="flex-shrink-0 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-5 py-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <button onClick={() => navigate('/exams')} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
-              <ArrowLeft size={16} />
+        <div className="flex-shrink-0 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2">
+          <div className="flex items-center gap-2">
+            {/* Back */}
+            <button onClick={() => navigate('/exams')} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] flex-shrink-0">
+              <ArrowLeft size={14} />
             </button>
+
+            {/* Title block */}
             <div className="flex-1 min-w-0">
-              <h1 className="text-base font-bold truncate" style={{ fontFamily: 'var(--font-display)' }}>
+              <h1 className="text-sm font-bold truncate leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
                 {exam.name}
               </h1>
-              <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] leading-tight">
                 <span>{exam.competition}</span>
                 {exam.templateType && (
-                  <>
-                    <span className="text-[var(--color-text-faint)]">·</span>
-                    <span className="font-medium">{TEMPLATE_LABELS[exam.templateType] || exam.templateType}</span>
-                  </>
+                  <><span className="text-[var(--color-text-faint)]">·</span><span>{TEMPLATE_LABELS[exam.templateType] || exam.templateType}</span></>
                 )}
                 <span className="text-[var(--color-text-faint)]">·</span>
                 <span className="tabular-nums">{Object.keys(slotMap).length}/{slotDefs.length} filled</span>
@@ -594,39 +616,39 @@ const ExamDetail = () => {
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(false); }} className="btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5">
-                <Eye size={13} /> Preview
+            {/* Action buttons — no icons, compact */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(false); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
+                Preview
               </button>
-              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(true); }} className="btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5">
-                <Eye size={13} /> Preview + Solutions
+              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(true); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
+                Preview + Solutions
               </button>
-              <button onClick={() => doExport(false)} className="btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5">
-                <Download size={13} /> Download .tex
+              <button onClick={() => doExport(false)} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
+                Download .tex
               </button>
-              <button onClick={() => doExport(true)} className="btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5">
-                <Download size={13} /> Download + Solutions
+              <button onClick={() => doExport(true)} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
+                Download + Solutions
               </button>
-              <button onClick={handleSave} disabled={!dirty || saving} className="btn-filled px-4 py-1.5 text-xs flex items-center gap-1.5 disabled:opacity-50">
-                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              <button
+                onClick={handleSave}
+                disabled={!dirty || saving}
+                className="btn-filled px-3 py-1 text-[11px] disabled:opacity-50 whitespace-nowrap"
+              >
                 {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
               </button>
             </div>
           </div>
 
-          {/* Warning banners */}
+          {/* Banners */}
           {dupes.length > 0 && (
-            <div className="mt-2 flex items-start gap-2 rounded-sm border border-[var(--badge-idea-border)] bg-[var(--badge-idea-bg)] px-3 py-2 text-xs text-[var(--badge-idea-text)]">
-              <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
-              <span>
-                Duplicate problems found in other exams:{' '}
-                {dupes.map((d) => `${d.examName} (${d.problems.join(', ')})`).join('; ')}
-              </span>
+            <div className="mt-1.5 flex items-start gap-2 rounded-sm border border-[var(--badge-idea-border)] bg-[var(--badge-idea-bg)] px-3 py-1.5 text-[10px] text-[var(--badge-idea-text)]">
+              <AlertTriangle size={11} className="flex-shrink-0 mt-0.5" />
+              <span>Duplicates in: {dupes.map((d) => `${d.examName} (${d.problems.join(', ')})`).join('; ')}</span>
             </div>
           )}
           {topicRestriction && (
-            <div className="mt-2 text-[10px] text-[var(--color-text-faint)]">
+            <div className="mt-1 text-[10px] text-[var(--color-text-faint)]">
               Topic restriction: {topicRestriction.join(', ')}. Bank is pre-filtered.
             </div>
           )}
@@ -635,14 +657,17 @@ const ExamDetail = () => {
         {/* ── Body: resizable split ───────────────────────── */}
         <div ref={containerRef} className="flex flex-1 overflow-hidden">
 
-          {/* LEFT: Slot grid */}
+          {/* LEFT: Slot grid + Shortlist */}
           <div
             className="overflow-y-auto border-r border-[var(--color-border)] bg-[var(--color-bg)] flex-shrink-0"
             style={{ width: `${splitPct}%` }}
           >
+            {/* EXAM SLOTS */}
             <div className="p-3">
-              <p className="section-label px-1 mb-2">Exam slots ({Object.keys(slotMap).length}/{slotDefs.length})</p>
-              <div className="grid grid-cols-3 gap-2">
+              <p className="section-label px-1 mb-2 uppercase tracking-widest text-[10px]">
+                Exam Slots ({Object.keys(slotMap).length}/{slotDefs.length})
+              </p>
+              <div className="grid grid-cols-3 gap-1.5">
                 {slotDefs.map((slot, i) => (
                   <SlotCard
                     key={i}
@@ -657,40 +682,57 @@ const ExamDetail = () => {
                 ))}
               </div>
             </div>
+
+            {/* SHORTLIST */}
+            <div className="px-3 pb-3">
+              <p className="section-label px-1 mb-1 uppercase tracking-widest text-[10px]">
+                Shortlist ({shortlist.length})
+              </p>
+              {shortlist.length === 0 ? (
+                <div className="border border-dashed border-[var(--color-border)] rounded-sm px-3 py-3 text-[10px] text-[var(--color-text-faint)] italic text-center">
+                  Star problems in the bank to shortlist them
+                </div>
+              ) : (
+                <div className="border border-[var(--color-border)] rounded-sm overflow-hidden">
+                  {shortlist.map(p => (
+                    <ShortlistRow
+                      key={p.id}
+                      problem={p}
+                      isUsed={usedIds.has(p.id)}
+                      onPreview={setPreviewProblem}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* DRAG HANDLE */}
           <div
             onMouseDown={onDividerMouseDown}
             className="w-1 flex-shrink-0 cursor-col-resize bg-[var(--color-border)] hover:bg-[var(--color-accent)] active:bg-[var(--color-accent)] transition-colors relative group"
-            title="Drag to resize"
           >
             <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="w-1 h-1 rounded-full bg-[var(--color-accent)]" />
-              ))}
+              {[0,1,2,3,4].map(i => <div key={i} className="w-1 h-1 rounded-full bg-[var(--color-accent)]" />)}
             </div>
           </div>
 
           {/* RIGHT: Problem bank */}
           <div className="overflow-y-auto bg-[var(--color-bg)] flex-1">
             {/* Bank filter bar */}
-            <div className="sticky top-0 z-10 bg-[var(--color-bg)] border-b border-[var(--color-border)] px-4 py-3">
+            <div className="sticky top-0 z-10 bg-[var(--color-bg)] border-b border-[var(--color-border)] px-4 py-2">
               <div className="flex flex-wrap items-center gap-2">
-                <label className="relative flex-1 min-w-[160px]">
-                  <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
-                  <input
-                    value={bankSearch}
-                    onChange={(e) => setBankSearch(e.target.value)}
-                    placeholder="Search bank"
-                    className="input-base w-full pl-7 py-1.5 text-xs"
-                  />
-                </label>
-                <select value={bankTopic} onChange={(e) => setBankTopic(e.target.value)} className="input-base py-1.5 text-xs">
+                <input
+                  value={bankSearch}
+                  onChange={(e) => setBankSearch(e.target.value)}
+                  placeholder="Search bank"
+                  className="input-base flex-1 min-w-[140px] py-1 text-xs"
+                />
+                <select value={bankTopic} onChange={(e) => setBankTopic(e.target.value)} className="input-base py-1 text-xs">
                   <option value="">All topics</option>
                   {TOPICS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
-                <select value={bankStage} onChange={(e) => setBankStage(e.target.value)} className="input-base py-1.5 text-xs">
+                <select value={bankStage} onChange={(e) => setBankStage(e.target.value)} className="input-base py-1 text-xs">
                   <option value="">All stages</option>
                   {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -706,17 +748,21 @@ const ExamDetail = () => {
 
             {/* Bank list */}
             {bankProblems.length === 0 ? (
-              <div className="py-16 text-center text-sm text-[var(--color-text-muted)]">
-                No problems match the current filters.
-              </div>
+              <div className="py-16 text-center text-sm text-[var(--color-text-muted)]">No problems match the current filters.</div>
             ) : (
               bankProblems.map((p) => (
-                <BankRow key={p.id} problem={p} isUsed={usedIds.has(p.id)} onPreview={setPreviewProblem} />
+                <BankRow
+                  key={p.id}
+                  problem={p}
+                  isUsed={usedIds.has(p.id)}
+                  onPreview={setPreviewProblem}
+                  onAddToShortlist={toggleShortlist}
+                  isShortlisted={shortlistIds.has(p.id)}
+                />
               ))
             )}
           </div>
         </div>
-
       </div>
 
       {/* ── Preview overlay ───────────────────────────────── */}

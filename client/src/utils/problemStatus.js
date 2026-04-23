@@ -22,7 +22,7 @@ export function getProblemStatus(problem, feedbacks) {
 /**
  * Maps each status to the CSS classes defined in index.css.
  *
- * Base:     .status-badge          (shared geometry — padding, radius, font)
+ * Base:     .status-badge          (shared geometry — padding, font)
  * Modifier: .status-<slug>         (color pair from CSS variables, light + dark)
  *
  * Usage:
@@ -42,3 +42,6 @@ export const STATUS_POINTS = {
   Endorsed:       5,
   Resolved:       3,
 };
+
+/** Points awarded per review given to another author's problem. */
+export const REVIEW_POINTS = 0.5;

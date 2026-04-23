@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
+import { ALLOWED_EMAIL_DOMAIN } from '../config/env.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -18,8 +19,8 @@ const COOKIE_OPTS = {
 router.post('/register', async (req, res) => {
   try {
     const { email, password, inviteCode, firstName, lastName, mathExp } = req.body;
-    if (!email?.endsWith('@ucla.edu')) {
-      return res.status(400).json({ error: 'Must use UCLA email' });
+    if (ALLOWED_EMAIL_DOMAIN && !email?.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)) {
+      return res.status(400).json({ error: `Must use a @${ALLOWED_EMAIL_DOMAIN} email address` });
     }
     if (inviteCode !== process.env.INVITE_CODE) {
       return res.status(400).json({ error: 'Invalid invite code' });
@@ -143,7 +144,5 @@ router.post('/reset-password', async (req, res) => {
     res.status(500).json({ error: error.message || 'Failed to reset password' });
   }
 });
-
-
 
 export default router;

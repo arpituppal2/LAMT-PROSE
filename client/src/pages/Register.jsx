@@ -23,7 +23,6 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!formData.email.endsWith('@ucla.edu')) { setError('Must use a @ucla.edu email address.'); return; }
     if (formData.password !== formData.confirmPassword) { setError('Passwords do not match.'); return; }
     if (formData.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
@@ -50,7 +49,7 @@ const Register = () => {
             Create account
           </h1>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-            Requires a @ucla.edu address and invite code.
+            Requires a valid address and invite code.
           </p>
         </div>
 
@@ -82,9 +81,9 @@ const Register = () => {
             {/* Email + Initials row */}
             <div className="grid grid-cols-[1fr_88px] gap-3">
               <div>
-                <label className={labelCls}>UCLA email</label>
+                <label className={labelCls}>Email</label>
                 <input type="email" name="email" value={formData.email}
-                  onChange={handleChange} className={inputCls} placeholder="you@ucla.edu" required />
+                  onChange={handleChange} className={inputCls} placeholder="Your PROSE Email Here" required />
               </div>
               <div>
                 <label className={labelCls}>Initials</label>

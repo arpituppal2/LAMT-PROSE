@@ -116,6 +116,29 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
+// Update current user profile
+router.patch('/me', authenticate, async (req, res) => {
+  try {
+    const { mathExp } = req.body;
+    const updated = await prisma.user.update({
+      where: { id: req.userId },
+      data: { mathExp },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        initials: true,
+        mathExp: true
+      }
+    });
+    res.json({ user: updated });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: error.message || 'Failed to update profile' });
+  }
+});
+
 // Reset Password - requires admin-provided reset code
 router.post('/reset-password', async (req, res) => {
   try {

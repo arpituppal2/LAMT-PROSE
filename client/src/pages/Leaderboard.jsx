@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import { STATUS_POINTS } from '../utils/problemStatus';
 
-/* ══════════════════════════════════════════════════════════════
-   LEADERBOARD  —  lamt.net / ucla.edu treatment
-══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   LEADERBOARD
+═══════════════════════════════════════════════════════════════ */
+
+const SCORING_PILLS = [
+  { label: 'Endorsed',     pts: '+5',   color: 'var(--badge-endorsed-text)',      bg: 'var(--badge-endorsed-bg)',      border: 'var(--badge-endorsed-border)' },
+  { label: 'Idea',         pts: '+2',   color: 'var(--badge-idea-text)',           bg: 'var(--badge-idea-bg)',           border: 'var(--badge-idea-border)' },
+  { label: 'Resolved',     pts: '+3',   color: 'var(--badge-resolved-text)',       bg: 'var(--badge-resolved-bg)',       border: 'var(--badge-resolved-border)' },
+  { label: 'Needs Review', pts: '−2',   color: 'var(--badge-needs-review-text)',   bg: 'var(--badge-needs-review-bg)',   border: 'var(--badge-needs-review-border)' },
+  { label: 'Review Given', pts: '+0.5', color: 'var(--color-accent)',              bg: 'var(--color-surface-2)',         border: 'var(--color-border)' },
+];
+
 const Leaderboard = () => {
   const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
 
   useEffect(() => { fetchLeaderboard(); }, []);
 
@@ -27,20 +35,14 @@ const Leaderboard = () => {
     }
   };
 
-  const filtered = leaderboard
-    .filter((entry) => (entry.score ?? 0) > 0)
-    .filter((entry) =>
-      search === '' ||
-      entry.author.toLowerCase().includes(search.toLowerCase()) ||
-      entry.initials.toLowerCase().includes(search.toLowerCase()),
-    );
+  const entries = leaderboard.filter((entry) => (entry.score ?? 0) > 0);
 
   if (loading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64 gap-3 text-[var(--color-text-muted)]">
           <Loader2 size={18} className="animate-spin text-[var(--color-accent)]" />
-          <span className="text-base">Loading leaderboard…</span>
+          <span>Loading leaderboard…</span>
         </div>
       </Layout>
     );
@@ -48,82 +50,66 @@ const Leaderboard = () => {
 
   return (
     <Layout>
-      <div className="w-full max-w-[1200px] mx-auto space-y-6">
+      <div className="w-full max-w-[1200px] mx-auto space-y-5">
 
-        {/* ── Page header ── */}
-        <header>
-          <span className="gold-rule mb-3" />
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Leaderboard
-          </h1>
-          <p className="prose mt-2 max-w-2xl">
-            Points are awarded per problem based on workflow stage, plus a bonus for reviews you give to others.
-          </p>
-        </header>
-
-        {/* ── Scoring formula — shown directly, no tooltip ── */}
-        <div className="surface-card px-5 py-4">
-          <p className="section-label mb-3">Scoring Formula</p>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-            {[
-              { label: 'Idea',         pts: `+${STATUS_POINTS.Idea}`,             color: 'var(--badge-idea-text)' },
-              { label: 'Needs Review', pts: `+${STATUS_POINTS['Needs Review']}`,  color: 'var(--badge-needs-review-text)' },
-              { label: 'Resolved',     pts: `+${STATUS_POINTS.Resolved}`,         color: 'var(--badge-resolved-text)' },
-              { label: 'Endorsed',     pts: `+${STATUS_POINTS.Endorsed}`,         color: 'var(--badge-endorsed-text)' },
-              { label: 'Review Given', pts: '+0.5',                               color: 'var(--color-accent)' },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                  {item.label}
-                </p>
-                <p className="mt-1 text-lg font-bold tabular-nums" style={{ color: item.color }}>
-                  {item.pts}
-                </p>
-              </div>
-            ))}
+        {/* ── Title row + inline scoring pills ── */}
+        <header className="space-y-3">
+          <span className="gold-rule" />
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <h1
+              style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 800 }}
+              className="tracking-tight leading-none"
+            >
+              Leaderboard
+            </h1>
+            {/* Scoring pills — inline in header */}
+            <div className="flex flex-wrap items-center gap-2">
+              {SCORING_PILLS.map((pill) => (
+                <span
+                  key={pill.label}
+                  style={{
+                    background: pill.bg,
+                    color: pill.color,
+                    borderColor: pill.border,
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontFamily: 'var(--font-body)',
+                    border: '1px solid',
+                    padding: '0.25em 0.6em',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3em',
+                  }}
+                >
+                  {pill.label}
+                  <strong style={{ fontWeight: 900 }}>{pill.pts}</strong>
+                </span>
+              ))}
+            </div>
           </div>
-          <p className="text-xs text-[var(--color-text-faint)] mt-3 leading-relaxed">
-            Your total score = (Idea count × {STATUS_POINTS.Idea}) + (Needs Review count × {STATUS_POINTS['Needs Review']}) + (Resolved count × {STATUS_POINTS.Resolved}) + (Endorsed count × {STATUS_POINTS.Endorsed}) + (Reviews given × 0.5).
-            Points accumulate as your problems progress through the workflow.
-          </p>
-        </div>
-
-        {/* ── Search ── */}
-        <div className="relative max-w-md">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
-          <input
-            type="text"
-            placeholder="Search by name or initials"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input-base w-full pl-9"
-          />
-        </div>
+        </header>
 
         {/* ── Leaderboard table ── */}
         <div className="surface-card overflow-hidden">
           <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[920px] text-left text-sm">
+            <table className="w-full min-w-[860px] text-left">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <th className="px-4 py-3.5 section-label w-12">#</th>
-                  <th className="px-4 py-3.5 section-label">Contributor</th>
-                  <th className="px-4 py-3.5 section-label text-center">Endorsed</th>
-                  <th className="px-4 py-3.5 section-label text-center">Idea</th>
-                  <th className="px-4 py-3.5 section-label text-center">Needs Review</th>
-                  <th className="px-4 py-3.5 section-label text-center">Resolved</th>
-                  <th className="px-4 py-3.5 section-label text-center">Reviews</th>
-                  <th className="px-4 py-3.5 section-label text-right">Score</th>
+                  <th className="px-4 py-3 section-label w-12">#</th>
+                  <th className="px-4 py-3 section-label">Contributor</th>
+                  <th className="px-4 py-3 section-label text-center">Endorsed</th>
+                  <th className="px-4 py-3 section-label text-center">Idea</th>
+                  <th className="px-4 py-3 section-label text-center">Needs Review</th>
+                  <th className="px-4 py-3 section-label text-center">Resolved</th>
+                  <th className="px-4 py-3 section-label text-center">Reviews</th>
+                  <th className="px-4 py-3 section-label text-right">Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
-                {filtered.map((entry, index) => (
+                {entries.map((entry, index) => (
                   <tr
                     key={entry.userId}
                     onClick={() => navigate(`/users/${entry.userId}`)}
@@ -133,15 +119,27 @@ const Leaderboard = () => {
                       {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium">{entry.author}</p>
-                      <p className="text-xs text-[var(--color-text-muted)] font-mono">{entry.initials}</p>
+                      <p style={{ fontWeight: 600 }}>{entry.author}</p>
+                      <p
+                        style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--color-text-muted)' }}
+                      >
+                        {entry.initials}
+                      </p>
                     </td>
                     <td className="px-4 py-3 text-center tabular-nums">{entry.badges.endorsed || 0}</td>
                     <td className="px-4 py-3 text-center tabular-nums">{entry.badges.idea || 0}</td>
-                    <td className="px-4 py-3 text-center tabular-nums text-[var(--badge-needs-review-text)]">{entry.badges.needsReview || 0}</td>
+                    <td
+                      className="px-4 py-3 text-center tabular-nums"
+                      style={{ color: 'var(--badge-needs-review-text)' }}
+                    >
+                      {entry.badges.needsReview || 0}
+                    </td>
                     <td className="px-4 py-3 text-center tabular-nums">{entry.badges.resolved || 0}</td>
                     <td className="px-4 py-3 text-center tabular-nums">{entry.reviewsGiven || 0}</td>
-                    <td className="px-4 py-3 text-right font-bold tabular-nums text-[var(--color-accent)]">
+                    <td
+                      className="px-4 py-3 text-right tabular-nums"
+                      style={{ fontWeight: 700, color: 'var(--color-accent)' }}
+                    >
                       {entry.score}
                     </td>
                   </tr>
@@ -150,9 +148,9 @@ const Leaderboard = () => {
             </table>
           </div>
 
-          {filtered.length === 0 && (
-            <div className="text-center py-14 text-sm text-[var(--color-text-muted)]">
-              {search ? `No results for "${search}"` : 'No contributors with a score yet.'}
+          {entries.length === 0 && (
+            <div className="text-center py-14" style={{ color: 'var(--color-text-muted)' }}>
+              No contributors with a score yet.
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 A full-stack web platform for math competition organizers to write, review, organize, and finalize competition problems. Built with React, Node.js, Prisma, and PostgreSQL.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/new?template=https://github.com/arpituppal2/LAMT-PROSE)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/6NrI0B?referralCode=xEPLsf&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
 ---
 
@@ -32,18 +32,13 @@ A full-stack web platform for math competition organizers to write, review, orga
 
 ## Deploying on Railway
 
-### 1. Fork the repo
+### 1. Click the deploy button
 
-Fork [arpituppal2/LAMT-PROSE](https://github.com/arpituppal2/LAMT-PROSE) to your own GitHub account.
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/6NrI0B?referralCode=xEPLsf&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-### 2. Create a Railway project
+This will create a Railway project with the server and a PostgreSQL database pre-configured.
 
-Go to [railway.com](https://railway.com) and create a new project. You'll need two services:
-
-- **PostgreSQL** — add via *New → Database → PostgreSQL*
-- **PROSE** (this repo) — add via *New → GitHub Repo*, select your fork
-
-### 3. Set environment variables
+### 2. Set environment variables
 
 In your PROSE service's **Variables** tab, add the following:
 
@@ -69,11 +64,7 @@ In your PROSE service's **Variables** tab, add the following:
 | `ALLOWED_EMAIL_DOMAIN` | If set, restricts registration to this domain. Leave unset to allow any email. | `uni.edu` |
 | `GUEST_EMAIL` | *(Optional)* A shared guest account email for walk-in contributors | `guest@uni.edu` |
 
-### 4. Link the database
-
-In your PROSE service, go to **Variables → Add Variable → Reference**, and reference your PostgreSQL service's `DATABASE_URL`. Railway injects this automatically when services are linked in the same project.
-
-### 5. Run database migrations
+### 3. Run database migrations
 
 After the first deploy, open your PROSE service's **Shell** tab and run:
 
@@ -83,7 +74,7 @@ npx prisma migrate deploy
 
 This applies all Prisma migrations to your PostgreSQL database.
 
-### 6. Deploy
+### 4. Deploy
 
 Railway will automatically build and deploy on every push to `main`. Your app will be live at the domain shown in the Railway dashboard.
 
@@ -100,7 +91,7 @@ Railway will automatically build and deploy on every push to `main`. Your app wi
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-fork/LAMT-PROSE.git
+git clone https://github.com/arpituppal2/LAMT-PROSE.git
 cd LAMT-PROSE
 
 # Start local PostgreSQL

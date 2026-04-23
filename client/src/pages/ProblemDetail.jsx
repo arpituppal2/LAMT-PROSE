@@ -908,13 +908,12 @@ const ProblemDetail = () => {
               {problem.solution && (
                 <div>
                   <button
-                    onClick={() => setShowPreview(prev => prev)}
-                    className="btn-ghost btn-sm"
-                    style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                    onClick={() => setShowPreview(s => { /* toggle solution inline */ return s; })}
-                  >
-                    <CheckCircle size={14} /> Solution
-                  </button>
+  onClick={() => setShowPreview(s => !s)}
+  className="btn-ghost btn-sm"
+  style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+>
+  <CheckCircle size={14} /> Solution
+</button>
                   <div className="prose-math" style={{ lineHeight: 1.75, color: 'var(--color-text-muted)' }}>
                     <KatexRenderer latex={problem.solution} />
                   </div>

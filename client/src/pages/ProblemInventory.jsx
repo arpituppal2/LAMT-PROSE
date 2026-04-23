@@ -313,7 +313,7 @@ const ProblemInventory = () => {
           </h1>
         </header>
 
-        {/* ── Status counts (replaces massive counter) ── */}
+        {/* ── Status counts ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatusCard label="Idea"         count={statusCounts.Idea}            color="text-[var(--badge-idea-text)]" />
           <StatusCard label="Needs Review" count={statusCounts['Needs Review']} color="text-[var(--badge-needs-review-text)]" />
@@ -345,7 +345,8 @@ const ProblemInventory = () => {
 
         {/* ── Filter bar ── */}
         <div className="flex flex-wrap items-center gap-3 surface-card p-4">
-          <label className="relative flex-1 min-w-[220px]">
+          {/* Search — flex-1 so it takes remaining space */}
+          <label className="relative flex-1 min-w-[200px]">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
             <input
               type="text"
@@ -355,33 +356,38 @@ const ProblemInventory = () => {
               className="input-base w-full pl-8"
             />
           </label>
-          {[
-            { val: sortBy,           fn: setSortBy,           opts: [['newest','Newest'],['oldest','Oldest'],['diff','Hardest first'],['easiest','Easiest first']] },
-            { val: stageFilter,      fn: setStageFilter,      opts: [['all','All stages'],['Idea','Idea'],['Needs Review','Needs Review'],['Resolved','Resolved'],['Endorsed','Endorsed']] },
-            { val: topicFilter,      fn: setTopicFilter,      opts: [['all','All topics'],['Algebra','Algebra'],['Geometry','Geometry'],['Combinatorics','Combinatorics'],['Number Theory','Number Theory']] },
-            { val: difficultyFilter, fn: setDifficultyFilter, opts: [['all','All difficulties'], ...Array.from({ length: 10 }, (_, i) => [(i+1).toString(), `${i+1}/10`])] },
-          ].map((sel, i) => (
-            <select
-              key={i}
-              value={sel.val}
-              onChange={(e) => sel.fn(e.target.value)}
-              className="input-base px-3 py-2.5 text-sm cursor-pointer"
-            >
-              {sel.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          ))}
+          {/* Dropdowns pushed to the right */}
+          <div className="flex flex-wrap gap-2 ml-auto">
+            {[
+              { val: sortBy,           fn: setSortBy,           opts: [['newest','Newest'],['oldest','Oldest'],['diff','Hardest first'],['easiest','Easiest first']] },
+              { val: stageFilter,      fn: setStageFilter,      opts: [['all','All stages'],['Idea','Idea'],['Needs Review','Needs Review'],['Resolved','Resolved'],['Endorsed','Endorsed']] },
+              { val: topicFilter,      fn: setTopicFilter,      opts: [['all','All topics'],['Algebra','Algebra'],['Geometry','Geometry'],['Combinatorics','Combinatorics'],['Number Theory','Number Theory']] },
+              { val: difficultyFilter, fn: setDifficultyFilter, opts: [['all','All difficulties'], ...Array.from({ length: 10 }, (_, i) => [(i+1).toString(), `${i+1}/10`])] },
+            ].map((sel, i) => (
+              <select
+                key={i}
+                value={sel.val}
+                onChange={(e) => sel.fn(e.target.value)}
+                className="input-base px-3 py-2.5 text-sm cursor-pointer"
+                style={{ width: 'auto' }}
+              >
+                {sel.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            ))}
+          </div>
         </div>
 
-        {/* ── Table: Problem / Topics / Stage / Difficulty ── */}
+        {/* ── Table: Problem (wide) / Topics / Stage / Difficulty ── */}
         <div className="surface-card overflow-hidden">
           <div className="overflow-x-auto w-full">
             <table className="w-full min-w-[600px] text-left">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <th className="px-5 py-3.5 section-label w-[40%]">Problem</th>
-                  <th className="px-5 py-3.5 section-label w-[25%]">Topics</th>
-                  <th className="px-5 py-3.5 section-label w-[20%]">Stage</th>
-                  <th className="px-5 py-3.5 section-label text-right w-[15%]">Difficulty</th>
+                  {/* Problem gets the majority of the space */}
+                  <th className="px-5 py-3.5 section-label" style={{ width: '52%' }}>Problem</th>
+                  <th className="px-5 py-3.5 section-label" style={{ width: '20%' }}>Topics</th>
+                  <th className="px-5 py-3.5 section-label" style={{ width: '16%' }}>Stage</th>
+                  <th className="px-5 py-3.5 section-label text-right" style={{ width: '12%' }}>Difficulty</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">

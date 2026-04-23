@@ -523,10 +523,7 @@ a, button, [role="button"] {
   letter-spacing: 0.10em;
 }
 
-/* ── BTN-TAB  (Dashboard tab row: Overview / Review Queue / My Reviews / Account)
-   Rectangular outline buttons. Active = filled UCLA Blue (light) / Gold (dark).
-   Inactive = transparent bg, muted border, muted text → hover full border + text.
-──────────────────────────────────────────────────────────────────────────────── */
+/* ── BTN-TAB ──────────────────────────────────────────────── */
 .btn-tab {
   display: inline-flex;
   align-items: center;
@@ -553,8 +550,6 @@ a, button, [role="button"] {
   color: var(--color-text);
 }
 .btn-tab:active { opacity: 0.8; }
-
-/* Active state — light mode: filled UCLA Blue */
 .btn-tab--active {
   background: var(--ucla-blue);
   border-color: var(--ucla-blue);
@@ -565,8 +560,6 @@ a, button, [role="button"] {
   border-color: var(--ucla-blue-darker);
   color: #FFFFFF;
 }
-
-/* Dark mode overrides */
 .dark .btn-tab {
   border-color: rgba(139,184,232,0.18);
   color: var(--color-text-muted);
@@ -585,8 +578,6 @@ a, button, [role="button"] {
   border-color: var(--ucla-gold-darker);
   color: #000000;
 }
-
-/* Count badge inside btn-tab */
 .btn-tab__count {
   display: inline-flex;
   align-items: center;
@@ -601,19 +592,11 @@ a, button, [role="button"] {
   background: rgba(0,0,0,0.12);
   color: inherit;
   line-height: 1;
-  tabular-nums: all;
 }
-.btn-tab--active .btn-tab__count {
-  background: rgba(255,255,255,0.25);
-}
-.dark .btn-tab--active .btn-tab__count {
-  background: rgba(0,0,0,0.18);
-}
+.btn-tab--active .btn-tab__count { background: rgba(255,255,255,0.25); }
+.dark .btn-tab--active .btn-tab__count { background: rgba(0,0,0,0.18); }
 
-/* ── BTN-FILTER  (Status filters: All / Needs Review / Resolved / Idea / Endorsed)
-   Same rectangular outline language as btn-tab but slightly taller (matches search
-   bar height) and uses a normal-case label for readability at small size.
-──────────────────────────────────────────────────────────────────────────────── */
+/* ── BTN-FILTER ───────────────────────────────────────────── */
 .btn-filter {
   display: inline-flex;
   align-items: center;
@@ -639,8 +622,6 @@ a, button, [role="button"] {
   color: var(--color-text);
 }
 .btn-filter:active { opacity: 0.8; }
-
-/* Active state — light: UCLA Blue fill */
 .btn-filter--active {
   background: var(--ucla-blue);
   border-color: var(--ucla-blue);
@@ -651,15 +632,11 @@ a, button, [role="button"] {
   border-color: var(--ucla-blue-darker);
   color: #FFFFFF;
 }
-
-/* Dark mode overrides */
 .dark .btn-filter {
   border-color: rgba(139,184,232,0.18);
   color: var(--color-text);
 }
-.dark .btn-filter:hover {
-  border-color: var(--ucla-blue-lighter);
-}
+.dark .btn-filter:hover { border-color: var(--ucla-blue-lighter); }
 .dark .btn-filter--active {
   background: var(--ucla-gold);
   border-color: var(--ucla-gold);
@@ -670,8 +647,6 @@ a, button, [role="button"] {
   border-color: var(--ucla-gold-darker);
   color: #000000;
 }
-
-/* Count badge inside btn-filter */
 .btn-filter__count {
   display: inline-flex;
   align-items: center;
@@ -687,12 +662,8 @@ a, button, [role="button"] {
   color: inherit;
   line-height: 1;
 }
-.btn-filter--active .btn-filter__count {
-  background: rgba(255,255,255,0.25);
-}
-.dark .btn-filter--active .btn-filter__count {
-  background: rgba(0,0,0,0.18);
-}
+.btn-filter--active .btn-filter__count { background: rgba(255,255,255,0.25); }
+.dark .btn-filter--active .btn-filter__count { background: rgba(0,0,0,0.18); }
 
 /* ── GOLD RULE ─────────────────────────────────────────────── */
 .gold-rule {
@@ -748,12 +719,21 @@ a, button, [role="button"] {
 }
 
 /* ── FORM INPUTS ───────────────────────────────────────────── */
+/*
+  Use padding-block + padding-inline-end instead of the shorthand `padding`
+  so that Tailwind pl-* / pr-* utilities (e.g. pl-8 on search bars) can
+  override the inline-start padding without being clobbered by specificity.
+  Default left padding is intentionally generous (space-4 = 1rem) so plain
+  inputs also have breathing room; search inputs override to pl-8 (2rem).
+*/
 .input-base {
   width: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
+  padding-block: var(--space-2);
+  padding-inline-start: var(--space-4);
+  padding-inline-end: var(--space-3);
   color: var(--color-text);
   font-size: var(--text-sm);
   transition: border-color var(--transition-ui), box-shadow var(--transition-ui);

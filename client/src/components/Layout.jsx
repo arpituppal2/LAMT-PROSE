@@ -14,8 +14,6 @@ export const useDarkMode = () => {
   const [dark, setDark] = useState(() => localStorage.getItem('darkMode') === 'true');
 
   useEffect(() => {
-    // Apply .dark to <html> so all CSS selectors (.dark .foo) work globally,
-    // including scrollbars, body background, and portal elements.
     document.documentElement.classList.toggle('dark', dark);
   }, [dark]);
 
@@ -141,9 +139,7 @@ const Layout = ({ children }) => {
           className="flex-1 overflow-y-auto"
           style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}
         >
-          <div className="page-content relative p-5 md:p-7 max-w-[1500px] mx-auto">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </ThemeContext.Provider>

@@ -241,7 +241,6 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
         isUsed ? 'opacity-40' : 'hover:bg-[var(--color-surface)]',
       ].join(' ')}
     >
-      {/* Row 1: ID (+ set# for guts) · stage · topics · difficulty */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <GripVertical size={12} className="flex-shrink-0 text-[var(--color-text-faint)]" />
         <button onClick={() => onPreview(problem)} className="font-mono text-[11px] font-semibold text-[var(--color-accent)] hover:underline leading-none">
@@ -257,7 +256,6 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
         <span className="ml-auto text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)]">{problem.quality || '?'}/10</span>
         {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)]">✓</span>}
       </div>
-      {/* Row 2: 1-line KaTeX preview */}
       <div className="mt-0.5 ml-5 text-[11px] text-[var(--color-text-muted)] leading-snug line-clamp-1">
         <KatexRenderer latex={(problem.latex || '').slice(0, 220)} />
       </div>
@@ -427,8 +425,37 @@ const ExamDetail = () => {
   const [bankDiffMin, setBankDiffMin]     = useState(1);
   const [bankDiffMax, setBankDiffMax]     = useState(10);
 
-  /* ── Split locked at 25%/75% ── */
+  /* ── Resizable split ── */
   const containerRef = useRef(null);
+  const isDragging   = useRef(false);
+  const [splitPct, setSplitPct] = useState(25);
+
+  const onDividerMouseDown = useCallback(() => {
+    isDragging.current = true;
+    document.body.style.cursor      = 'col-resize';
+    document.body.style.userSelect  = 'none';
+  }, []);
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!isDragging.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const pct  = ((e.clientX - rect.left) / rect.width) * 100;
+      setSplitPct(Math.min(Math.max(pct, 15), 70));
+    };
+    const onUp = () => {
+      if (!isDragging.current) return;
+      isDragging.current             = false;
+      document.body.style.cursor     = '';
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup',   onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onUp);
+    };
+  }, []);
 
   /* ── Derived ── */
   const slotDefs = useMemo(() => buildSlots(exam?.templateType), [exam?.templateType]);
@@ -540,7 +567,7 @@ const ExamDetail = () => {
   ═══════════════════════════════════════════════════════════ */
   return (
     <Layout>
-      <div className="flex flex-col h-[calc(100vh-56px)] -m-5 md:-m-7">
+      <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
 
         {/* ── Top bar ─────────────────────────────────────── */}
         <div className="flex-shrink-0 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-5 py-3">
@@ -605,11 +632,14 @@ const ExamDetail = () => {
           )}
         </div>
 
-        {/* ── Body: locked 25/75 split ───────────────────── */}
+        {/* ── Body: resizable split ───────────────────────── */}
         <div ref={containerRef} className="flex flex-1 overflow-hidden">
 
-          {/* LEFT: Slot grid (65%) */}
-          <div className="overflow-y-auto border-r border-[var(--color-border)] bg-[var(--color-bg)]" style={{ width: '65%' }}>
+          {/* LEFT: Slot grid */}
+          <div
+            className="overflow-y-auto border-r border-[var(--color-border)] bg-[var(--color-bg)] flex-shrink-0"
+            style={{ width: `${splitPct}%` }}
+          >
             <div className="p-3">
               <p className="section-label px-1 mb-2">Exam slots ({Object.keys(slotMap).length}/{slotDefs.length})</p>
               <div className="grid grid-cols-3 gap-2">
@@ -629,7 +659,20 @@ const ExamDetail = () => {
             </div>
           </div>
 
-          {/* RIGHT: Problem bank (75%) */}
+          {/* DRAG HANDLE */}
+          <div
+            onMouseDown={onDividerMouseDown}
+            className="w-1 flex-shrink-0 cursor-col-resize bg-[var(--color-border)] hover:bg-[var(--color-accent)] active:bg-[var(--color-accent)] transition-colors relative group"
+            title="Drag to resize"
+          >
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-1 h-1 rounded-full bg-[var(--color-accent)]" />
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT: Problem bank */}
           <div className="overflow-y-auto bg-[var(--color-bg)] flex-1">
             {/* Bank filter bar */}
             <div className="sticky top-0 z-10 bg-[var(--color-bg)] border-b border-[var(--color-border)] px-4 py-3">

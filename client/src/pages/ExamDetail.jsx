@@ -98,7 +98,7 @@ const slotsToPayload = (slotMap, totalSlots) => {
   return arr;
 };
 
-const fixLatex = (str = '') => str.replace(/\$([\\s\\S]*?)\$/g, (_, m) => `$${m}$`);
+const fixLatex = (str = '') => str.replace(/\$([\s\S]*?)\$/g, (_, m) => `$${m}$`);
 
 /* ── Build LaTeX export ─────────────────────────────────────── */
 const buildLatex = (exam, slotDefs, slotMap, problemMap, includeSolutions) => {
@@ -182,7 +182,7 @@ const StageChip = ({ stage }) => {
   );
 };
 
-/* ── SlotCard — fixed height, 2-row design ──────────────────── */
+/* ── SlotCard — metadata only, no LaTeX preview ─────────────── */
 const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) => {
   const [over, setOver] = useState(false);
 
@@ -192,19 +192,17 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
   return (
     <div
       className={[
-        'border rounded-sm flex flex-col transition-all cursor-pointer',
+        'border rounded-sm transition-all cursor-pointer select-none',
         over ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5' : 'border-[var(--color-border)]',
         slot.slotType === 'estimation' ? 'border-l-2 border-l-[var(--ucla-gold)]' : '',
         problem ? 'bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]' : 'bg-[var(--color-bg)]',
       ].join(' ')}
-      style={{ height: '72px' }}
       onClick={() => problem && onPreview(problem)}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData('problemId'); if (id) onDrop(index, id); }}
     >
-      {/* ROW 1 */}
-      <div className="flex items-center gap-1.5 px-2 pt-1.5 pb-0.5" style={{ minHeight: '28px' }}>
+      <div className="flex items-center gap-1.5 px-2 py-1.5">
         {/* 6-dot grip */}
         <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
           {[0,1,2,3,4,5].map(i => (
@@ -226,7 +224,7 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
             {/* Difficulty */}
             <span className="text-[9px] tabular-nums font-semibold text-[var(--color-text-faint)] flex-shrink-0">{diff}/10</span>
             {/* Topics */}
-            <div className="flex items-center gap-0.5 flex-wrap">
+            <div className="flex items-center gap-0.5 flex-1 min-w-0 flex-wrap">
               {topics.map(t => (
                 <span key={t} className="text-[8px] font-medium px-1 py-0 rounded-sm bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)] leading-4">{t}</span>
               ))}
@@ -241,17 +239,6 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
           </>
         ) : (
           <span className="text-[9px] text-[var(--color-text-faint)] italic ml-1">Drop here</span>
-        )}
-      </div>
-
-      {/* ROW 2–3: LaTeX preview */}
-      <div className="px-2 pb-1.5 flex-1 overflow-hidden">
-        {problem ? (
-          <div className="text-[10px] text-[var(--color-text-muted)] leading-tight line-clamp-2 pointer-events-none">
-            <KatexRenderer latex={(problem.latex || '').slice(0, 300)} />
-          </div>
-        ) : (
-          <div className="h-full" />
         )}
       </div>
     </div>
@@ -303,8 +290,8 @@ const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
   );
 };
 
-/* ── BankRow ────────────────────────────────────────────────── */
-const BankRow = ({ problem, isUsed, onPreview, onAddToShortlist, isShortlisted }) => {
+/* ── BankRow — natural height, no fixed sizing, no star ─────── */
+const BankRow = ({ problem, isUsed, onPreview }) => {
   const status = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
   const topics = (problem.topics || []).map(t => TOPIC_ABBR[t] || t);
 
@@ -313,10 +300,9 @@ const BankRow = ({ problem, isUsed, onPreview, onAddToShortlist, isShortlisted }
       draggable
       onDragStart={(e) => e.dataTransfer.setData('problemId', problem.id)}
       className={[
-        'px-4 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
+        'px-4 py-1.5 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
         isUsed ? 'opacity-40' : 'hover:bg-[var(--color-surface)]',
       ].join(' ')}
-      style={{ height: '38px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
     >
       <div className="flex items-center gap-1.5">
         <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
@@ -336,21 +322,11 @@ const BankRow = ({ problem, isUsed, onPreview, onAddToShortlist, isShortlisted }
             <span key={t} className="text-[9px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">{t}</span>
           ))}
         </div>
-        <span className="text-[9px] text-[var(--color-text-muted)] leading-none overflow-hidden" style={{ flex: 1, whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0 }}>
-          <KatexRenderer latex={(problem.latex || '').slice(0, 220)} />
-        </span>
-        <span className="flex-shrink-0 text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)]">{problem.quality || '?'}/10</span>
-        <button
-          onClick={(e) => { e.stopPropagation(); onAddToShortlist(problem); }}
-          className={`text-[9px] px-1.5 py-0.5 rounded-sm border transition-colors flex-shrink-0 ${
-            isShortlisted
-              ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/10'
-              : 'border-[var(--color-border)] text-[var(--color-text-faint)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]'
-          }`}
-        >
-          {isShortlisted ? '★' : '☆'}
-        </button>
+        <span className="flex-shrink-0 text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)] ml-auto">{problem.quality || '?'}/10</span>
         {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)] flex-shrink-0">✓</span>}
+      </div>
+      <div className="mt-0.5 pl-5 text-[11px] text-[var(--color-text-muted)] leading-snug overflow-hidden" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        <KatexRenderer latex={(problem.latex || '').slice(0, 300)} />
       </div>
     </div>
   );
@@ -544,14 +520,6 @@ const ExamDetail = () => {
   const removeSlot  = (index) => { setSlotMap((prev) => { const next = { ...prev }; delete next[index]; return next; }); setDirty(true); };
 
   /* ── Shortlist ── */
-  const toggleShortlist = (problem) => {
-    setShortlist(prev =>
-      prev.some(p => p.id === problem.id)
-        ? prev.filter(p => p.id !== problem.id)
-        : [...prev, problem]
-    );
-  };
-
   const addToShortlist = (problem) => {
     setShortlist(prev =>
       prev.some(p => p.id === problem.id) ? prev : [...prev, problem]
@@ -627,7 +595,7 @@ const ExamDetail = () => {
               </div>
             </div>
 
-            {/* Action buttons — no icons, compact */}
+            {/* Action buttons */}
             <div className="flex items-center gap-1 flex-shrink-0">
               <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(false); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
                 Preview
@@ -749,7 +717,7 @@ const ExamDetail = () => {
 
           {/* RIGHT: Problem bank */}
           <div className="overflow-y-auto bg-[var(--color-bg)] flex-1">
-            {/* Bank filter bar — single row, dynamically shrinks */}
+            {/* Bank filter bar */}
             <div className="sticky top-0 z-10 bg-[var(--color-bg)] border-b border-[var(--color-border)] px-3 py-1.5">
               <div className="flex items-center gap-1.5 min-w-0">
                 <input
@@ -787,8 +755,6 @@ const ExamDetail = () => {
                   problem={p}
                   isUsed={usedIds.has(p.id)}
                   onPreview={setPreviewProblem}
-                  onAddToShortlist={toggleShortlist}
-                  isShortlisted={shortlistIds.has(p.id)}
                 />
               ))
             )}

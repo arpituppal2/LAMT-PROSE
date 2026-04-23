@@ -5,13 +5,6 @@ import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-const [topicOptions, setTopicOptions] = useState([]);
-
-useEffect(() => {
-  fetch('/api/config')
-    .then(r => r.json())
-    .then(d => setTopicOptions(d.topics || []));
-}, []);
 
 /* ── Theme helper ────────────────────────────────────────── */
 const isDarkMode = () =>
@@ -194,7 +187,15 @@ const WriteProblem = () => {
   const [message, setMessage]       = useState({ text: '', type: '' });
   const [submitted, setSubmitted]   = useState(false);
   const navigate = useNavigate();
+  const [topicOptions, setTopicOptions] = useState([]);
 
+useEffect(() => {
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(d => setTopicOptions(d.topics || []));
+}, []);
+
+  
   const isDirty = !submitted && !!(latex || solution || answer || notes || topics.length || images.length);
 
   useEffect(() => {

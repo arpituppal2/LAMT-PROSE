@@ -5,9 +5,9 @@ import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-/* ══════════════════════════════════════════════════════════════
-   ARCHIVE PAGE  —  lamt.net treatment
-══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   ARCHIVE PAGE
+═══════════════════════════════════════════════════════════════ */
 const ArchivePage = () => {
   const navigate = useNavigate();
   const [problems, setProblems] = useState([]);
@@ -61,7 +61,7 @@ const ArchivePage = () => {
       <Layout>
         <div className="h-64 flex items-center justify-center gap-3 text-[var(--color-text-muted)]">
           <Loader2 size={18} className="animate-spin text-[var(--color-accent)]" />
-          <span className="text-base">Loading archive…</span>
+          <span>Loading archive…</span>
         </div>
       </Layout>
     );
@@ -75,22 +75,19 @@ const ArchivePage = () => {
         <header>
           <span className="gold-rule mb-3" />
           <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: 'var(--font-display)' }}
+            style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 800 }}
+            className="tracking-tight"
           >
             Archive
           </h1>
-          <p className="prose mt-1">
-            {problems.length} archived problem{problems.length !== 1 ? 's' : ''} — restore any to
-            move it back to Idea.
-          </p>
         </header>
 
         {/* ── Toast ── */}
         {message.text && (
           <div
+            style={{ borderRadius: 0 }}
             className={[
-              'px-4 py-3 rounded-sm text-sm font-medium border',
+              'px-4 py-3 text-sm font-medium border',
               message.type === 'error'
                 ? 'bg-[var(--badge-needs-review-bg)] border-[var(--badge-needs-review-border)] text-[var(--badge-needs-review-text)]'
                 : 'bg-[var(--badge-endorsed-bg)] border-[var(--badge-endorsed-border)] text-[var(--badge-endorsed-text)]',
@@ -112,7 +109,7 @@ const ArchivePage = () => {
               placeholder="Search archived problems…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-base w-full pl-9"
+              className="input-base input-search w-full"
             />
           </label>
         </div>
@@ -121,7 +118,7 @@ const ArchivePage = () => {
         <div className="surface-card overflow-hidden">
           {filtered.length === 0 ? (
             <div className="py-20 text-center">
-              <p className="text-sm text-[var(--color-text-muted)]">
+              <p style={{ color: 'var(--color-text-muted)' }}>
                 {search ? 'No matching archived problems.' : 'Nothing in the archive yet.'}
               </p>
             </div>
@@ -129,8 +126,8 @@ const ArchivePage = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <th className="px-5 py-3.5 section-label">Problem</th>
-                  <th className="px-5 py-3.5 section-label text-right">Actions</th>
+                  <th className="px-5 py-3 section-label">Problem</th>
+                  <th className="px-5 py-3 section-label text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
@@ -142,12 +139,19 @@ const ArchivePage = () => {
                   >
                     <td className="px-5 py-4">
                       <div className="flex flex-col gap-2">
-                        <span className="text-[var(--color-accent)] font-mono font-semibold text-sm">
+                        <span
+                          style={{
+                            fontFamily: 'monospace',
+                            fontWeight: 600,
+                            color: 'var(--color-accent)',
+                            fontSize: 'var(--text-sm)',
+                          }}
+                        >
                           {problem.id}
                         </span>
                         <div
-                          className="text-sm text-[var(--color-text-muted)] max-w-xl overflow-hidden"
-                          style={{ maxHeight: '2.8em' }}
+                          className="text-[var(--color-text-muted)] max-w-xl overflow-hidden"
+                          style={{ maxHeight: '2.8em', fontSize: 'var(--text-sm)' }}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <KatexRenderer
@@ -155,13 +159,30 @@ const ArchivePage = () => {
                           />
                         </div>
                         <div className="flex gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]">
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '0.15em 0.5em',
+                              borderRadius: 0,
+                              border: '1px solid var(--color-border)',
+                              background: 'var(--color-surface)',
+                            }}
+                          >
                             {problem.quality ? `${problem.quality}/10` : '?'}
                           </span>
                           {(problem.topics || []).map((t) => (
                             <span
                               key={t}
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]"
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                padding: '0.15em 0.5em',
+                                borderRadius: 0,
+                                border: '1px solid var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text-muted)',
+                              }}
                             >
                               {t}
                             </span>
@@ -176,7 +197,7 @@ const ArchivePage = () => {
                           setConfirmId(problem.id);
                         }}
                         disabled={unarchiving === problem.id}
-                        className="btn-outline px-3 py-1.5 text-sm disabled:opacity-50"
+                        className="btn-outline disabled:opacity-50"
                       >
                         {unarchiving === problem.id ? 'Restoring…' : 'Restore'}
                       </button>
@@ -194,33 +215,41 @@ const ArchivePage = () => {
         <div className="modal-overlay" onClick={() => setConfirmId(null)}>
           <div
             className="surface-card shadow-2xl p-6 max-w-sm w-full mx-4"
+            style={{ borderRadius: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
             <h3
-              className="text-lg font-semibold mb-1"
-              style={{ fontFamily: 'var(--font-display)' }}
+              style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 800 }}
+              className="mb-1"
             >
               Restore this problem?
             </h3>
-            <p className="text-sm text-[var(--color-text-muted)] mb-3">
-              <span className="font-mono font-semibold text-[var(--color-accent)]">{confirmId}</span>{' '}
+            <p
+              style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}
+              className="mb-3"
+            >
+              <span
+                style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-accent)' }}
+              >
+                {confirmId}
+              </span>{' '}
               will be moved back to <strong>Idea</strong> stage and become visible in the inventory.
             </p>
             {confirmProblem?.latex && (
               <div
-                className="mb-4 p-3 rounded-sm bg-[var(--color-surface)] text-sm text-[var(--color-text-muted)] overflow-hidden"
-                style={{ maxHeight: '4em' }}
+                className="mb-4 p-3 bg-[var(--color-surface)] overflow-hidden"
+                style={{ maxHeight: '4em', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', borderRadius: 0 }}
               >
                 <KatexRenderer latex={confirmProblem.latex.slice(0, 200)} />
               </div>
             )}
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setConfirmId(null)} className="btn-outline px-4 py-2 text-sm">
+              <button onClick={() => setConfirmId(null)} className="btn-outline">
                 Cancel
               </button>
               <button
                 onClick={() => handleUnarchive(confirmId)}
-                className="btn-filled px-4 py-2 text-sm"
+                className="btn-filled"
               >
                 Restore to Idea
               </button>

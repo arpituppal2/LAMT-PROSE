@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import { STATUS_POINTS } from '../utils/problemStatus';
 
 /* ══════════════════════════════════════════════════════════════
-   LEADERBOARD  —  lamt.net / ucla.edu treatment
+   LEADERBOARD
 ══════════════════════════════════════════════════════════════ */
+
+const SCORE_CHIPS = [
+  { label: 'ENDORSED',     pts: `+${STATUS_POINTS.Endorsed}`,          color: 'var(--badge-endorsed-text)',     bg: 'var(--badge-endorsed-bg)',     border: 'var(--badge-endorsed-border)' },
+  { label: 'RESOLVED',     pts: `+${STATUS_POINTS.Resolved}`,           color: 'var(--badge-resolved-text)',     bg: 'var(--badge-resolved-bg)',     border: 'var(--badge-resolved-border)' },
+  { label: 'IDEA',         pts: `+${STATUS_POINTS.Idea}`,               color: 'var(--badge-idea-text)',         bg: 'var(--badge-idea-bg)',         border: 'var(--badge-idea-border)' },
+  { label: 'NEEDS REVIEW', pts: `${STATUS_POINTS['Needs Review']}`,     color: 'var(--badge-needs-review-text)', bg: 'var(--badge-needs-review-bg)', border: 'var(--badge-needs-review-border)' },
+  { label: 'REVIEW GIVEN', pts: '+0.5',                                  color: 'var(--color-accent)',            bg: 'var(--color-surface)',         border: 'var(--color-border)' },
+];
+
 const Leaderboard = () => {
   const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
 
   useEffect(() => { fetchLeaderboard(); }, []);
 
@@ -27,13 +35,7 @@ const Leaderboard = () => {
     }
   };
 
-  const filtered = leaderboard
-    .filter((entry) => (entry.score ?? 0) > 0)
-    .filter((entry) =>
-      search === '' ||
-      entry.author.toLowerCase().includes(search.toLowerCase()) ||
-      entry.initials.toLowerCase().includes(search.toLowerCase()),
-    );
+  const filtered = leaderboard.filter((entry) => (entry.score ?? 0) > 0);
 
   if (loading) {
     return (
@@ -53,58 +55,32 @@ const Leaderboard = () => {
         {/* ── Page header ── */}
         <header>
           <span className="gold-rule mb-3" />
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Leaderboard
-          </h1>
-          <p className="prose mt-2 max-w-2xl">
-            Points are awarded per problem based on workflow stage, plus a bonus for reviews you give to others.
-          </p>
-        </header>
-
-        {/* ── Scoring formula — shown directly, no tooltip ── */}
-        <div className="surface-card px-5 py-4">
-          <p className="section-label mb-3">Scoring Formula</p>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-            {[
-              { label: 'Idea',         pts: `+${STATUS_POINTS.Idea}`,             color: 'var(--badge-idea-text)' },
-              { label: 'Needs Review', pts: `+${STATUS_POINTS['Needs Review']}`,  color: 'var(--badge-needs-review-text)' },
-              { label: 'Resolved',     pts: `+${STATUS_POINTS.Resolved}`,         color: 'var(--badge-resolved-text)' },
-              { label: 'Endorsed',     pts: `+${STATUS_POINTS.Endorsed}`,         color: 'var(--badge-endorsed-text)' },
-              { label: 'Review Given', pts: '+0.5',                               color: 'var(--color-accent)' },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                  {item.label}
-                </p>
-                <p className="mt-1 text-lg font-bold tabular-nums" style={{ color: item.color }}>
-                  {item.pts}
-                </p>
-              </div>
-            ))}
+          <div className="flex flex-wrap items-center gap-3">
+            <h1
+              className="text-2xl font-bold tracking-tight"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Leaderboard
+            </h1>
+            {/* Inline scoring chips */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {SCORE_CHIPS.map((chip) => (
+                <span
+                  key={chip.label}
+                  className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em]"
+                  style={{
+                    color: chip.color,
+                    backgroundColor: chip.bg,
+                    borderColor: chip.border,
+                  }}
+                >
+                  {chip.label}
+                  <span className="tabular-nums opacity-90">{chip.pts}</span>
+                </span>
+              ))}
+            </div>
           </div>
-          <p className="text-xs text-[var(--color-text-faint)] mt-3 leading-relaxed">
-            Your total score = (Idea count × {STATUS_POINTS.Idea}) + (Needs Review count × {STATUS_POINTS['Needs Review']}) + (Resolved count × {STATUS_POINTS.Resolved}) + (Endorsed count × {STATUS_POINTS.Endorsed}) + (Reviews given × 0.5).
-            Points accumulate as your problems progress through the workflow.
-          </p>
-        </div>
-
-        {/* ── Search ── */}
-        <div className="relative max-w-md">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
-          <input
-            type="text"
-            placeholder="Search by name or initials"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input-base w-full pl-9"
-          />
-        </div>
+        </header>
 
         {/* ── Leaderboard table ── */}
         <div className="surface-card overflow-hidden">
@@ -152,7 +128,7 @@ const Leaderboard = () => {
 
           {filtered.length === 0 && (
             <div className="text-center py-14 text-sm text-[var(--color-text-muted)]">
-              {search ? `No results for "${search}"` : 'No contributors with a score yet.'}
+              No contributors with a score yet.
             </div>
           )}
         </div>

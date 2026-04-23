@@ -13,7 +13,6 @@ const STATUS_POINTS = {
   Resolved: 3,
 };
 
-/** Leaderboard row: category key matches `badges` object keys */
 function classifyProblem(problem) {
   const status = computeDisplayStatus(problem);
   if (status === 'Archived') return { category: 'archived', points: 0 };
@@ -57,7 +56,9 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         score += points;
         if (badges[category] !== undefined) badges[category] = (badges[category] || 0) + 1;
       });
-      const reviewsGiven = user.feedbacks.length;
+      // Deduplicate feedbacks by id before scoring to prevent double-counting
+      const uniqueFeedbacks = Array.from(new Map(user.feedbacks.map((f) => [f.id, f])).values());
+      const reviewsGiven = uniqueFeedbacks.length;
       score += reviewsGiven * 0.5;
       score = Math.round(score * 100) / 100;
       return {

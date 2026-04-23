@@ -3,20 +3,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { Loader2, AlertCircle } from 'lucide-react';
 
-const inputCls =
-  'w-full px-3.5 py-2.5 text-sm bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--ucla-blue)]/25 dark:focus:ring-[var(--ucla-gold)]/20 transition';
-const labelCls = 'block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5';
-
 const Register = () => {
   const [formData, setFormData] = useState({
     email: '', password: '', confirmPassword: '',
     firstName: '', lastName: '', initials: '',
-    mathExp: '', inviteCode: ''
+    mathExp: '', inviteCode: '',
   });
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const { register } = useAuth();
+  const navigate      = useNavigate();
+  const { register }  = useAuth();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -36,104 +32,155 @@ const Register = () => {
     }
   };
 
+  const field = (label, name, type = 'text', extra = {}) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      <label className="section-label">{label}</label>
+      <input
+        type={type}
+        name={name}
+        value={formData[name]}
+        onChange={handleChange}
+        className="input-base"
+        {...extra}
+      />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EEF4FB] dark:bg-[#020c16] p-4">
-      <div className="w-full max-w-[480px]">
+    <div
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-bg)',
+        padding: 'var(--space-4)',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: '480px' }}>
 
         {/* Wordmark */}
-        <div className="mb-8">
-          <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-[0.18em] mb-2">
-            LAMT · PROSE
-          </p>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+        <div style={{ marginBottom: 'var(--space-8)' }}>
+          <span className="gold-rule" style={{ marginBottom: 'var(--space-3)' }} />
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--text-xl)',
+              fontWeight: 800,
+              color: 'var(--color-text)',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.1,
+            }}
+          >
             Create account
           </h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+          <p
+            style={{
+              marginTop: 'var(--space-2)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'var(--color-text-faint)',
+            }}
+          >
             Requires a valid address and invite code.
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-md border border-white/70 dark:border-white/[0.08] rounded-2xl shadow-sm overflow-hidden">
-          <form onSubmit={handleSubmit} className="p-6 space-y-5">
-
+        <div className="surface-card" style={{ overflow: 'hidden' }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+          >
             {error && (
-              <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 text-sm">
-                <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 'var(--space-2)',
+                  padding: 'var(--space-3) var(--space-4)',
+                  background: 'var(--badge-needs-review-bg)',
+                  border: '1px solid var(--badge-needs-review-border)',
+                  color: 'var(--badge-needs-review-text)',
+                  fontSize: 'var(--text-sm)',
+                }}
+              >
+                <AlertCircle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <span>{error}</span>
               </div>
             )}
 
             {/* Name row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>First name</label>
-                <input type="text" name="firstName" value={formData.firstName}
-                  onChange={handleChange} className={inputCls} autoFocus required />
-              </div>
-              <div>
-                <label className={labelCls}>Last name</label>
-                <input type="text" name="lastName" value={formData.lastName}
-                  onChange={handleChange} className={inputCls} required />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+              {field('First name', 'firstName', 'text', { autoFocus: true, required: true })}
+              {field('Last name',  'lastName',  'text', { required: true })}
             </div>
 
             {/* Email + Initials row */}
-            <div className="grid grid-cols-[1fr_88px] gap-3">
-              <div>
-                <label className={labelCls}>Email</label>
-                <input type="email" name="email" value={formData.email}
-                  onChange={handleChange} className={inputCls} placeholder="Your PROSE Email Here" required />
-              </div>
-              <div>
-                <label className={labelCls}>Initials</label>
-                <input type="text" name="initials" value={formData.initials}
-                  onChange={handleChange} maxLength={3}
-                  className={`${inputCls} uppercase text-center font-mono tracking-widest`}
-                  placeholder="AU" required />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 88px', gap: 'var(--space-3)' }}>
+              {field('Email', 'email', 'email', { placeholder: 'your@email.com', required: true })}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                <label className="section-label">Initials</label>
+                <input
+                  type="text"
+                  name="initials"
+                  value={formData.initials}
+                  onChange={handleChange}
+                  maxLength={3}
+                  className="input-base"
+                  style={{ textTransform: 'uppercase', textAlign: 'center', fontFamily: 'monospace', letterSpacing: '0.2em' }}
+                  placeholder="AU"
+                  required
+                />
               </div>
             </div>
 
             {/* Math background */}
-            <div>
-              <label className={labelCls}>Math background</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              <label className="section-label">Math background</label>
               <textarea
-                name="mathExp" value={formData.mathExp} onChange={handleChange} rows={3}
-                className={`${inputCls} resize-y leading-relaxed`}
+                name="mathExp"
+                value={formData.mathExp}
+                onChange={handleChange}
+                rows={3}
+                className="input-base"
+                style={{ resize: 'vertical', lineHeight: 1.65 }}
                 placeholder="Competition experience, relevant coursework…"
                 required
               />
             </div>
 
             {/* Divider */}
-            <div className="border-t border-gray-100 dark:border-white/[0.06]" />
+            <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
             {/* Password row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Password</label>
-                <input type="password" name="password" value={formData.password}
-                  onChange={handleChange} className={inputCls} placeholder="Min. 6 characters" required />
-              </div>
-              <div>
-                <label className={labelCls}>Confirm password</label>
-                <input type="password" name="confirmPassword" value={formData.confirmPassword}
-                  onChange={handleChange} className={inputCls} placeholder="Re-enter" required />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+              {field('Password',         'password',        'password', { placeholder: 'Min. 6 characters', required: true })}
+              {field('Confirm password', 'confirmPassword', 'password', { placeholder: 'Re-enter',          required: true })}
             </div>
 
             {/* Invite code */}
-            <div>
-              <label className={labelCls}>Invite code</label>
-              <input type="text" name="inviteCode" value={formData.inviteCode}
-                onChange={handleChange} className={`${inputCls} font-mono tracking-widest`}
-                placeholder="Ask a current member" required />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              <label className="section-label">Invite code</label>
+              <input
+                type="text"
+                name="inviteCode"
+                value={formData.inviteCode}
+                onChange={handleChange}
+                className="input-base"
+                style={{ fontFamily: 'monospace', letterSpacing: '0.2em' }}
+                placeholder="Ask a current member"
+                required
+              />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--ucla-blue)] hover:bg-[var(--ucla-blue-dark)] text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="btn-primary"
+              style={{ width: '100%', marginTop: 'var(--space-1)', opacity: loading ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
             >
               {loading ? (
                 <><Loader2 size={14} className="animate-spin" /> Creating account…</>
@@ -143,12 +190,20 @@ const Register = () => {
             </button>
           </form>
 
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-white/[0.06] bg-gray-50/60 dark:bg-white/[0.02]">
-            <p className="text-sm text-gray-400 dark:text-gray-500">
+          <div
+            style={{
+              padding: 'var(--space-4) var(--space-6)',
+              borderTop: '1px solid var(--color-border)',
+              background: 'var(--color-surface-2)',
+            }}
+          >
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] font-medium hover:underline underline-offset-2"
+                style={{ color: 'var(--color-accent)', fontWeight: 700, textDecoration: 'none' }}
+                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
               >
                 Sign in
               </Link>

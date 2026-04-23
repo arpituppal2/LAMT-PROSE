@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
+import { GUEST_EMAIL } from '../config/env.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -11,8 +12,6 @@ const requireAdmin = async (req, res, next) => {
   if (!user?.isAdmin) return res.status(403).json({ error: 'Admin access required' });
   next();
 };
-
-const GUEST_EMAIL = 'GUESTBRUINS@ucla.edu';
 
 // GET /api/admin/guest-content
 // Returns all problems and feedbacks owned by the GUESTBRUINS account

@@ -6,7 +6,7 @@ import {
   MessageSquare, LogOut, Menu, X, Moon, Sun, ClipboardList, Archive
 } from 'lucide-react';
 
-/* ── Theme context ──────────────────────────────────────────── */
+/* ── Theme context ────────────────────────────────────────────────── */
 export const ThemeContext = createContext({ dark: false });
 export const useTheme = () => useContext(ThemeContext);
 
@@ -27,7 +27,7 @@ export const useDarkMode = () => {
   return [dark, toggle];
 };
 
-/* ── Sidebar (LAMT treatment — collapsible, UCLA palette) ─── */
+/* ── Sidebar nav links ───────────────────────────────────────────── */
 const NAV_LINKS = [
   { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/write',       icon: PenTool,          label: 'Write' },
@@ -61,7 +61,7 @@ const Sidebar = ({ dark, toggleDark }) => {
     <aside
       className={`
         h-screen text-white flex flex-col flex-shrink-0
-        ${collapsed ? 'w-[52px]' : 'w-52'}
+        ${collapsed ? 'w-[52px]' : 'w-56'}
         bg-[var(--ucla-blue)] dark:bg-black
         border-r border-white/10
         transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]
@@ -71,7 +71,16 @@ const Sidebar = ({ dark, toggleDark }) => {
       {/* ── Brand + collapse toggle ── */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-white/15">
         {!collapsed && (
-          <span className="font-display text-[13px] font-bold tracking-[0.25em] uppercase select-none px-0.5">
+          <span
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '15px',
+              fontWeight: 800,
+              letterSpacing: '0.25em',
+              textTransform: 'uppercase',
+            }}
+            className="select-none px-0.5"
+          >
             PROSE
           </span>
         )}
@@ -95,17 +104,24 @@ const Sidebar = ({ dark, toggleDark }) => {
             <Link
               key={to}
               to={to}
+              style={{
+                fontSize: '15px',
+                fontWeight: 800,
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                fontFamily: 'var(--font-body)',
+              }}
               className={`
-                flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold
+                flex items-center gap-2.5 px-2.5 py-2.5
                 transition-colors duration-150 rounded-sm
                 ${
                   isActive
-                    ? 'bg-white/20 text-white border-b-2 border-[var(--ucla-gold)]'
-                    : 'text-white/75 hover:bg-white/10 hover:text-white border-b-2 border-transparent'
+                    ? 'bg-white/20 text-white border-l-2 border-[var(--ucla-gold)]'
+                    : 'text-white/75 hover:bg-white/10 hover:text-white border-l-2 border-transparent'
                 }
               `}
             >
-              <Icon size={16} className="flex-shrink-0" />
+              <Icon size={15} className="flex-shrink-0" />
               {!collapsed && <span>{label}</span>}
             </Link>
           );
@@ -116,26 +132,40 @@ const Sidebar = ({ dark, toggleDark }) => {
       <div className="px-1.5 py-2 border-t border-white/15 space-y-0.5">
         <button
           onClick={toggleDark}
-          className="flex items-center gap-2.5 w-full px-2.5 py-2 text-[13px] font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors rounded-sm"
+          style={{
+            fontSize: '15px',
+            fontWeight: 800,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            fontFamily: 'var(--font-body)',
+          }}
+          className="flex items-center gap-2.5 w-full px-2.5 py-2.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors rounded-sm"
         >
           {dark
-            ? <Sun  size={16} className="flex-shrink-0" />
-            : <Moon size={16} className="flex-shrink-0" />}
-          {!collapsed && <span>{dark ? 'Light mode' : 'Dark mode'}</span>}
+            ? <Sun  size={15} className="flex-shrink-0" />
+            : <Moon size={15} className="flex-shrink-0" />}
+          {!collapsed && <span>{dark ? 'Light Mode' : 'Dark Mode'}</span>}
         </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2.5 w-full px-2.5 py-2 text-[13px] font-medium text-white/70 hover:bg-red-500/20 hover:text-red-300 transition-colors rounded-sm"
+          style={{
+            fontSize: '15px',
+            fontWeight: 800,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            fontFamily: 'var(--font-body)',
+          }}
+          className="flex items-center gap-2.5 w-full px-2.5 py-2.5 text-white/70 hover:bg-red-500/20 hover:text-red-300 transition-colors rounded-sm"
         >
-          <LogOut size={16} className="flex-shrink-0" />
-          {!collapsed && <span>Sign out</span>}
+          <LogOut size={15} className="flex-shrink-0" />
+          {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
     </aside>
   );
 };
 
-/* ── Layout wrapper ─────────────────────────────────────────── */
+/* ── Layout wrapper ─────────────────────────────────────────────── */
 const Layout = ({ children }) => {
   const [dark, toggleDark] = useDarkMode();
   return (

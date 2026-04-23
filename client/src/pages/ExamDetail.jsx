@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, ChevronUp, Copy, Download, Eye,
   GripVertical, Loader2, MessageSquare, Plus, Save, Search,
-  Trash2, X, AlertTriangle, FileText, Replace,
+  Trash2, X, AlertTriangle, FileText,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -76,10 +76,10 @@ const deriveSlotMap = (slots) => {
   if (!slots) return map;
   (Array.isArray(slots) ? slots : Object.values(slots)).forEach((s, i) => {
     if (s && typeof s === 'object') {
-      if (s.problemId) map[i] = { problemId: s.problemId, alternateId: s.alternateId || null };
-      else if (typeof s === 'string') map[i] = { problemId: s, alternateId: null };
+      if (s.problemId) map[i] = { problemId: s.problemId };
+      else if (typeof s === 'string') map[i] = { problemId: s };
     } else if (typeof s === 'string' && s) {
-      map[i] = { problemId: s, alternateId: null };
+      map[i] = { problemId: s };
     }
   });
   return map;
@@ -89,7 +89,7 @@ const slotsToPayload = (slotMap, totalSlots) => {
   const arr = [];
   for (let i = 0; i < totalSlots; i++) {
     const entry = slotMap[i];
-    arr.push(entry ? { problemId: entry.problemId, alternateId: entry.alternateId || null } : null);
+    arr.push(entry ? { problemId: entry.problemId } : null);
   }
   return arr;
 };
@@ -112,7 +112,7 @@ const buildLatex = (exam, slotDefs, slotMap, problemMap, includeSolutions) => {
     `\\rhead{${exam.name || 'Exam'}}`,
     '\\begin{document}',
     `\\begin{center}{\\Large\\bfseries ${exam.name || 'Exam'}}\\\\[4pt]`,
-    `{\\large ${exam.competition || ''} — ${exam.version || 'v1'}}\\end{center}`,
+    `{\\large ${exam.competition || ''}}\\end{center}`,
     '\\vspace{1em}',
   ];
 
@@ -126,16 +126,6 @@ const buildLatex = (exam, slotDefs, slotMap, problemMap, includeSolutions) => {
         lines.push('\\vspace{0.5em}');
         lines.push('{\\small\\textbf{Solution:} ' + fixLatex(problem.solution) + '}');
         if (problem.answer) lines.push(`{\\small\\textbf{Answer:} ${fixLatex(problem.answer)}}`);
-      }
-      if (entry.alternateId) {
-        const alt = problemMap[entry.alternateId];
-        if (alt) {
-          lines.push('\\vspace{0.5em}');
-          lines.push(`{\\small\\textit{Alternate (${entry.alternateId}):} ${fixLatex(alt.latex || '')}}`);
-          if (includeSolutions && alt.solution) {
-            lines.push(`{\\small\\textbf{Alt Solution:} ${fixLatex(alt.solution)}}`);
-          }
-        }
       }
     } else {
       lines.push('\\textit{(Empty slot)}');
@@ -193,13 +183,13 @@ const StageChip = ({ stage }) => {
 };
 
 /* ── SlotCard ───────────────────────────────────────────────── */
-const SlotCard = ({ slot, index, entry, problem, alternate, onRemove, onDrop, onSetAlternate, onRemoveAlternate, onPreview }) => {
+const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) => {
   const [over, setOver] = useState(false);
 
   return (
     <div
       className={[
-        'surface-card px-3 py-2.5 flex flex-col gap-1.5 transition-all border',
+        'surface-card px-2.5 py-2 flex flex-col gap-1 transition-all border',
         over ? 'border-[var(--ucla-blue)] bg-[var(--color-accent)]/5' : '',
         slot.slotType === 'estimation' ? 'border-l-2 border-l-[var(--ucla-gold)]' : '',
       ].join(' ')}
@@ -208,53 +198,29 @@ const SlotCard = ({ slot, index, entry, problem, alternate, onRemove, onDrop, on
       onDrop={(e) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData('problemId'); if (id) onDrop(index, id); }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{slot.label}</span>
+        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{slot.label}</span>
         {problem && (
           <button onClick={() => onRemove(index)} className="p-0.5 text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)] transition-colors">
-            <X size={12} />
+            <X size={11} />
           </button>
         )}
       </div>
 
       {problem ? (
-        <div className="space-y-1.5">
+        <div className="space-y-0.5">
           <button onClick={() => onPreview(problem)} className="text-left w-full group">
-            <span className="font-mono text-xs font-semibold text-[var(--color-accent)] group-hover:underline">{problem.id}</span>
-            <p className="text-[11px] text-[var(--color-text-muted)] leading-snug mt-0.5 line-clamp-2">
-              {stripLatex(problem.latex)}
-            </p>
+            <span className="font-mono text-[10px] font-semibold text-[var(--color-accent)] group-hover:underline">{problem.id}</span>
           </button>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 flex-wrap">
             {(problem.topics || []).map((t) => (
-              <span key={t} className="text-[9px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">{t}</span>
+              <span key={t} className="text-[8px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">{t}</span>
             ))}
-            <span className="text-[9px] tabular-nums font-semibold text-[var(--color-text-faint)]">{problem.quality || '?'}/10</span>
+            <span className="text-[8px] tabular-nums font-semibold text-[var(--color-text-faint)] ml-auto">{problem.quality || '?'}/10</span>
           </div>
-
-          {/* Alternate */}
-          {alternate ? (
-            <div className="mt-1 rounded-sm border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold text-[var(--color-text-faint)] uppercase">Alt: {alternate.id}</span>
-                <button onClick={() => onRemoveAlternate(index)} className="text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)]">
-                  <X size={10} />
-                </button>
-              </div>
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 line-clamp-1">{stripLatex(alternate.latex)}</p>
-            </div>
-          ) : (
-            <div
-              className="mt-1 flex items-center justify-center rounded-sm border border-dashed border-[var(--color-border)] py-1.5 text-[9px] text-[var(--color-text-faint)] cursor-pointer hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const id = e.dataTransfer.getData('problemId'); if (id && id !== problem.id) onSetAlternate(index, id); }}
-            >
-              <Replace size={9} className="mr-1" /> Drop alternate
-            </div>
-          )}
         </div>
       ) : (
-        <div className="flex items-center justify-center py-4 text-[11px] text-[var(--color-text-faint)] italic">
-          Drag a problem here
+        <div className="flex items-center justify-center py-3 text-[10px] text-[var(--color-text-faint)] italic">
+          Drop here
         </div>
       )}
     </div>
@@ -264,34 +230,36 @@ const SlotCard = ({ slot, index, entry, problem, alternate, onRemove, onDrop, on
 /* ── BankRow ────────────────────────────────────────────────── */
 const BankRow = ({ problem, isUsed, onPreview }) => {
   const status = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
+  const isGuts = problem.id && /^GU/.test(problem.id);
 
   return (
     <div
       draggable
       onDragStart={(e) => e.dataTransfer.setData('problemId', problem.id)}
       className={[
-        'flex items-start gap-3 px-4 py-3 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
+        'px-4 py-2 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
         isUsed ? 'opacity-40' : 'hover:bg-[var(--color-surface)]',
       ].join(' ')}
     >
-      <GripVertical size={14} className="flex-shrink-0 mt-1 text-[var(--color-text-faint)]" />
-      <div className="flex-1 min-w-0 space-y-1.5">
-        {/* First row: ID + topics + status + difficulty */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button onClick={() => onPreview(problem)} className="font-mono text-xs font-semibold text-[var(--color-accent)] hover:underline">
-            {problem.id}
-          </button>
-          {(problem.topics || []).map((t) => (
-            <span key={t} className="text-[9px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)]">{t}</span>
-          ))}
-          <StageChip stage={status} />
-          <span className="ml-auto text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)]">{problem.quality || '?'}/10</span>
-        </div>
-        {/* KaTeX preview */}
-        <div className="text-xs text-[var(--color-text-muted)] leading-relaxed line-clamp-2">
-          <KatexRenderer latex={(problem.latex || '').slice(0, 200)} />
-        </div>
-        {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)]">✓ In use</span>}
+      {/* Row 1: ID (+ set# for guts) · stage · topics · difficulty */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <GripVertical size={12} className="flex-shrink-0 text-[var(--color-text-faint)]" />
+        <button onClick={() => onPreview(problem)} className="font-mono text-[11px] font-semibold text-[var(--color-accent)] hover:underline leading-none">
+          {problem.id}
+        </button>
+        {isGuts && problem.setNumber && (
+          <span className="text-[9px] font-bold text-[var(--color-text-faint)] tabular-nums">(Set {problem.setNumber})</span>
+        )}
+        <StageChip stage={status} />
+        {(problem.topics || []).map((t) => (
+          <span key={t} className="text-[9px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">{t}</span>
+        ))}
+        <span className="ml-auto text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)]">{problem.quality || '?'}/10</span>
+        {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)]">✓</span>}
+      </div>
+      {/* Row 2: 1-line KaTeX preview */}
+      <div className="mt-0.5 ml-5 text-[11px] text-[var(--color-text-muted)] leading-snug line-clamp-1">
+        <KatexRenderer latex={(problem.latex || '').slice(0, 220)} />
       </div>
     </div>
   );
@@ -336,12 +304,6 @@ const ProbModal = ({ problem, onClose }) => {
                   <KatexRenderer latex={problem.solution} />
                 </div>
               )}
-            </div>
-          )}
-          {problem.notes && (
-            <div className="rounded-sm border border-[var(--color-border)] bg-[var(--badge-idea-bg)] px-4 py-4">
-              <p className="section-label">Author notes</p>
-              <div className="mt-2 text-sm leading-6"><KatexRenderer latex={problem.notes} /></div>
             </div>
           )}
         </div>
@@ -457,7 +419,6 @@ const ExamDetail = () => {
   const [previewProblem, setPreviewProblem] = useState(null);
   const [showPreview, setShowPreview]   = useState(false);
   const [previewWithSolutions, setPreviewWithSolutions] = useState(false);
-  const [showDiscussion, setShowDiscussion] = useState(false);
 
   /* ── Filters ── */
   const [bankSearch, setBankSearch]       = useState('');
@@ -465,26 +426,9 @@ const ExamDetail = () => {
   const [bankStage, setBankStage]         = useState('');
   const [bankDiffMin, setBankDiffMin]     = useState(1);
   const [bankDiffMax, setBankDiffMax]     = useState(10);
-  const [bankSort, setBankSort]           = useState('easiest');
 
-  /* ── Resizable split (25%/75% default) ── */
-  const [splitPct, setSplitPct]   = useState(25);
-  const containerRef              = useRef(null);
-  const draggingRef               = useRef(false);
-
-  const handleMouseDown = useCallback(() => { draggingRef.current = true; }, []);
-  useEffect(() => {
-    const move = (e) => {
-      if (!draggingRef.current || !containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const pct = Math.min(50, Math.max(15, ((e.clientX - rect.left) / rect.width) * 100));
-      setSplitPct(pct);
-    };
-    const up = () => { draggingRef.current = false; };
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
-    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
-  }, []);
+  /* ── Split locked at 25%/75% ── */
+  const containerRef = useRef(null);
 
   /* ── Derived ── */
   const slotDefs = useMemo(() => buildSlots(exam?.templateType), [exam?.templateType]);
@@ -500,7 +444,6 @@ const ExamDetail = () => {
     const set = new Set();
     Object.values(slotMap).forEach((e) => {
       if (e.problemId) set.add(e.problemId);
-      if (e.alternateId) set.add(e.alternateId);
     });
     return set;
   }, [slotMap]);
@@ -518,15 +461,8 @@ const ExamDetail = () => {
       const d = parseInt(p.quality) || 5;
       return d >= bankDiffMin && d <= bankDiffMax;
     });
-
-    list.sort((a, b) => {
-      if (bankSort === 'easiest') return (parseInt(a.quality) || 5) - (parseInt(b.quality) || 5);
-      if (bankSort === 'hardest') return (parseInt(b.quality) || 5) - (parseInt(a.quality) || 5);
-      if (bankSort === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
-      return new Date(a.createdAt) - new Date(b.createdAt);
-    });
     return list;
-  }, [problems, bankSearch, bankTopic, bankStage, bankDiffMin, bankDiffMax, bankSort, topicRestriction]);
+  }, [problems, bankSearch, bankTopic, bankStage, bankDiffMin, bankDiffMax, topicRestriction]);
 
   /* ── Fetch data ── */
   useEffect(() => {
@@ -548,28 +484,12 @@ const ExamDetail = () => {
 
   /* ── Slot actions ── */
   const assignSlot = (index, problemId) => {
-    setSlotMap((prev) => ({ ...prev, [index]: { problemId, alternateId: prev[index]?.alternateId || null } }));
+    setSlotMap((prev) => ({ ...prev, [index]: { problemId } }));
     setDirty(true);
   };
 
   const removeSlot = (index) => {
     setSlotMap((prev) => { const next = { ...prev }; delete next[index]; return next; });
-    setDirty(true);
-  };
-
-  const setAlternate = (index, altId) => {
-    setSlotMap((prev) => ({
-      ...prev,
-      [index]: { ...prev[index], alternateId: altId },
-    }));
-    setDirty(true);
-  };
-
-  const removeAlternate = (index) => {
-    setSlotMap((prev) => ({
-      ...prev,
-      [index]: { ...prev[index], alternateId: null },
-    }));
     setDirty(true);
   };
 
@@ -634,8 +554,6 @@ const ExamDetail = () => {
               </h1>
               <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
                 <span>{exam.competition}</span>
-                <span className="text-[var(--color-text-faint)]">·</span>
-                <span>{exam.version}</span>
                 {exam.templateType && (
                   <>
                     <span className="text-[var(--color-text-faint)]">·</span>
@@ -644,10 +562,12 @@ const ExamDetail = () => {
                 )}
                 <span className="text-[var(--color-text-faint)]">·</span>
                 <span className="tabular-nums">{Object.keys(slotMap).length}/{slotDefs.length} filled</span>
+                <span className="text-[var(--color-text-faint)]">·</span>
+                <span>Edited {exam.updatedAt ? new Date(exam.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'unknown'}</span>
               </div>
             </div>
 
-            {/* Action buttons (per instructions) */}
+            {/* Action buttons */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(false); }} className="btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5">
                 <Eye size={13} /> Preview
@@ -660,12 +580,6 @@ const ExamDetail = () => {
               </button>
               <button onClick={() => doExport(true)} className="btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5">
                 <Download size={13} /> Download + Solutions
-              </button>
-              <button
-                onClick={() => setShowDiscussion((s) => !s)}
-                className={`btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5 ${showDiscussion ? 'bg-[var(--color-accent)]/10 border-[var(--color-accent)]' : ''}`}
-              >
-                <MessageSquare size={13} /> Notes {comments.length > 0 && `(${comments.length})`}
               </button>
               <button onClick={handleSave} disabled={!dirty || saving} className="btn-filled px-4 py-1.5 text-xs flex items-center gap-1.5 disabled:opacity-50">
                 {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
@@ -691,39 +605,31 @@ const ExamDetail = () => {
           )}
         </div>
 
-        {/* ── Body: resizable split ───────────────────────── */}
-        <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
+        {/* ── Body: locked 25/75 split ───────────────────── */}
+        <div ref={containerRef} className="flex flex-1 overflow-hidden">
 
-          {/* LEFT: Slot grid (default 25%) */}
-          <div className="overflow-y-auto border-r border-[var(--color-border)] bg-[var(--color-bg)]" style={{ width: `${splitPct}%` }}>
-            <div className="p-3 space-y-2">
-              <p className="section-label px-1">Exam slots ({Object.keys(slotMap).length}/{slotDefs.length})</p>
-              {slotDefs.map((slot, i) => (
-                <SlotCard
-                  key={i}
-                  slot={slot}
-                  index={i}
-                  entry={slotMap[i] || null}
-                  problem={slotMap[i] ? problemMap[slotMap[i].problemId] : null}
-                  alternate={slotMap[i]?.alternateId ? problemMap[slotMap[i].alternateId] : null}
-                  onRemove={removeSlot}
-                  onDrop={assignSlot}
-                  onSetAlternate={setAlternate}
-                  onRemoveAlternate={removeAlternate}
-                  onPreview={setPreviewProblem}
-                />
-              ))}
+          {/* LEFT: Slot grid (25%) */}
+          <div className="overflow-y-auto border-r border-[var(--color-border)] bg-[var(--color-bg)]" style={{ width: '25%' }}>
+            <div className="p-3">
+              <p className="section-label px-1 mb-2">Exam slots ({Object.keys(slotMap).length}/{slotDefs.length})</p>
+              <div className="grid grid-cols-3 gap-2">
+                {slotDefs.map((slot, i) => (
+                  <SlotCard
+                    key={i}
+                    slot={slot}
+                    index={i}
+                    entry={slotMap[i] || null}
+                    problem={slotMap[i] ? problemMap[slotMap[i].problemId] : null}
+                    onRemove={removeSlot}
+                    onDrop={assignSlot}
+                    onPreview={setPreviewProblem}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* DIVIDER — draggable */}
-          <div
-            onMouseDown={handleMouseDown}
-            className="w-1.5 flex-shrink-0 cursor-col-resize bg-[var(--color-border)] hover:bg-[var(--color-accent)] active:bg-[var(--color-accent)] transition-colors relative z-10"
-            title="Drag to resize"
-          />
-
-          {/* RIGHT: Problem bank (default 75%) */}
+          {/* RIGHT: Problem bank (75%) */}
           <div className="overflow-y-auto bg-[var(--color-bg)] flex-1">
             {/* Bank filter bar */}
             <div className="sticky top-0 z-10 bg-[var(--color-bg)] border-b border-[var(--color-border)] px-4 py-3">
@@ -751,12 +657,6 @@ const ExamDetail = () => {
                   <span>–</span>
                   <input type="number" min={1} max={10} value={bankDiffMax} onChange={(e) => setBankDiffMax(+e.target.value)} className="input-base w-10 py-1 px-1 text-center text-xs" />
                 </div>
-                <select value={bankSort} onChange={(e) => setBankSort(e.target.value)} className="input-base py-1.5 text-xs">
-                  <option value="easiest">Easiest first</option>
-                  <option value="hardest">Hardest first</option>
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                </select>
                 <span className="text-[10px] text-[var(--color-text-muted)] tabular-nums ml-auto">{bankProblems.length} problems</span>
               </div>
             </div>
@@ -774,18 +674,6 @@ const ExamDetail = () => {
           </div>
         </div>
 
-        {/* ── Discussion slide-in ─────────────────────────── */}
-        {showDiscussion && (
-          <div className="fixed inset-y-0 right-0 w-80 z-30 bg-[var(--color-bg)] border-l border-[var(--color-border)] shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-              <p className="section-label" style={{ margin: 0 }}>Notes & Discussion</p>
-              <button onClick={() => setShowDiscussion(false)} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"><X size={14} /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <Discussion examId={examId} comments={comments} setComments={setComments} />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── Preview overlay ───────────────────────────────── */}
@@ -793,12 +681,7 @@ const ExamDetail = () => {
         <div className="modal-overlay" onClick={() => setShowPreview(false)}>
           <div className="surface-card shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-bg)] z-10">
-              <div>
-                <h2 className="text-base font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
-                  {exam.name} — {previewWithSolutions ? 'Problems + Solutions' : 'Problems Only'}
-                </h2>
-                <p className="text-xs text-[var(--color-text-muted)]">{exam.competition} · {exam.version}</p>
-              </div>
+              <h2 className="font-bold text-sm">{exam.name} — {previewWithSolutions ? 'w/ Solutions' : 'Problems Only'}</h2>
               <button onClick={() => setShowPreview(false)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"><X size={15} /></button>
             </div>
             <div className="px-5">
@@ -808,7 +691,7 @@ const ExamDetail = () => {
         </div>
       )}
 
-      {/* Problem modal */}
+      {/* ── Problem quick-view modal ──────────────────────── */}
       {previewProblem && <ProbModal problem={previewProblem} onClose={() => setPreviewProblem(null)} />}
     </Layout>
   );

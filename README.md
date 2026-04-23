@@ -1,4 +1,4 @@
-# PROSE — Problem Repository & Organization System for Events
+# P.R.O.S.E. — Problem Repository & Organization System for Events
 
 A full-stack web platform for math competition organizers to write, review, organize, and finalize competition problems. Built with React, Node.js, Prisma, and PostgreSQL.
 
@@ -40,7 +40,7 @@ This will create a Railway project with the server and a PostgreSQL database pre
 
 ### 2. Set environment variables
 
-In your PROSE service's **Variables** tab, add the following:
+In your P.R.O.S.E. service's **Variables** tab, add the following:
 
 #### Required
 
@@ -58,7 +58,6 @@ In your PROSE service's **Variables** tab, add the following:
 
 | Variable | Description | Example |
 |---|---|---|
-| `APP_NAME` | Name shown in the UI | `PROSE` |
 | `ADMIN_EMAILS` | Comma-separated list of admin email addresses | `alice@uni.edu,bob@uni.edu` |
 | `TOPICS` | Comma-separated list of problem topics | `Algebra,Combinatorics,Number Theory,Geometry` |
 | `ALLOWED_EMAIL_DOMAIN` | If set, restricts registration to this domain. Leave unset to allow any email. | `uni.edu` |
@@ -66,7 +65,7 @@ In your PROSE service's **Variables** tab, add the following:
 
 ### 3. Run database migrations
 
-After the first deploy, open your PROSE service's **Shell** tab and run:
+After the first deploy, open your P.R.O.S.E. service's **Shell** tab and run:
 
 ```bash
 npx prisma migrate deploy
@@ -126,7 +125,6 @@ NODE_ENV=development
 PORT=3001
 
 # Org-specific (optional locally)
-APP_NAME=PROSE
 ADMIN_EMAILS=you@example.com
 TOPICS=Algebra,Combinatorics,Number Theory,Geometry
 ALLOWED_EMAIL_DOMAIN=

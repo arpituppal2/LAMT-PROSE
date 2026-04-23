@@ -7,6 +7,68 @@ import KatexRenderer from '../components/KatexRenderer';
 
 const TOPIC_OPTIONS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
+/* ── Theme helper ────────────────────────────────────────── */
+const isDarkMode = () =>
+  document.documentElement.getAttribute('data-theme') === 'dark' ||
+  (!document.documentElement.hasAttribute('data-theme') &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+/* ── Topic Button ───────────────────────────────────────── */
+// Idle:     border only  — Blue (light) / Gold (dark)
+// Hover:    filled       — Gold (light) / Blue (dark)
+// Selected: filled       — Blue (light) / Gold (dark)  [opposite of hover]
+const TopicButton = ({ label, selected, onToggle }) => {
+  const [hovered, setHovered] = useState(false);
+  const [dark, setDark] = useState(isDarkMode);
+
+  useEffect(() => {
+    const obs = new MutationObserver(() => setDark(isDarkMode()));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
+  }, []);
+
+  const BLUE   = 'var(--ucla-blue)';
+  const GOLD   = 'var(--ucla-gold)';
+  const border = dark ? GOLD : BLUE;
+
+  let bg, color;
+  if (selected) {
+    // filled with same color as border
+    bg    = border;
+    color = dark ? '#000' : '#fff';
+  } else if (hovered) {
+    // filled with opposite
+    bg    = dark ? BLUE : GOLD;
+    color = dark ? '#fff' : '#000';
+  } else {
+    bg    = 'transparent';
+    color = border;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        border: `2px solid ${border}`,
+        background: bg,
+        color,
+        padding: '0.375rem 0.75rem',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        borderRadius: 0,
+        cursor: 'pointer',
+        transition: 'background 150ms ease, color 150ms ease',
+        lineHeight: 1.4,
+      }}
+    >
+      {label}
+    </button>
+  );
+};
+
 /* ── Preview block ──────────────────────────────────────────── */
 const PreviewSection = ({ label, content, placeholder, minH = 'min-h-[80px]' }) => (
   <div>
@@ -279,8 +341,6 @@ const WriteProblem = () => {
         <StepIndicator />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-          {/* Left: inputs */}
           <div className="lg:col-span-7">
             <form onSubmit={goToStep2} className="space-y-4">
               <div>
@@ -325,7 +385,6 @@ const WriteProblem = () => {
             </form>
           </div>
 
-          {/* Right: live preview + attachments */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-6">
             <FullPreview latex={latex} solution={solution} answer={answer} notes={notes} difficulty={difficulty} topics={topics} images={images} />
             <div className="surface-card p-4 space-y-3">
@@ -361,7 +420,6 @@ const WriteProblem = () => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </Layout>
@@ -383,12 +441,9 @@ const WriteProblem = () => {
         <StepIndicator />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-          {/* Left: metadata form */}
           <div className="lg:col-span-7">
             <form onSubmit={handleSubmit} className="space-y-5">
 
-              {/* Author Notes */}
               <div>
                 <label className="section-label">
                   Author Notes{' '}
@@ -403,30 +458,21 @@ const WriteProblem = () => {
                 />
               </div>
 
-              {/* Difficulty slider */}
               <div>
                 <label className="section-label">Difficulty</label>
                 <DifficultySlider value={difficulty} onChange={setDifficulty} />
               </div>
 
-              {/* Topics */}
               <div>
                 <label className="section-label">Topics</label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {TOPIC_OPTIONS.map(topic => (
-                    <button
+                    <TopicButton
                       key={topic}
-                      type="button"
-                      onClick={() => handleTopicToggle(topic)}
-                      className={[
-                        'px-3 py-1.5 text-xs font-semibold transition-all rounded-none',
-                        topics.includes(topic)
-                          ? 'border-2 border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] text-white dark:text-black'
-                          : 'border-2 border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] bg-transparent text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] hover:bg-[var(--ucla-blue)]/10 dark:hover:bg-[var(--ucla-gold)]/10',
-                      ].join(' ')}
-                    >
-                      {topic}
-                    </button>
+                      label={topic}
+                      selected={topics.includes(topic)}
+                      onToggle={() => handleTopicToggle(topic)}
+                    />
                   ))}
                 </div>
                 {topics.length === 0 && (
@@ -434,7 +480,6 @@ const WriteProblem = () => {
                 )}
               </div>
 
-              {/* Back + Submit */}
               <div className="pt-3 border-t border-[var(--color-border)] space-y-3">
                 <MessageBanner />
                 <div className="flex gap-3">
@@ -458,11 +503,9 @@ const WriteProblem = () => {
             </form>
           </div>
 
-          {/* Right: full live preview */}
           <div className="lg:col-span-5 lg:sticky lg:top-6">
             <FullPreview latex={latex} solution={solution} answer={answer} notes={notes} difficulty={difficulty} topics={topics} images={images} />
           </div>
-
         </div>
       </div>
     </Layout>

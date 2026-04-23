@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ChevronDown,
@@ -15,17 +16,17 @@ import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 
 const DRAFTS_KEY = 'prose_drafts_v1';
 const DASHBOARD_TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'review', label: 'Review Queue' },
-  { id: 'myreviews', label: 'My Reviews' },
-  { id: 'account', label: 'Account' },
+  { id: 'overview',   label: 'Overview' },
+  { id: 'review',     label: 'Review Queue' },
+  { id: 'myreviews',  label: 'My Reviews' },
+  { id: 'account',    label: 'Account' },
 ];
 const STATUS_FILTERS = [
-  { value: 'all', label: 'All' },
+  { value: 'all',          label: 'All' },
   { value: 'Needs Review', label: 'Needs Review' },
-  { value: 'Resolved', label: 'Resolved' },
-  { value: 'Idea', label: 'Idea' },
-  { value: 'Endorsed', label: 'Endorsed' },
+  { value: 'Resolved',     label: 'Resolved' },
+  { value: 'Idea',         label: 'Idea' },
+  { value: 'Endorsed',     label: 'Endorsed' },
 ];
 const TOPIC_OPTIONS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
@@ -57,7 +58,8 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-/* ── Preview modal with edit / archive / delete / close ─── */
+/* ── Preview modal — rendered via portal so position:fixed is always
+      relative to the viewport, not the scrollable <main> container. ── */
 const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, onDelete }) => {
   const [showSol, setShowSol] = useState(false);
   const data = fullProblem || problem;
@@ -65,107 +67,258 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
 
   const comments = data.feedbacks || [];
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
+  const modal = (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.25rem',
+        background: 'rgba(8, 12, 18, 0.72)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+      }}
+      onClick={onClose}
+    >
       <div
-        className="mx-auto max-w-3xl w-full surface-card shadow-2xl max-h-[92vh] overflow-y-auto"
+        style={{
+          width: '100%',
+          maxWidth: '720px',
+          maxHeight: '88vh',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
+          borderRadius: 0,
+          overflow: 'hidden',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)] px-5 py-4 backdrop-blur">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-sm font-semibold text-[var(--color-accent)]">{data.id}</span>
+        {/* ── Header ── */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            padding: '1rem 1.25rem',
+            borderBottom: '1px solid var(--color-border)',
+            background: 'var(--color-surface)',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontVariantNumeric: 'tabular-nums',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  color: 'var(--color-accent)',
+                }}
+              >
+                {data.id}
+              </span>
               <StatusBadge status={normStatus(data)} />
             </div>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">{(data.topics || []).join(' · ') || 'No topic tags'}</p>
+            <p
+              style={{
+                fontSize: '0.78rem',
+                color: 'var(--color-text-muted)',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              {(data.topics || []).join(' · ') || 'No topic tags'}
+            </p>
           </div>
-          <button onClick={onClose} className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
+          <button
+            onClick={onClose}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '2rem',
+              height: '2rem',
+              flexShrink: 0,
+              color: 'var(--color-text-muted)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'color 180ms',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-text)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text-muted)')}
+            aria-label="Close preview"
+          >
             <X size={16} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="space-y-6 px-5 py-5">
+        {/* ── Scrollable body ── */}
+        <div style={{ overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+          {/* Problem statement */}
           <section>
-            <p className="section-label">Problem</p>
-            <div className="mt-3 text-[15px] leading-7">
-              {data.latex ? <KatexRenderer latex={data.latex} /> : <span className="italic text-[var(--color-text-muted)]">No problem text</span>}
+            <p className="section-label" style={{ marginBottom: '0.625rem' }}>Problem</p>
+            <div style={{ fontSize: '15px', lineHeight: '1.75', fontFamily: 'var(--font-body)', color: 'var(--color-text)' }}>
+              {data.latex
+                ? <KatexRenderer latex={data.latex} />
+                : <span style={{ fontStyle: 'italic', color: 'var(--color-text-muted)' }}>No problem text</span>
+              }
             </div>
           </section>
 
-          <section className="flex flex-wrap gap-4 items-start justify-between">
-            <div>
-              <p className="section-label">Topics</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {(data.topics || []).map((topic) => (
-                  <span key={topic} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs font-medium">
-                    {topic}
-                  </span>
-                ))}
+          {/* Topics + difficulty */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <section>
+              <p className="section-label" style={{ marginBottom: '0.5rem' }}>Topics</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                {(data.topics || []).length > 0
+                  ? (data.topics).map((topic) => (
+                      <span
+                        key={topic}
+                        style={{
+                          border: '1px solid var(--color-border)',
+                          background: 'var(--color-surface-2)',
+                          padding: '0.2rem 0.625rem',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          fontFamily: 'var(--font-body)',
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        {topic}
+                      </span>
+                    ))
+                  : <span style={{ fontSize: '0.8rem', color: 'var(--color-text-faint)' }}>—</span>
+                }
               </div>
-            </div>
-            <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-right">
-              <p className="section-label">Difficulty</p>
-              <p className="mt-1 text-xl font-semibold text-[var(--color-accent)]">{parseInt(data.quality, 10) || '?'}<span className="text-sm text-[var(--color-text-muted)]">/10</span></p>
-            </div>
-          </section>
+            </section>
+            <section>
+              <p className="section-label" style={{ marginBottom: '0.5rem' }}>Difficulty</p>
+              <p style={{ fontSize: '1.35rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--color-accent)', lineHeight: 1 }}>
+                {parseInt(data.quality, 10) || '?'}
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>/10</span>
+              </p>
+            </section>
+          </div>
 
+          {/* Answer */}
           {data.answer && (
             <section>
-              <p className="section-label">Answer</p>
-              <div className="mt-2 inline-flex rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 font-mono text-sm font-semibold">
+              <p className="section-label" style={{ marginBottom: '0.5rem' }}>Answer</p>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-surface-2)',
+                  padding: '0.375rem 0.75rem',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                }}
+              >
                 <KatexRenderer latex={data.answer} />
               </div>
             </section>
           )}
 
+          {/* Solution toggle */}
           {data.solution && (
-            <section className="rounded-sm border border-[var(--color-border)] overflow-hidden">
+            <section style={{ border: '1px solid var(--color-border)', overflow: 'hidden' }}>
               <button
                 type="button"
                 onClick={() => setShowSol((s) => !s)}
-                className="flex w-full items-center justify-between bg-[var(--color-surface)] px-4 py-3 text-left text-sm font-semibold hover:bg-[var(--color-surface-2)] transition-colors"
+                style={{
+                  display: 'flex',
+                  width: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'var(--color-surface-2)',
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  fontFamily: 'var(--font-body)',
+                  color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'background 180ms',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-offset)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-surface-2)')}
               >
-                <span>{showSol ? 'Hide solution' : 'Show solution'}</span>
-                {showSol ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                <span>{showSol ? 'Hide Solution' : 'Show Solution'}</span>
+                {showSol ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
               {showSol && (
-                <div className="border-t border-[var(--color-border)] px-4 py-4 text-[15px] leading-7">
+                <div style={{ borderTop: '1px solid var(--color-border)', padding: '1rem', fontSize: '15px', lineHeight: '1.75', fontFamily: 'var(--font-body)' }}>
                   <KatexRenderer latex={data.solution} />
                 </div>
               )}
             </section>
           )}
 
+          {/* Author notes */}
           {data.notes && (
-            <section className="rounded-sm border border-[var(--color-border)] bg-[var(--badge-idea-bg)] px-4 py-4">
-              <p className="section-label">Author notes</p>
-              <div className="mt-2 text-sm leading-6">
+            <section
+              style={{
+                border: '1px solid var(--badge-idea-border)',
+                background: 'var(--badge-idea-bg)',
+                padding: '0.875rem 1rem',
+              }}
+            >
+              <p className="section-label" style={{ marginBottom: '0.5rem' }}>Author Notes</p>
+              <div style={{ fontSize: '0.875rem', lineHeight: '1.65', fontFamily: 'var(--font-body)', color: 'var(--color-text-muted)' }}>
                 <KatexRenderer latex={data.notes} />
               </div>
             </section>
           )}
 
+          {/* Review thread */}
           {comments.length > 0 && (
             <section>
-              <p className="section-label">Review thread</p>
-              <div className="mt-3 space-y-3">
+              <p className="section-label" style={{ marginBottom: '0.625rem' }}>
+                Review Thread
+                <span style={{ marginLeft: '0.5rem', fontWeight: 400, color: 'var(--color-text-faint)' }}>({comments.length})</span>
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                 {comments.map((fb, idx) => (
-                  <div key={fb.id || idx} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold">
+                  <div
+                    key={fb.id || idx}
+                    style={{
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-2)',
+                      padding: '0.75rem 1rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, fontFamily: 'var(--font-body)', color: 'var(--color-text)' }}>
                         {fb.reviewer?.firstName} {fb.reviewer?.lastName}
                       </span>
                       <StatusBadge status={fb.isEndorsement ? 'Endorsed' : fb.resolved ? 'Resolved' : 'Needs Review'} />
-                      <span className="ml-auto text-xs text-[var(--color-text-muted)]">{formatRelativeDate(fb.createdAt)}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                        {formatRelativeDate(fb.createdAt)}
+                      </span>
                     </div>
                     {(fb.comment || fb.feedback) && (
-                      <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{fb.comment || fb.feedback}</p>
+                      <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', lineHeight: '1.6', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
+                        {fb.comment || fb.feedback}
+                      </p>
                     )}
                     {fb.answer && (
-                      <div className="mt-2 text-xs text-[var(--color-text-muted)]">
-                        Solver answer: <span className="font-mono"><KatexRenderer latex={fb.answer} /></span>
+                      <div style={{ marginTop: '0.375rem', fontSize: '0.78rem', color: 'var(--color-text-faint)' }}>
+                        Solver answer:{' '}
+                        <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                          <KatexRenderer latex={fb.answer} />
+                        </span>
                       </div>
                     )}
                   </div>
@@ -174,8 +327,17 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
             </section>
           )}
 
-          {/* Action buttons */}
-          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-[var(--color-border)]">
+          {/* Actions */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '0.625rem',
+              paddingTop: '0.75rem',
+              borderTop: '1px solid var(--color-border)',
+            }}
+          >
             <button
               onClick={() => { onClose(); onNavigate(data.id); }}
               className="btn-primary btn-sm"
@@ -200,14 +362,22 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
                   onClose();
                 }
               }}
-              className="btn-outline btn-sm hover:!bg-red-600 hover:!border-red-600 hover:!text-white"
+              className="btn-outline btn-sm"
+              style={{ '--hover-bg': 'rgb(220 38 38)', '--hover-border': 'rgb(220 38 38)', '--hover-color': '#fff' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#dc2626';
+                e.currentTarget.style.borderColor = '#dc2626';
+                e.currentTarget.style.color = '#fff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '';
+                e.currentTarget.style.borderColor = '';
+                e.currentTarget.style.color = '';
+              }}
             >
               Delete
             </button>
-            <button
-              onClick={onClose}
-              className="btn-ghost btn-sm ml-auto"
-            >
+            <button onClick={onClose} className="btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
               Close
             </button>
           </div>
@@ -215,6 +385,8 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 /* ══════════════════════════════════════════════════════════════
@@ -225,18 +397,18 @@ const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const activeTab = searchParams.get('view') || 'overview';
+  const activeTab    = searchParams.get('view')   || 'overview';
   const statusFilter = searchParams.get('status') || 'all';
-  const topicFilter = searchParams.get('topic') || 'all';
-  const query = searchParams.get('q') || '';
+  const topicFilter  = searchParams.get('topic')  || 'all';
+  const query        = searchParams.get('q')      || '';
 
-  const [problems, setProblems] = useState([]);
-  const [myFeedback, setMyFeedback] = useState([]);
-  const [reviewProblems, setReviewProblems] = useState([]);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
-  const [reviewLoading, setReviewLoading] = useState(false);
-  const [previewProblem, setPreviewProblem] = useState(null);
-  const [previewFull, setPreviewFull] = useState(null);
+  const [problems,         setProblems]         = useState([]);
+  const [myFeedback,       setMyFeedback]        = useState([]);
+  const [reviewProblems,   setReviewProblems]    = useState([]);
+  const [dashboardLoading, setDashboardLoading]  = useState(true);
+  const [reviewLoading,    setReviewLoading]     = useState(false);
+  const [previewProblem,   setPreviewProblem]    = useState(null);
+  const [previewFull,      setPreviewFull]       = useState(null);
 
   const setParam = (key, value, defaultValue = '') => {
     setSearchParams((prev) => {
@@ -324,20 +496,20 @@ const Dashboard = () => {
   };
 
   const counts = useMemo(() => ({
-    all: problems.length,
+    all:           problems.length,
     'Needs Review': problems.filter((p) => normStatus(p) === 'Needs Review').length,
-    Resolved: problems.filter((p) => normStatus(p) === 'Resolved').length,
-    Idea: problems.filter((p) => normStatus(p) === 'Idea').length,
-    Endorsed: problems.filter((p) => normStatus(p) === 'Endorsed').length,
+    Resolved:      problems.filter((p) => normStatus(p) === 'Resolved').length,
+    Idea:          problems.filter((p) => normStatus(p) === 'Idea').length,
+    Endorsed:      problems.filter((p) => normStatus(p) === 'Endorsed').length,
   }), [problems]);
 
   const filteredProblems = useMemo(() => {
     return problems.filter((problem) => {
-      const preview = stripLatex(problem.latex || '');
-      const status = normStatus(problem);
+      const preview  = stripLatex(problem.latex || '');
+      const status   = normStatus(problem);
       const searchOk = !query || `${problem.id} ${preview} ${(problem.topics || []).join(' ')}`.toLowerCase().includes(query.toLowerCase());
       const statusOk = statusFilter === 'all' || status === statusFilter;
-      const topicOk = topicFilter === 'all' || (problem.topics || []).includes(topicFilter);
+      const topicOk  = topicFilter  === 'all' || (problem.topics || []).includes(topicFilter);
       return searchOk && statusOk && topicOk;
     });
   }, [problems, query, statusFilter, topicFilter]);
@@ -361,17 +533,13 @@ const Dashboard = () => {
               Dashboard
             </h1>
           </div>
-          <button
-            onClick={() => navigate('/write')}
-            className="btn-primary btn-sm"
-          >
+          <button onClick={() => navigate('/write')} className="btn-primary btn-sm">
             New Problem
           </button>
         </header>
 
         {/* ── Tabs ── */}
         <section className="surface-card">
-          {/* Tab row — rectangular outline buttons */}
           <div className="border-b border-[var(--color-border)] px-4 py-3">
             <div className="flex flex-wrap gap-2">
               {DASHBOARD_TABS.map((tab) => {
@@ -403,7 +571,6 @@ const Dashboard = () => {
             <div className="space-y-4 p-4">
               {/* Filters + search row */}
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                {/* Status filter buttons */}
                 <div className="flex flex-wrap gap-2">
                   {STATUS_FILTERS.map((item) => (
                     <button
@@ -419,7 +586,6 @@ const Dashboard = () => {
                     </button>
                   ))}
                 </div>
-                {/* Search + topic */}
                 <div className="flex gap-3">
                   <label className="relative block" style={{ width: '280px' }}>
                     <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
@@ -637,7 +803,8 @@ const Dashboard = () => {
         </section>
       </div>
 
-      {/* Preview modal */}
+      {/* Preview modal — portalled to document.body so position:fixed
+          is always relative to the viewport, not the scrollable <main>. */}
       {previewProblem && (
         <PreviewPanel
           problem={previewProblem}

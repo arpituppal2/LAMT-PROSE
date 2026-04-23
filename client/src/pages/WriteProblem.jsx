@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Image as ImageIcon, X, ArrowRightLeft, Send, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { Image as ImageIcon, X, ArrowRightLeft, Send, CheckCircle, AlertCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
@@ -117,7 +117,7 @@ const WriteProblem = () => {
   const [step, setStep]             = useState(1);
   const [latex, setLatex]           = useState('');
   const [solution, setSolution]     = useState('');
-  const [answer, setAnswer]         = useState('');  
+  const [answer, setAnswer]         = useState('');
   const [notes, setNotes]           = useState('');
   const [topics, setTopics]         = useState([]);
   const [difficulty, setDifficulty] = useState(5);
@@ -129,7 +129,6 @@ const WriteProblem = () => {
 
   const isDirty = !submitted && !!(latex || solution || answer || notes || topics.length || images.length);
 
-  /* beforeunload — warn on tab/window close only */
   useEffect(() => {
     const handler = (e) => {
       if (!isDirty) return;
@@ -174,6 +173,12 @@ const WriteProblem = () => {
     }
     setMessage({ text: '', type: '' });
     setStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goToStep1 = () => {
+    setMessage({ text: '', type: '' });
+    setStep(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -222,7 +227,7 @@ const WriteProblem = () => {
         <div key={n} className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => n < step && setStep(n)}
+            onClick={() => n < step && goToStep1()}
             className={[
               'w-6 h-6 rounded-sm text-xs font-bold flex items-center justify-center border transition-all',
               n === step
@@ -414,11 +419,10 @@ const WriteProblem = () => {
                       type="button"
                       onClick={() => handleTopicToggle(topic)}
                       className={[
-                        'px-3 py-1.5 text-xs font-semibold transition-all',
-                        'border-2 rounded-none',
+                        'px-3 py-1.5 text-xs font-semibold transition-all rounded-none',
                         topics.includes(topic)
-                          ? 'bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-white dark:text-black'
-                          : 'bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
+                          ? 'border-2 border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] text-white dark:text-black'
+                          : 'border-2 border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] bg-transparent text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] hover:bg-[var(--ucla-blue)]/10 dark:hover:bg-[var(--ucla-gold)]/10',
                       ].join(' ')}
                     >
                       {topic}
@@ -430,16 +434,25 @@ const WriteProblem = () => {
                 )}
               </div>
 
-              {/* Submit */}
+              {/* Back + Submit */}
               <div className="pt-3 border-t border-[var(--color-border)] space-y-3">
                 <MessageBanner />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-filled w-full flex items-center justify-center gap-2 py-2.5 text-sm"
-                >
-                  {loading ? 'Submitting…' : <><Send size={13} /> Submit Problem</>}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={goToStep1}
+                    className="btn-ghost flex items-center justify-center gap-2 py-2.5 text-sm px-4"
+                  >
+                    <ArrowLeft size={13} /> Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-filled flex-1 flex items-center justify-center gap-2 py-2.5 text-sm"
+                  >
+                    {loading ? 'Submitting…' : <><Send size={13} /> Submit Problem</>}
+                  </button>
+                </div>
               </div>
 
             </form>

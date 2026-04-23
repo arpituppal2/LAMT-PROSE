@@ -67,7 +67,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={inputCls}
-                placeholder="you@ucla.edu"
+                placeholder="Your PROSE Email"
                 autoFocus
                 required
               />

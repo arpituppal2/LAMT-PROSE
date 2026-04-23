@@ -74,17 +74,12 @@ const DifficultySlider = ({ value, onChange }) => {
         <span className="text-2xl font-bold tabular-nums text-[var(--color-accent)]">{value}</span>
         <span className="text-sm text-[var(--color-text-faint)]">/10</span>
       </div>
-
-      {/* custom track */}
       <div className="relative h-5 flex items-center">
-        {/* track bg */}
         <div className="absolute inset-x-0 h-[6px] rounded-full bg-[var(--color-border)]" />
-        {/* filled portion */}
         <div
           className="absolute left-0 h-[6px] rounded-full bg-[var(--color-accent)] transition-all"
           style={{ width: `${pct}%` }}
         />
-        {/* native input overlaid — invisible but interactive */}
         <input
           type="range" min="1" max="10" step="1"
           value={value}
@@ -92,14 +87,11 @@ const DifficultySlider = ({ value, onChange }) => {
           className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
           style={{ margin: 0 }}
         />
-        {/* thumb dot */}
         <div
           className="absolute w-4 h-4 rounded-full border-2 border-[var(--color-accent)] bg-[var(--color-bg)] shadow transition-all pointer-events-none"
           style={{ left: `calc(${pct}% - 8px)` }}
         />
       </div>
-
-      {/* tick labels */}
       <div className="flex justify-between">
         {[1,2,3,4,5,6,7,8,9,10].map(n => (
           <button
@@ -135,21 +127,31 @@ const WriteProblem = () => {
   const [submitted, setSubmitted]   = useState(false);
   const navigate = useNavigate();
 
-  const isDirtyRef = useRef(false);
+  const isDirty = !submitted && !!(latex || solution || answer || notes || topics.length || images.length);
+
+  /* beforeunload — browser tab/window close */
   useEffect(() => {
-    isDirtyRef.current = !submitted && !!(latex || solution || answer || notes || topics.length || images.length);
-  });
-  useEffect(() => {
-    const handler = (e) => { if (!isDirtyRef.current) return; e.preventDefault(); e.returnValue = ''; };
+    const handler = (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, []);
+  }, [isDirty]);
 
-  // Block in-app navigation (React Router) when there is unsaved content
-  useBlocker(() => {
-    if (!isDirtyRef.current) return false;
-    return !window.confirm('You have unsaved changes. Leave anyway?');
-  });
+  /* useBlocker — in-app React Router navigation */
+  const blocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      if (window.confirm('You have unsaved changes. Leave anyway?')) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker]);
 
   const handleTopicToggle = (topic) =>
     setTopics(prev => prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]);
@@ -210,7 +212,6 @@ const WriteProblem = () => {
         examType: 'Numerical Answer',
       });
       setSubmitted(true);
-      isDirtyRef.current = false;
       setMessage({ text: `Problem ${response.data.id} submitted successfully.`, type: 'success' });
       setTimeout(() => navigate('/inventory'), 1800);
     } catch (error) {
@@ -312,7 +313,7 @@ const WriteProblem = () => {
                   type="text"
                   value={answer}
                   onChange={e => setAnswer(e.target.value)}
-                  placeholder="e.g. 42 or \\frac{1}{2}"
+                  placeholder="e.g. 42 or \frac{1}{2}"
                   className="input-base w-full font-mono mt-2"
                   required
                 />

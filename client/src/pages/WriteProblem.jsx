@@ -26,11 +26,6 @@ const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, image
   <div className="surface-card overflow-hidden">
     <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
       <span className="section-label" style={{ marginBottom: 0 }}>Live Preview</span>
-      {answer && (
-        <span className="text-xs font-mono font-bold text-[var(--color-accent)] tabular-nums">
-          ans: {answer}
-        </span>
-      )}
     </div>
     <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
 

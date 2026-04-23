@@ -75,8 +75,6 @@ function App() {
           <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
-          {/* Admin Routes */}
-          <Route path="/admin/transfer" element={<AdminRoute><TransferGuest /></AdminRoute>} />
 
           {/* Fallback Route */}
           <Route path="/" element={<Navigate to="/dashboard" />} />

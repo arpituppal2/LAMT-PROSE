@@ -27,7 +27,6 @@ export const useDarkMode = () => {
   return [dark, toggle];
 };
 
-/* ── Sidebar (LAMT treatment — collapsible, UCLA palette) ─── */
 const NAV_LINKS = [
   { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/write',       icon: PenTool,          label: 'Write' },
@@ -59,33 +58,30 @@ const Sidebar = ({ dark, toggleDark }) => {
 
   return (
     <aside
-      className={`
-        h-screen text-white flex flex-col flex-shrink-0
-        ${collapsed ? 'w-[52px]' : 'w-52'}
-        bg-[var(--ucla-blue)] dark:bg-black
-        border-r border-white/10
-        transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]
-        relative z-20
-      `}
+      className={[
+        'sidebar h-screen flex flex-col flex-shrink-0 relative z-20',
+        collapsed ? 'sidebar--collapsed' : 'sidebar--expanded',
+      ].join(' ')}
     >
-      {/* ── Brand + collapse toggle ── */}
-      <div className="flex items-center justify-between px-3 py-3 border-b border-white/15">
+      {/* ── Brand ── */}
+      <div className="sidebar__brand">
         {!collapsed && (
-          <span className="font-display text-[13px] font-bold tracking-[0.25em] uppercase select-none px-0.5">
-            PROSE
-          </span>
+          <div className="sidebar__wordmark">
+            <span className="sidebar__prose-label">PROSE</span>
+            <span className="sidebar__lamt-label">by LAMT</span>
+          </div>
         )}
         <button
           onClick={handleToggle}
-          className="p-1.5 hover:bg-white/15 active:bg-white/25 transition-colors ml-auto rounded-sm"
+          className="sidebar__toggle"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <Menu size={16} /> : <X size={16} />}
+          {collapsed ? <Menu size={15} /> : <X size={15} />}
         </button>
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 px-1.5 py-2 space-y-0.5 overflow-y-auto">
+      <nav className="sidebar__nav" aria-label="Main navigation">
         {NAV_LINKS.map(({ to, icon: Icon, label }) => {
           const isActive =
             location.pathname === to ||
@@ -95,39 +91,28 @@ const Sidebar = ({ dark, toggleDark }) => {
             <Link
               key={to}
               to={to}
-              className={`
-                flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-semibold
-                transition-colors duration-150 rounded-sm
-                ${
-                  isActive
-                    ? 'bg-white/20 text-white border-b-2 border-[var(--ucla-gold)]'
-                    : 'text-white/75 hover:bg-white/10 hover:text-white border-b-2 border-transparent'
-                }
-              `}
+              className={['sidebar__link', isActive ? 'sidebar__link--active' : ''].join(' ')}
+              title={collapsed ? label : undefined}
             >
-              <Icon size={16} className="flex-shrink-0" />
-              {!collapsed && <span>{label}</span>}
+              <Icon size={15} className="sidebar__link-icon" />
+              {!collapsed && (
+                <span className="sidebar__link-label">{label}</span>
+              )}
             </Link>
           );
         })}
       </nav>
 
       {/* ── Footer controls ── */}
-      <div className="px-1.5 py-2 border-t border-white/15 space-y-0.5">
-        <button
-          onClick={toggleDark}
-          className="flex items-center gap-2.5 w-full px-2.5 py-2 text-[13px] font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors rounded-sm"
-        >
+      <div className="sidebar__footer">
+        <button onClick={toggleDark} className="sidebar__util-btn" title={dark ? 'Switch to light' : 'Switch to dark'}>
           {dark
-            ? <Sun  size={16} className="flex-shrink-0" />
-            : <Moon size={16} className="flex-shrink-0" />}
+            ? <Sun  size={15} className="flex-shrink-0" />
+            : <Moon size={15} className="flex-shrink-0" />}
           {!collapsed && <span>{dark ? 'Light mode' : 'Dark mode'}</span>}
         </button>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2.5 w-full px-2.5 py-2 text-[13px] font-medium text-white/70 hover:bg-red-500/20 hover:text-red-300 transition-colors rounded-sm"
-        >
-          <LogOut size={16} className="flex-shrink-0" />
+        <button onClick={handleLogout} className="sidebar__util-btn sidebar__util-btn--danger">
+          <LogOut size={15} className="flex-shrink-0" />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>

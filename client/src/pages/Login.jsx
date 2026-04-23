@@ -3,16 +3,13 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { Loader2, AlertCircle } from 'lucide-react';
 
-const inputCls =
-  'w-full px-3.5 py-2.5 text-sm bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--ucla-blue)]/25 dark:focus:ring-[var(--ucla-gold)]/20 transition';
-
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const navigate  = useNavigate();
+  const location  = useLocation();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -31,56 +28,95 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EEF4FB] dark:bg-[#020c16] p-4">
-      <div className="w-full max-w-[360px]">
+    <div
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-bg)',
+        padding: 'var(--space-4)',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: '360px' }}>
 
         {/* Wordmark */}
-        <div className="mb-8">
-          <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-[0.18em] mb-2">
-            LAMT · PROSE
-          </p>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+        <div style={{ marginBottom: 'var(--space-8)' }}>
+          <span className="gold-rule" style={{ marginBottom: 'var(--space-3)' }} />
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--text-xl)',
+              fontWeight: 800,
+              color: 'var(--color-text)',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.1,
+            }}
+          >
             Sign in
           </h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-            Problem Review &amp; Online Submission Engine
+          <p
+            style={{
+              marginTop: 'var(--space-2)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'var(--color-text-faint)',
+            }}
+          >
+            P.R.O.S.E. · Problem Review &amp; Online Submission Engine
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-md border border-white/70 dark:border-white/[0.08] rounded-2xl shadow-sm overflow-hidden">
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <div className="surface-card" style={{ overflow: 'hidden' }}>
+          <form onSubmit={handleSubmit} style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
 
             {error && (
-              <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 text-sm">
-                <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 'var(--space-2)',
+                  padding: 'var(--space-3) var(--space-4)',
+                  background: 'var(--badge-needs-review-bg)',
+                  border: '1px solid var(--badge-needs-review-border)',
+                  color: 'var(--badge-needs-review-text)',
+                  fontSize: 'var(--text-sm)',
+                }}
+              >
+                <AlertCircle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <span>{error}</span>
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                Email
-              </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              <label className="section-label">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={inputCls}
-                placeholder="Your PROSE Email"
+                className="input-base"
+                placeholder="your@email.com"
                 autoFocus
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Password
-                </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label className="section-label">Password</label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] hover:underline underline-offset-2"
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-accent)',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
                 >
                   Forgot password?
                 </Link>
@@ -89,7 +125,7 @@ const Login = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={inputCls}
+                className="input-base"
                 placeholder="••••••••"
                 required
               />
@@ -98,7 +134,8 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--ucla-blue)] hover:bg-[var(--ucla-blue-dark)] text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="btn-primary"
+              style={{ width: '100%', marginTop: 'var(--space-1)', opacity: loading ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
             >
               {loading ? (
                 <><Loader2 size={14} className="animate-spin" /> Signing in…</>
@@ -108,12 +145,20 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-white/[0.06] bg-gray-50/60 dark:bg-white/[0.02]">
-            <p className="text-sm text-gray-400 dark:text-gray-500">
+          <div
+            style={{
+              padding: 'var(--space-4) var(--space-6)',
+              borderTop: '1px solid var(--color-border)',
+              background: 'var(--color-surface-2)',
+            }}
+          >
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
               New member?{' '}
               <Link
                 to="/register"
-                className="text-[var(--ucla-blue)] dark:text-[var(--ucla-gold)] font-medium hover:underline underline-offset-2"
+                style={{ color: 'var(--color-accent)', fontWeight: 700, textDecoration: 'none' }}
+                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
               >
                 Request access
               </Link>

@@ -66,7 +66,7 @@ const ErrorMsg = ({ msg }) =>
     </div>
   ) : null;
 
-/* ── KaTeX renderer (reuse window.katex if available) ─────────── */
+/* ── KaTeX renderer ───────────────────────────────────────────── */
 const renderMath = (tex, display = false) => {
   if (typeof window !== 'undefined' && window.katex) {
     try {
@@ -78,9 +78,7 @@ const renderMath = (tex, display = false) => {
 
 const MathText = ({ text }) => {
   if (!text) return null;
-  // Split on $...$ and $$...$$
   const parts = [];
-  let remaining = text;
   const pattern = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g;
   let last = 0;
   let match;
@@ -99,19 +97,122 @@ const MathText = ({ text }) => {
         p.type === 'text' ? (
           <span key={i}>{p.val}</span>
         ) : (
-          <span
-            key={i}
-            dangerouslySetInnerHTML={{ __html: renderMath(p.val, p.display) }}
-          />
+          <span key={i} dangerouslySetInnerHTML={{ __html: renderMath(p.val, p.display) }} />
         )
       )}
     </span>
   );
 };
 
+/* ── Guts set builder ─────────────────────────────────────────
+   Layout: Sets 1–7 → 3 problems each (21 total)
+           Set 8   → 2 problems + 1 estimation (slots 22–24)
+   Returns array of { setNum, label, problems[] }
+──────────────────────────────────────────────────────────────── */
+const buildGutsSets = (problems) => {
+  const sets = [];
+  // Sets 1–7: 3 problems each
+  for (let s = 1; s <= 7; s++) {
+    const start = (s - 1) * 3;
+    sets.push({
+      setNum: s,
+      label: `Set ${s}`,
+      isEstimation: false,
+      problems: problems.slice(start, start + 3),
+    });
+  }
+  // Set 8: problems at index 21–22, estimation at index 23
+  const set8Problems = problems.slice(21, 23);
+  const estimation = problems[23] ?? null;
+  sets.push({
+    setNum: 8,
+    label: 'Set 8',
+    isEstimation: true,
+    problems: set8Problems,
+    estimation,
+  });
+  return sets;
+};
+
+/* ── Problem row ──────────────────────────────────────────────── */
+const ProblemRow = ({ problem, num, isEstimation = false }) => (
+  <li className="px-5 py-4">
+    <div className="flex gap-3">
+      <span className="flex-shrink-0 w-6 text-right text-xs font-semibold tabular-nums text-[var(--color-text-muted)] pt-0.5">
+        {isEstimation ? 'Est.' : `${num}.`}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap gap-1 mb-1.5">
+          {problem.topic && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
+              {problem.topic}
+            </span>
+          )}
+          {problem.subtopic && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-faint)]">
+              {problem.subtopic}
+            </span>
+          )}
+          {problem.difficulty != null && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
+              D{problem.difficulty}
+            </span>
+          )}
+          {isEstimation && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15">
+              Estimation
+            </span>
+          )}
+        </div>
+        <p className="text-sm leading-relaxed">
+          <MathText text={problem.problem} />
+        </p>
+      </div>
+    </div>
+  </li>
+);
+
 /* ── Preview Modal ───────────────────────────────────────────── */
 const PreviewModal = ({ exam, onClose }) => {
   const problems = exam.problems ?? [];
+  const isGuts = exam.templateType === 'guts';
+
+  const renderGuts = () => {
+    const sets = buildGutsSets(problems);
+    let globalNum = 1;
+    return sets.map((set) => (
+      <div key={set.setNum}>
+        {/* Set header */}
+        <div className="px-5 py-2 bg-[var(--color-surface-offset)] border-y border-[var(--color-border)] flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+            {set.label}
+          </span>
+          <span className="text-[10px] text-[var(--color-text-faint)]">
+            {set.isEstimation
+              ? `${set.problems.length} problem${set.problems.length !== 1 ? 's' : ''} + estimation`
+              : `${set.problems.length} problem${set.problems.length !== 1 ? 's' : ''}`}
+          </span>
+        </div>
+        <ol className="divide-y divide-[var(--color-border)]">
+          {set.problems.map((p) => {
+            const n = globalNum++;
+            return <ProblemRow key={p.id ?? n} problem={p} num={n} />;
+          })}
+          {set.isEstimation && set.estimation && (
+            <ProblemRow key="est" problem={set.estimation} num={null} isEstimation />
+          )}
+        </ol>
+      </div>
+    ));
+  };
+
+  const renderFlat = () => (
+    <ol className="divide-y divide-[var(--color-border)]">
+      {problems.map((p, idx) => (
+        <ProblemRow key={p.id ?? idx} problem={p} num={idx + 1} />
+      ))}
+    </ol>
+  );
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -126,6 +227,7 @@ const PreviewModal = ({ exam, onClose }) => {
             <h2 className="text-sm font-semibold truncate">{exam.name}</h2>
             <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
               {exam.competition} · {exam.version} · {problems.length} problem{problems.length !== 1 ? 's' : ''}
+              {isGuts && <span className="ml-1 text-[var(--color-text-faint)]">(8 sets)</span>}
             </p>
           </div>
           <button
@@ -144,43 +246,7 @@ const PreviewModal = ({ exam, onClose }) => {
               <FileText size={28} className="text-[var(--color-text-faint)] mb-2" />
               <p className="text-sm text-[var(--color-text-muted)]">No problems in this exam yet.</p>
             </div>
-          ) : (
-            <ol className="divide-y divide-[var(--color-border)]">
-              {problems.map((p, idx) => (
-                <li key={p.id} className="px-5 py-4">
-                  <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 text-right text-xs font-semibold tabular-nums text-[var(--color-text-muted)] pt-0.5">
-                      {idx + 1}.
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-1 mb-1.5">
-                        {p.topic && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
-                            {p.topic}
-                          </span>
-                        )}
-                        {p.subtopic && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-faint)]">
-                            {p.subtopic}
-                          </span>
-                        )}
-                        {p.difficulty != null && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
-                            D{p.difficulty}
-                          </span>
-                        )}
-                      </div>
-                      {/* Problem statement */}
-                      <p className="text-sm leading-relaxed">
-                        <MathText text={p.problem} />
-                      </p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
+          ) : isGuts ? renderGuts() : renderFlat()}
         </div>
       </div>
     </div>
@@ -231,7 +297,6 @@ const NewExamModal = ({ onClose, onCreate }) => {
         style={{ maxHeight: '90dvh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
           <h2 className="text-sm font-semibold">New Exam</h2>
           <button
@@ -244,7 +309,6 @@ const NewExamModal = ({ onClose, onCreate }) => {
         </div>
 
         <div className="overflow-y-auto p-5 space-y-5" style={{ maxHeight: 'calc(90dvh - 57px)' }}>
-          {/* Template picker */}
           <div>
             <p className="section-label">
               Template <span className="normal-case font-normal text-[var(--color-text-faint)]">(optional)</span>
@@ -274,7 +338,6 @@ const NewExamModal = ({ onClose, onCreate }) => {
             )}
           </div>
 
-          {/* Form fields */}
           <form onSubmit={handleSubmit} className="space-y-4" id="new-exam-form">
             <div>
               <label className="section-label">Competition *</label>
@@ -300,7 +363,6 @@ const NewExamModal = ({ onClose, onCreate }) => {
           </form>
         </div>
 
-        {/* Sticky footer */}
         <div className="px-5 py-4 border-t border-[var(--color-border)] flex gap-2.5">
           <button type="button" onClick={onClose} className="btn-outline flex-1 py-2 text-sm">
             Cancel
@@ -322,7 +384,6 @@ const NewExamModal = ({ onClose, onCreate }) => {
 
 /* ── Exam card ───────────────────────────────────────────────── */
 const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
-  // problems array is always included from the API; fall back to problemIds length
   const problemCount =
     Array.isArray(exam.problems)
       ? exam.problems.length
@@ -333,11 +394,10 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
   return (
     <div
       onClick={onClick}
-      className="group relative cursor-pointer surface-card px-5 py-3.5 hover:bg-[var(--color-surface)] transition-all"
+      className="cursor-pointer surface-card px-5 py-3.5 hover:bg-[var(--color-surface)] transition-all"
     >
-      {/* Single-line layout: name · competition · version · N problems · author */}
       <div className="flex items-center gap-2 min-w-0">
-        {/* Left: all meta on one line */}
+        {/* Left: meta */}
         <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
           <span className="font-semibold text-sm whitespace-nowrap">{exam.name}</span>
 
@@ -370,12 +430,12 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
           )}
         </div>
 
-        {/* Right: action buttons */}
+        {/* Right: action buttons — always visible */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {canEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(exam.id); }}
-              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-sm text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)] hover:bg-[var(--badge-needs-review-bg)] transition"
+              className="p-1.5 rounded-sm text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)] hover:bg-[var(--badge-needs-review-bg)] transition"
               title="Delete exam"
               aria-label="Delete exam"
             >
@@ -385,7 +445,7 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
 
           <button
             onClick={(e) => { e.stopPropagation(); onClick(); }}
-            className="opacity-0 group-hover:opacity-100 btn-outline flex items-center gap-1.5 px-2.5 py-1 text-xs"
+            className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-xs"
             title="Edit exam"
             aria-label="Edit exam"
           >
@@ -450,7 +510,6 @@ const ExamManager = () => {
     <Layout>
       <div className="max-w-[960px] mx-auto space-y-5">
 
-        {/* Header */}
         <header className="flex items-center justify-between">
           <div>
             <span className="gold-rule mb-3" />
@@ -463,7 +522,6 @@ const ExamManager = () => {
           </button>
         </header>
 
-        {/* Exam list */}
         {examsLoading ? (
           <div className="flex items-center justify-center py-20 text-[var(--color-text-muted)]">
             <Spinner size={20} />

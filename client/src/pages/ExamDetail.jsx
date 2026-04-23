@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, ChevronUp,
-  GripVertical, Loader2, X, AlertTriangle,
+  Loader2, X, AlertTriangle,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
-import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
+import { getProblemStatus } from '../utils/problemStatus';
 
 /* ══════════════════════════════════════════════════════════════
    CONSTANTS
@@ -182,54 +182,46 @@ const StageChip = ({ stage }) => {
   );
 };
 
-/* ── SlotCard — metadata only, no LaTeX preview ─────────────── */
+/* ── Grip dots ──────────────────────────────────────────────── */
+const Grip = () => (
+  <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
+    {[0,1,2,3,4,5].map(i => (
+      <div key={i} className="w-[3px] h-[3px] rounded-full bg-[var(--color-text-muted)]" />
+    ))}
+  </div>
+);
+
+/* ── SlotCard — natural height, BankRow-style, whole card clicks ── */
 const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) => {
   const [over, setOver] = useState(false);
-
   const topics = problem ? (problem.topics || []).map(t => TOPIC_ABBR[t] || t) : [];
-  const diff = problem ? (problem.quality || '?') : null;
 
   return (
     <div
       className={[
-        'border rounded-sm transition-all cursor-pointer select-none',
+        'border rounded-sm transition-all select-none',
         over ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5' : 'border-[var(--color-border)]',
         slot.slotType === 'estimation' ? 'border-l-2 border-l-[var(--ucla-gold)]' : '',
-        problem ? 'bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]' : 'bg-[var(--color-bg)]',
+        problem ? 'bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] cursor-pointer' : 'bg-[var(--color-bg)] cursor-default',
       ].join(' ')}
       onClick={() => problem && onPreview(problem)}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData('problemId'); if (id) onDrop(index, id); }}
     >
-      <div className="flex items-center gap-1.5 px-2 py-1.5">
-        {/* 6-dot grip */}
-        <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
-          {[0,1,2,3,4,5].map(i => (
-            <div key={i} className="w-[3px] h-[3px] rounded-full bg-[var(--color-text-muted)]" />
-          ))}
-        </div>
-        {/* Slot label */}
+      {/* Metadata row */}
+      <div className="flex items-center gap-1.5 px-2 pt-1.5 pb-0.5">
+        <Grip />
         <span className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider flex-shrink-0">{slot.label}</span>
-
         {problem ? (
           <>
-            {/* Problem ID */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onPreview(problem); }}
-              className="font-mono text-[10px] font-bold text-[var(--color-accent)] hover:underline leading-none flex-shrink-0"
-            >
-              {problem.id}
-            </button>
-            {/* Difficulty */}
-            <span className="text-[9px] tabular-nums font-semibold text-[var(--color-text-faint)] flex-shrink-0">{diff}/10</span>
-            {/* Topics */}
+            <span className="font-mono text-[10px] font-bold text-[var(--color-accent)] leading-none flex-shrink-0">{problem.id}</span>
+            <span className="text-[9px] tabular-nums font-semibold text-[var(--color-text-faint)] flex-shrink-0">{problem.quality || '?'}/10</span>
             <div className="flex items-center gap-0.5 flex-1 min-w-0 flex-wrap">
               {topics.map(t => (
                 <span key={t} className="text-[8px] font-medium px-1 py-0 rounded-sm bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)] leading-4">{t}</span>
               ))}
             </div>
-            {/* Remove */}
             <button
               onClick={(e) => { e.stopPropagation(); onRemove(index); }}
               className="ml-auto flex-shrink-0 p-0.5 text-[var(--color-text-faint)] hover:text-rose-500 transition-colors"
@@ -241,11 +233,20 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
           <span className="text-[9px] text-[var(--color-text-faint)] italic ml-1">Drop here</span>
         )}
       </div>
+      {/* KaTeX preview row */}
+      {problem && (
+        <div
+          className="px-2 pb-1.5 pl-7 text-[11px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none"
+          style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+        >
+          <KatexRenderer latex={(problem.latex || '').slice(0, 300)} />
+        </div>
+      )}
     </div>
   );
 };
 
-/* ── ShortlistRow — thin 1-per-row, drag-only ───────────────── */
+/* ── ShortlistRow — whole row clickable ─────────────────────── */
 const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
   const status = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
   const topics = (problem.topics || []).map(t => TOPIC_ABBR[t] || t);
@@ -261,17 +262,8 @@ const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
       style={{ height: '28px' }}
       onClick={() => onPreview(problem)}
     >
-      <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
-        {[0,1,2,3,4,5].map(i => (
-          <div key={i} className="w-[3px] h-[3px] rounded-full bg-[var(--color-text-muted)]" />
-        ))}
-      </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onPreview(problem); }}
-        className="font-mono text-[10px] font-bold text-[var(--color-accent)] hover:underline leading-none flex-shrink-0"
-      >
-        {problem.id}
-      </button>
+      <Grip />
+      <span className="font-mono text-[10px] font-bold text-[var(--color-accent)] leading-none flex-shrink-0">{problem.id}</span>
       <StageChip stage={status} />
       <div className="flex items-center gap-0.5">
         {topics.map(t => (
@@ -290,7 +282,7 @@ const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
   );
 };
 
-/* ── BankRow — natural height, no fixed sizing, no star ─────── */
+/* ── BankRow — natural height, whole row clickable ──────────── */
 const BankRow = ({ problem, isUsed, onPreview }) => {
   const status = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
   const topics = (problem.topics || []).map(t => TOPIC_ABBR[t] || t);
@@ -303,19 +295,11 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
         'px-4 py-1.5 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
         isUsed ? 'opacity-40' : 'hover:bg-[var(--color-surface)]',
       ].join(' ')}
+      onClick={() => onPreview(problem)}
     >
       <div className="flex items-center gap-1.5">
-        <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
-          {[0,1,2,3,4,5].map(i => (
-            <div key={i} className="w-[3px] h-[3px] rounded-full bg-[var(--color-text-muted)]" />
-          ))}
-        </div>
-        <button
-          onClick={() => onPreview(problem)}
-          className="font-mono text-[13px] font-semibold text-[var(--color-accent)] hover:underline leading-none flex-shrink-0"
-        >
-          {problem.id}
-        </button>
+        <Grip />
+        <span className="font-mono text-[13px] font-semibold text-[var(--color-accent)] leading-none flex-shrink-0">{problem.id}</span>
         <StageChip stage={status} />
         <div className="flex items-center gap-0.5 flex-shrink-0">
           {topics.map(t => (
@@ -325,7 +309,7 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
         <span className="flex-shrink-0 text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)] ml-auto">{problem.quality || '?'}/10</span>
         {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)] flex-shrink-0">✓</span>}
       </div>
-      <div className="mt-0.5 pl-5 text-[11px] text-[var(--color-text-muted)] leading-snug overflow-hidden" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+      <div className="mt-0.5 pl-5 text-[11px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
         <KatexRenderer latex={(problem.latex || '').slice(0, 300)} />
       </div>
     </div>
@@ -428,6 +412,7 @@ const ExamDetail = () => {
   const [showPreview, setShowPreview]     = useState(false);
   const [previewWithSolutions, setPreviewWithSolutions] = useState(false);
   const [shortlist, setShortlist]         = useState([]);
+  const [slotsPerRow, setSlotsPerRow]     = useState(3);
 
   /* ── Filters ── */
   const [bankSearch, setBankSearch]   = useState('');
@@ -484,8 +469,6 @@ const ExamDetail = () => {
     return set;
   }, [slotMap]);
 
-  const shortlistIds = useMemo(() => new Set(shortlist.map(p => p.id)), [shortlist]);
-
   const dupes = useDuplicates(examId, slotMap);
 
   const bankProblems = useMemo(() => {
@@ -516,15 +499,8 @@ const ExamDetail = () => {
   }, [examId]);
 
   /* ── Slot actions ── */
-  const assignSlot  = (index, problemId) => { setSlotMap((prev) => ({ ...prev, [index]: { problemId } })); setDirty(true); };
-  const removeSlot  = (index) => { setSlotMap((prev) => { const next = { ...prev }; delete next[index]; return next; }); setDirty(true); };
-
-  /* ── Shortlist ── */
-  const addToShortlist = (problem) => {
-    setShortlist(prev =>
-      prev.some(p => p.id === problem.id) ? prev : [...prev, problem]
-    );
-  };
+  const assignSlot = (index, problemId) => { setSlotMap((prev) => ({ ...prev, [index]: { problemId } })); setDirty(true); };
+  const removeSlot = (index) => { setSlotMap((prev) => { const next = { ...prev }; delete next[index]; return next; }); setDirty(true); };
 
   /* ── Save ── */
   const handleSave = async () => {
@@ -573,12 +549,10 @@ const ExamDetail = () => {
         {/* ── Top bar ─────────────────────────────────────── */}
         <div className="flex-shrink-0 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2">
           <div className="flex items-center gap-2">
-            {/* Back */}
             <button onClick={() => navigate('/exams')} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] flex-shrink-0">
               <ArrowLeft size={14} />
             </button>
 
-            {/* Title block */}
             <div className="flex-1 min-w-0">
               <h1 className="text-sm font-bold truncate leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
                 {exam.name}
@@ -595,20 +569,11 @@ const ExamDetail = () => {
               </div>
             </div>
 
-            {/* Action buttons */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(false); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
-                Preview
-              </button>
-              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(true); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
-                Preview + Solutions
-              </button>
-              <button onClick={() => doExport(false)} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
-                Download .tex
-              </button>
-              <button onClick={() => doExport(true)} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">
-                Download + Solutions
-              </button>
+              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(false); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">Preview</button>
+              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(true); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">Preview + Solutions</button>
+              <button onClick={() => doExport(false)} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">Download .tex</button>
+              <button onClick={() => doExport(true)} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">Download + Solutions</button>
               <button
                 onClick={handleSave}
                 disabled={!dirty || saving}
@@ -619,7 +584,6 @@ const ExamDetail = () => {
             </div>
           </div>
 
-          {/* Banners */}
           {dupes.length > 0 && (
             <div className="mt-1.5 flex items-start gap-2 rounded-sm border border-[var(--badge-idea-border)] bg-[var(--badge-idea-bg)] px-3 py-1.5 text-[10px] text-[var(--badge-idea-text)]">
               <AlertTriangle size={11} className="flex-shrink-0 mt-0.5" />
@@ -643,10 +607,30 @@ const ExamDetail = () => {
           >
             {/* EXAM SLOTS */}
             <div className="p-3">
-              <p className="section-label px-1 mb-2 uppercase tracking-widest text-[10px]">
-                Exam Slots ({Object.keys(slotMap).length}/{slotDefs.length})
-              </p>
-              <div className="grid grid-cols-3 gap-1.5">
+              {/* Header row with per-row slider */}
+              <div className="flex items-center gap-2 px-1 mb-2">
+                <p className="section-label uppercase tracking-widest text-[10px] flex-1">
+                  Exam Slots ({Object.keys(slotMap).length}/{slotDefs.length})
+                </p>
+                <label className="flex items-center gap-1.5 text-[9px] text-[var(--color-text-muted)] flex-shrink-0">
+                  <span className="whitespace-nowrap">Per row</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    value={slotsPerRow}
+                    onChange={(e) => setSlotsPerRow(+e.target.value)}
+                    className="w-16 accent-[var(--color-accent)]"
+                    style={{ height: '3px' }}
+                  />
+                  <span className="tabular-nums w-3 text-center">{slotsPerRow}</span>
+                </label>
+              </div>
+
+              <div
+                className="grid gap-1.5"
+                style={{ gridTemplateColumns: `repeat(${slotsPerRow}, minmax(0, 1fr))` }}
+              >
                 {slotDefs.map((slot, i) => (
                   <SlotCard
                     key={i}
@@ -745,7 +729,6 @@ const ExamDetail = () => {
               </div>
             </div>
 
-            {/* Bank list */}
             {bankProblems.length === 0 ? (
               <div className="py-16 text-center text-sm text-[var(--color-text-muted)]">No problems match the current filters.</div>
             ) : (

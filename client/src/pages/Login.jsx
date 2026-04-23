@@ -53,7 +53,7 @@ const Login = () => {
               lineHeight: 1.1,
             }}
           >
-            Sign in
+            Problem Review &amp; Online Submission Engine
           </h1>
           <p
             style={{
@@ -65,7 +65,7 @@ const Login = () => {
               color: 'var(--color-text-faint)',
             }}
           >
-            P.R.O.S.E. · Problem Review &amp; Online Submission Engine
+          Sign In
           </p>
         </div>
 

@@ -14,6 +14,8 @@ export const useDarkMode = () => {
   const [dark, setDark] = useState(() => localStorage.getItem('darkMode') === 'true');
 
   useEffect(() => {
+    // Apply .dark to <html> so all CSS selectors (.dark .foo) work globally,
+    // including scrollbars, body background, and portal elements.
     document.documentElement.classList.toggle('dark', dark);
   }, [dark]);
 
@@ -59,7 +61,7 @@ const Sidebar = ({ dark, toggleDark }) => {
   return (
     <aside
       className={[
-        'sidebar h-screen flex flex-col flex-shrink-0 relative z-20',
+        'sidebar h-screen flex flex-col relative z-20',
         collapsed ? 'sidebar--collapsed' : 'sidebar--expanded',
       ].join(' ')}
     >
@@ -76,7 +78,7 @@ const Sidebar = ({ dark, toggleDark }) => {
           className="sidebar__toggle"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <Menu size={15} /> : <X size={15} />}
+          {collapsed ? <Menu size={14} /> : <X size={14} />}
         </button>
       </div>
 
@@ -94,7 +96,7 @@ const Sidebar = ({ dark, toggleDark }) => {
               className={['sidebar__link', isActive ? 'sidebar__link--active' : ''].join(' ')}
               title={collapsed ? label : undefined}
             >
-              <Icon size={15} className="sidebar__link-icon" />
+              <Icon size={14} className="sidebar__link-icon" />
               {!collapsed && (
                 <span className="sidebar__link-label">{label}</span>
               )}
@@ -105,14 +107,22 @@ const Sidebar = ({ dark, toggleDark }) => {
 
       {/* ── Footer controls ── */}
       <div className="sidebar__footer">
-        <button onClick={toggleDark} className="sidebar__util-btn" title={dark ? 'Switch to light' : 'Switch to dark'}>
+        <button
+          onClick={toggleDark}
+          className="sidebar__util-btn"
+          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
           {dark
-            ? <Sun  size={15} className="flex-shrink-0" />
-            : <Moon size={15} className="flex-shrink-0" />}
+            ? <Sun  size={14} className="flex-shrink-0" />
+            : <Moon size={14} className="flex-shrink-0" />}
           {!collapsed && <span>{dark ? 'Light mode' : 'Dark mode'}</span>}
         </button>
-        <button onClick={handleLogout} className="sidebar__util-btn sidebar__util-btn--danger">
-          <LogOut size={15} className="flex-shrink-0" />
+        <button
+          onClick={handleLogout}
+          className="sidebar__util-btn sidebar__util-btn--danger"
+          title="Sign out"
+        >
+          <LogOut size={14} className="flex-shrink-0" />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>
@@ -125,7 +135,7 @@ const Layout = ({ children }) => {
   const [dark, toggleDark] = useDarkMode();
   return (
     <ThemeContext.Provider value={{ dark }}>
-      <div className={`flex h-screen overflow-hidden ${dark ? 'dark' : ''}`}>
+      <div className="flex h-screen overflow-hidden">
         <Sidebar dark={dark} toggleDark={toggleDark} />
         <main
           className="flex-1 overflow-y-auto"

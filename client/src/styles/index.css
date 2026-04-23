@@ -6,10 +6,11 @@
 
 /* ═══════════════════════════════════════════════════════════════
    UCLA / LAMT DESIGN SYSTEM
-   Primary: UCLA Blue. Accent: UCLA Gold.
-   Matches lamt.net — single source of truth.
+   Mirrors lamt.net exactly: sharp corners, uppercase tracked nav,
+   UCLA Blue primary, UCLA Gold CTA/hover, clean neutral surfaces.
 ═══════════════════════════════════════════════════════════════ */
 :root {
+  /* ── Brand palette ───────────────────────────────────────── */
   --ucla-blue:          #2774AE;
   --ucla-gold:          #FFD100;
   --ucla-white:         #FFFFFF;
@@ -20,9 +21,11 @@
   --ucla-gold-darkest:  #FFB81C;
   --ucla-gold-darker:   #FFC72C;
 
+  /* ── Typography ──────────────────────────────────────────── */
   --font-display: 'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-body:    'Inter', 'Helvetica Neue', Arial, sans-serif;
 
+  /* ── Fluid type scale ────────────────────────────────────── */
   --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
   --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
   --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
@@ -30,6 +33,7 @@
   --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
   --text-2xl:  clamp(2rem,     1.2rem  + 2.5vw,  3.5rem);
 
+  /* ── Spacing (4px base) ──────────────────────────────────── */
   --space-1:  0.25rem;
   --space-2:  0.5rem;
   --space-3:  0.75rem;
@@ -41,118 +45,140 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  /* ── Shape — ALL SQUARE, matching lamt.net ───────────────── */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
 
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-ui: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* ── Motion ──────────────────────────────────────────────── */
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-ui:  180ms cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Sidebar dimensions */
+  /* ── Sidebar dimensions ──────────────────────────────────── */
   --sidebar-w:           13rem;
   --sidebar-w-collapsed: 3.25rem;
 }
 
-/* ── LIGHT THEME ──────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   LIGHT THEME
+   Clean off-white canvas — not blue-tinted. UCLA blue for chrome,
+   gold for active accents. Matches lamt.net light treatment.
+══════════════════════════════════════════════════════════════ */
 :root,
 [data-theme="light"] {
-  --color-bg:             #DAEBFE;
-  --color-surface:        #EBF4FF;
-  --color-surface-2:      #C8DFF8;
-  --color-surface-offset: #D6E8FD;
-  --color-divider:        rgba(139, 184, 232, 0.35);
-  --color-border:         rgba(39, 116, 174, 0.18);
-  --color-text:           #003B5C;
-  --color-text-muted:     #005587;
-  --color-text-faint:     #2774AE;
+  --color-bg:             #F4F6F9;
+  --color-surface:        #FFFFFF;
+  --color-surface-2:      #EEF2F7;
+  --color-surface-offset: #E8EDF4;
+  --color-divider:        rgba(39, 116, 174, 0.12);
+  --color-border:         rgba(39, 116, 174, 0.20);
+
+  --color-text:           #0A1628;
+  --color-text-muted:     #2C4A6E;
+  --color-text-faint:     #6B8BAD;
   --color-text-inverse:   #FFFFFF;
+
   --color-accent:         #2774AE;
   --color-accent-hover:   #005587;
   --color-accent-active:  #003B5C;
   --color-cta-bg:         #FFD100;
   --color-cta-text:       #003B5C;
   --color-cta-hover:      #FFC72C;
-  --shadow-sm: 0 1px 3px rgba(0, 59, 92, 0.06);
-  --shadow-md: 0 4px 16px rgba(0, 59, 92, 0.08);
-  --shadow-lg: 0 12px 40px rgba(0, 59, 92, 0.10);
 
+  --shadow-sm: 0 1px 3px rgba(10, 22, 40, 0.07);
+  --shadow-md: 0 4px 16px rgba(10, 22, 40, 0.08);
+  --shadow-lg: 0 12px 40px rgba(10, 22, 40, 0.10);
+
+  /* ── Sidebar (blue, matching lamt.net header) ────────────── */
   --sidebar-bg:           #2774AE;
-  --sidebar-border:       rgba(255,255,255,0.10);
-  --sidebar-text:         rgba(255,255,255,0.80);
+  --sidebar-border:       rgba(255, 255, 255, 0.10);
+  --sidebar-text:         rgba(255, 255, 255, 0.72);
   --sidebar-text-active:  #FFFFFF;
-  --sidebar-hover-bg:     rgba(255,255,255,0.10);
-  --sidebar-active-bg:    rgba(255,255,255,0.18);
+  --sidebar-hover-bg:     rgba(255, 255, 255, 0.10);
+  --sidebar-active-bg:    rgba(0, 0, 0, 0.16);
   --sidebar-active-bar:   #FFD100;
-  --sidebar-brand-rule:   rgba(255,255,255,0.15);
+  --sidebar-brand-rule:   rgba(255, 255, 255, 0.14);
 
+  /* ── Status badges ───────────────────────────────────────── */
   --badge-needs-review-bg:    #fff1f2;
   --badge-needs-review-text:  #be123c;
   --badge-needs-review-border:#fecdd3;
-  --badge-endorsed-bg:    #f0fdf4;
-  --badge-endorsed-text:  #15803d;
-  --badge-endorsed-border:#bbf7d0;
-  --badge-resolved-bg:    #eff6ff;
-  --badge-resolved-text:  #1d4ed8;
-  --badge-resolved-border:#bfdbfe;
-  --badge-idea-bg:        #fefce8;
-  --badge-idea-text:      #a16207;
-  --badge-idea-border:    #fde68a;
-  --badge-archived-bg:    #f8fafc;
-  --badge-archived-text:  #64748b;
-  --badge-archived-border:#cbd5e1;
+  --badge-endorsed-bg:        #f0fdf4;
+  --badge-endorsed-text:      #15803d;
+  --badge-endorsed-border:    #bbf7d0;
+  --badge-resolved-bg:        #eff6ff;
+  --badge-resolved-text:      #1d4ed8;
+  --badge-resolved-border:    #bfdbfe;
+  --badge-idea-bg:            #fefce8;
+  --badge-idea-text:          #a16207;
+  --badge-idea-border:        #fde68a;
+  --badge-archived-bg:        #f8fafc;
+  --badge-archived-text:      #64748b;
+  --badge-archived-border:    #cbd5e1;
 }
 
-/* ── DARK THEME ─────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   DARK THEME
+   Deep navy-black canvas. Gold becomes the primary CTA.
+   Sidebar goes near-black with blue-tinted borders.
+══════════════════════════════════════════════════════════════ */
 .dark,
 [data-theme="dark"] {
-  --color-bg:             #000000;
-  --color-surface:        #0a0a0a;
-  --color-surface-2:      #111111;
-  --color-surface-offset: #0d0d0d;
-  --color-divider:        rgba(39, 116, 174, 0.2);
-  --color-border:         rgba(139, 184, 232, 0.12);
-  --color-text:           #DAEBFE;
+  --color-bg:             #080C12;
+  --color-surface:        #0E1520;
+  --color-surface-2:      #141E2E;
+  --color-surface-offset: #111927;
+  --color-divider:        rgba(139, 184, 232, 0.10);
+  --color-border:         rgba(139, 184, 232, 0.14);
+
+  --color-text:           #D8E8F8;
   --color-text-muted:     #8BB8E8;
-  --color-text-faint:     #2774AE;
-  --color-text-inverse:   #000000;
+  --color-text-faint:     #4A7BA8;
+  --color-text-inverse:   #080C12;
+
   --color-accent:         #8BB8E8;
   --color-accent-hover:   #DAEBFE;
   --color-accent-active:  #FFFFFF;
   --color-cta-bg:         #FFD100;
   --color-cta-text:       #000000;
   --color-cta-hover:      #FFC72C;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
 
-  --sidebar-bg:           #000000;
-  --sidebar-border:       rgba(139,184,232,0.08);
-  --sidebar-text:         rgba(218,235,254,0.60);
-  --sidebar-text-active:  #DAEBFE;
-  --sidebar-hover-bg:     rgba(139,184,232,0.08);
-  --sidebar-active-bg:    rgba(255,209,0,0.10);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.65);
+
+  /* ── Sidebar (near-black, blue-tinted) ───────────────────── */
+  --sidebar-bg:           #060A10;
+  --sidebar-border:       rgba(139, 184, 232, 0.08);
+  --sidebar-text:         rgba(139, 184, 232, 0.60);
+  --sidebar-text-active:  #D8E8F8;
+  --sidebar-hover-bg:     rgba(139, 184, 232, 0.07);
+  --sidebar-active-bg:    rgba(255, 209, 0, 0.08);
   --sidebar-active-bar:   #FFD100;
-  --sidebar-brand-rule:   rgba(139,184,232,0.12);
+  --sidebar-brand-rule:   rgba(139, 184, 232, 0.10);
 
-  --badge-needs-review-bg:    rgba(190, 18, 60, 0.15);
+  /* ── Status badges (dark) ────────────────────────────────── */
+  --badge-needs-review-bg:    rgba(190, 18, 60, 0.14);
   --badge-needs-review-text:  #fda4af;
-  --badge-needs-review-border:rgba(190, 18, 60, 0.30);
-  --badge-endorsed-bg:    rgba(21, 128, 61, 0.15);
-  --badge-endorsed-text:  #86efac;
-  --badge-endorsed-border:rgba(21, 128, 61, 0.30);
-  --badge-resolved-bg:    rgba(29, 78, 216, 0.15);
-  --badge-resolved-text:  #93c5fd;
-  --badge-resolved-border:rgba(29, 78, 216, 0.30);
-  --badge-idea-bg:        rgba(161, 98, 7, 0.15);
-  --badge-idea-text:      #fcd34d;
-  --badge-idea-border:    rgba(161, 98, 7, 0.30);
-  --badge-archived-bg:    rgba(100, 116, 139, 0.12);
-  --badge-archived-text:  #94a3b8;
-  --badge-archived-border:rgba(100, 116, 139, 0.25);
+  --badge-needs-review-border:rgba(190, 18, 60, 0.28);
+  --badge-endorsed-bg:        rgba(21, 128, 61, 0.14);
+  --badge-endorsed-text:      #86efac;
+  --badge-endorsed-border:    rgba(21, 128, 61, 0.28);
+  --badge-resolved-bg:        rgba(29, 78, 216, 0.14);
+  --badge-resolved-text:      #93c5fd;
+  --badge-resolved-border:    rgba(29, 78, 216, 0.28);
+  --badge-idea-bg:            rgba(161, 98, 7, 0.14);
+  --badge-idea-text:          #fcd34d;
+  --badge-idea-border:        rgba(161, 98, 7, 0.28);
+  --badge-archived-bg:        rgba(100, 116, 139, 0.12);
+  --badge-archived-text:      #94a3b8;
+  --badge-archived-border:    rgba(100, 116, 139, 0.22);
 }
 
-/* ── RESETS ────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   BASE RESETS
+══════════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
@@ -171,7 +197,7 @@ body {
   color: var(--color-text);
   background-color: var(--color-bg);
   min-height: 100dvh;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 img, picture, video, canvas, svg { display: block; max-width: 100%; height: auto; }
@@ -182,12 +208,12 @@ p, li, figcaption { text-wrap: pretty; max-width: none; }
 button { cursor: pointer; background: none; border: none; }
 table { border-collapse: collapse; width: 100%; }
 
-::selection { background: rgba(39, 116, 174, 0.2); color: var(--color-text); }
+::selection { background: rgba(39, 116, 174, 0.18); color: var(--color-text); }
 
 :focus-visible {
   outline: 2px solid var(--ucla-blue);
   outline-offset: 3px;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -201,10 +227,11 @@ table { border-collapse: collapse; width: 100%; }
 
 a, button, [role="button"] {
   transition:
-    color var(--transition-ui),
+    color            var(--transition-ui),
     background-color var(--transition-ui),
-    border-color var(--transition-ui),
-    opacity var(--transition-ui);
+    border-color     var(--transition-ui),
+    box-shadow       var(--transition-ui),
+    opacity          var(--transition-ui);
 }
 
 .sr-only {
@@ -212,48 +239,56 @@ a, button, [role="button"] {
   overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
    SIDEBAR
-═══════════════════════════════════════════════════════════════ */
+   Mirrors lamt.net header: blue in light, near-black in dark.
+   Active item: gold left-bar + darkened bg. Uppercase tracked labels.
+══════════════════════════════════════════════════════════════ */
 .sidebar {
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   color: var(--sidebar-text);
   transition: width 200ms var(--ease-out-expo);
+  flex-shrink: 0;
 }
 .sidebar--expanded  { width: var(--sidebar-w); }
 .sidebar--collapsed { width: var(--sidebar-w-collapsed); }
 
+/* ── Brand area ─────────────────────────────────────────────── */
 .sidebar__brand {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem 0.875rem;
+  padding: 0.9rem 0.875rem;
   border-bottom: 1px solid var(--sidebar-brand-rule);
-  min-height: 3rem;
+  min-height: 3.25rem;
 }
 .sidebar__wordmark {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
   overflow: hidden;
+  gap: 2px;
 }
+/* PROSE — large, heavy, tracked. Matches lamt.net "LAMT" wordmark weight. */
 .sidebar__prose-label {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 800;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.30em;
   text-transform: uppercase;
   color: #FFFFFF;
+  white-space: nowrap;
 }
+/* "by LAMT" — gold, smaller, anchors brand to parent site */
 .sidebar__lamt-label {
   font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--sidebar-active-bar);
-  margin-top: 1px;
+  white-space: nowrap;
 }
 .sidebar__toggle {
   display: flex;
@@ -261,7 +296,7 @@ a, button, [role="button"] {
   justify-content: center;
   width: 1.75rem;
   height: 1.75rem;
-  color: rgba(255,255,255,0.65);
+  color: rgba(255, 255, 255, 0.55);
   border-radius: 0;
   flex-shrink: 0;
   transition: background-color var(--transition-ui), color var(--transition-ui);
@@ -272,48 +307,52 @@ a, button, [role="button"] {
 }
 .sidebar--collapsed .sidebar__brand {
   justify-content: center;
-  padding: 0.875rem 0;
+  padding: 0.9rem 0;
 }
 
+/* ── Nav links ──────────────────────────────────────────────── */
 .sidebar__nav {
   flex: 1;
-  padding: 0.5rem 0;
+  padding: 0.375rem 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
+/* Core link — uppercase, tracked, matches lamt.net nav items */
 .sidebar__link {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.625rem 0.875rem;
+  padding: 0.6rem 0.875rem;
   font-family: var(--font-body);
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--sidebar-text);
   text-decoration: none;
   border-left: 2px solid transparent;
   transition:
     background-color var(--transition-ui),
-    color var(--transition-ui),
-    border-color var(--transition-ui);
+    color            var(--transition-ui),
+    border-color     var(--transition-ui);
 }
 .sidebar__link:hover {
   background: var(--sidebar-hover-bg);
   color: var(--sidebar-text-active);
 }
+/* Active: gold left bar + dark bg — exact lamt.net hover treatment */
 .sidebar__link--active {
   background: var(--sidebar-active-bg);
   color: var(--sidebar-text-active);
   border-left-color: var(--sidebar-active-bar);
 }
-.sidebar__link:active { opacity: 0.8; }
-.sidebar__link-icon  { flex-shrink: 0; }
-.sidebar__link-label { white-space: nowrap; overflow: hidden; }
+.sidebar__link:active { opacity: 0.75; }
+.sidebar__link-icon   { flex-shrink: 0; }
+.sidebar__link-label  { white-space: nowrap; overflow: hidden; }
 
+/* Collapsed state */
 .sidebar--collapsed .sidebar__link {
   justify-content: center;
   padding: 0.75rem 0;
@@ -325,8 +364,9 @@ a, button, [role="button"] {
   background: var(--sidebar-active-bg);
 }
 
+/* ── Footer (dark mode toggle + sign out) ───────────────────── */
 .sidebar__footer {
-  padding: 0.5rem 0;
+  padding: 0.375rem 0;
   border-top: 1px solid var(--sidebar-brand-rule);
   display: flex;
   flex-direction: column;
@@ -336,11 +376,11 @@ a, button, [role="button"] {
   align-items: center;
   gap: 0.625rem;
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: 0.6rem 0.875rem;
   font-family: var(--font-body);
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--sidebar-text);
   border: none;
@@ -354,7 +394,7 @@ a, button, [role="button"] {
   color: var(--sidebar-text-active);
 }
 .sidebar__util-btn--danger:hover {
-  background: rgba(239,68,68,0.15);
+  background: rgba(239, 68, 68, 0.14);
   color: #fca5a5;
 }
 .sidebar--collapsed .sidebar__util-btn {
@@ -362,12 +402,15 @@ a, button, [role="button"] {
   padding: 0.75rem 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
    BUTTONS  —  exact lamt.net treatment
-   Shape: sharp (border-radius: 0). Weight: 800. Uppercase tracked.
-═══════════════════════════════════════════════════════════════ */
+   Shape:  border-radius: 0 (sharp square)
+   Weight: 800, uppercase, tracked
+   Light:  blue fill → gold hover
+   Dark:   gold fill → blue hover
+══════════════════════════════════════════════════════════════ */
 
-/* Primary (filled) */
+/* ── Primary ────────────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -380,15 +423,16 @@ a, button, [role="button"] {
   font-weight: 800;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  padding: 0.75rem 2rem;
+  padding: 0.65rem 1.75rem;
   border: 2px solid var(--ucla-blue);
   border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
   transition:
-    background-color 200ms var(--ease-out-expo),
-    border-color     200ms var(--ease-out-expo),
-    color            200ms var(--ease-out-expo);
+    background-color 180ms var(--ease-out-expo),
+    border-color     180ms var(--ease-out-expo),
+    color            180ms var(--ease-out-expo),
+    box-shadow       180ms var(--ease-out-expo);
 }
 .btn-primary:hover {
   background: var(--ucla-gold);
@@ -398,7 +442,9 @@ a, button, [role="button"] {
 .btn-primary:active {
   background: var(--ucla-gold-darker);
   border-color: var(--ucla-gold-darker);
+  color: var(--ucla-blue-darkest);
 }
+/* Dark mode: gold → blue */
 .dark .btn-primary {
   background: var(--ucla-gold);
   border-color: var(--ucla-gold);
@@ -412,9 +458,10 @@ a, button, [role="button"] {
 .dark .btn-primary:active {
   background: var(--ucla-blue-darker);
   border-color: var(--ucla-blue-darker);
+  color: #FFFFFF;
 }
 
-/* Outline */
+/* ── Outline ────────────────────────────────────────────────── */
 .btn-outline {
   display: inline-flex;
   align-items: center;
@@ -427,15 +474,15 @@ a, button, [role="button"] {
   font-weight: 800;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  padding: 0.75rem 2rem;
+  padding: 0.65rem 1.75rem;
   border: 2px solid var(--ucla-blue);
   border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
   transition:
-    background-color 200ms var(--ease-out-expo),
-    border-color     200ms var(--ease-out-expo),
-    color            200ms var(--ease-out-expo);
+    background-color 180ms var(--ease-out-expo),
+    border-color     180ms var(--ease-out-expo),
+    color            180ms var(--ease-out-expo);
 }
 .btn-outline:hover {
   background: var(--ucla-gold);
@@ -444,7 +491,7 @@ a, button, [role="button"] {
 }
 .btn-outline:active { opacity: 0.85; }
 .dark .btn-outline {
-  border-color: rgba(139,184,232,0.40);
+  border-color: rgba(139, 184, 232, 0.38);
   color: var(--color-text);
 }
 .dark .btn-outline:hover {
@@ -453,7 +500,7 @@ a, button, [role="button"] {
   color: #FFFFFF;
 }
 
-/* Ghost */
+/* ── Ghost ──────────────────────────────────────────────────── */
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -466,25 +513,25 @@ a, button, [role="button"] {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
   border: 2px solid transparent;
   border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
   transition:
-    background-color 200ms var(--ease-out-expo),
-    color            200ms var(--ease-out-expo);
+    background-color 180ms var(--ease-out-expo),
+    color            180ms var(--ease-out-expo);
 }
 .btn-ghost:hover {
-  background: rgba(39,116,174,0.08);
+  background: rgba(39, 116, 174, 0.07);
   color: var(--color-text);
 }
 .dark .btn-ghost:hover {
-  background: rgba(139,184,232,0.10);
+  background: rgba(139, 184, 232, 0.09);
   color: var(--color-text);
 }
 
-/* Danger ghost */
+/* ── Danger ghost ───────────────────────────────────────────── */
 .btn-danger {
   display: inline-flex;
   align-items: center;
@@ -497,33 +544,33 @@ a, button, [role="button"] {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
   border: 2px solid transparent;
   border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
   transition:
-    background-color 200ms var(--ease-out-expo),
-    color            200ms var(--ease-out-expo);
+    background-color 180ms var(--ease-out-expo),
+    color            180ms var(--ease-out-expo);
 }
 .btn-danger:hover {
-  background: rgba(220,38,38,0.08);
+  background: rgba(220, 38, 38, 0.08);
   color: #b91c1c;
 }
 .dark .btn-danger { color: #f87171; }
 .dark .btn-danger:hover {
-  background: rgba(239,68,68,0.12);
+  background: rgba(239, 68, 68, 0.12);
   color: #fca5a5;
 }
 
-/* Small modifier */
+/* ── Small modifier ─────────────────────────────────────────── */
 .btn-sm {
   font-size: var(--text-xs);
-  padding: 0.375rem 0.875rem;
+  padding: 0.35rem 0.875rem;
   letter-spacing: 0.10em;
 }
 
-/* ── BTN-TAB ──────────────────────────────────────────────── */
+/* ── Tab button ─────────────────────────────────────────────── */
 .btn-tab {
   display: inline-flex;
   align-items: center;
@@ -531,7 +578,7 @@ a, button, [role="button"] {
   background: transparent;
   color: var(--color-text-muted);
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -561,7 +608,7 @@ a, button, [role="button"] {
   color: #FFFFFF;
 }
 .dark .btn-tab {
-  border-color: rgba(139,184,232,0.18);
+  border-color: rgba(139, 184, 232, 0.16);
   color: var(--color-text-muted);
 }
 .dark .btn-tab:hover {
@@ -585,18 +632,18 @@ a, button, [role="button"] {
   min-width: 1.25rem;
   padding: 0 0.3rem;
   height: 1.1rem;
-  font-size: 0.68rem;
+  font-size: 0.67rem;
   font-weight: 700;
   letter-spacing: 0;
   border-radius: 0;
-  background: rgba(0,0,0,0.12);
+  background: rgba(0, 0, 0, 0.12);
   color: inherit;
   line-height: 1;
 }
-.btn-tab--active .btn-tab__count { background: rgba(255,255,255,0.25); }
-.dark .btn-tab--active .btn-tab__count { background: rgba(0,0,0,0.18); }
+.btn-tab--active .btn-tab__count { background: rgba(255, 255, 255, 0.24); }
+.dark .btn-tab--active .btn-tab__count { background: rgba(0, 0, 0, 0.18); }
 
-/* ── BTN-FILTER ───────────────────────────────────────────── */
+/* ── Filter button ──────────────────────────────────────────── */
 .btn-filter {
   display: inline-flex;
   align-items: center;
@@ -604,10 +651,10 @@ a, button, [role="button"] {
   background: transparent;
   color: var(--color-text);
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 0.45rem 0.85rem;
+  padding: 0.4rem 0.85rem;
   border: 1.5px solid var(--color-border);
   border-radius: 0;
   cursor: pointer;
@@ -619,7 +666,6 @@ a, button, [role="button"] {
 }
 .btn-filter:hover {
   border-color: var(--ucla-blue);
-  color: var(--color-text);
 }
 .btn-filter:active { opacity: 0.8; }
 .btn-filter--active {
@@ -633,7 +679,7 @@ a, button, [role="button"] {
   color: #FFFFFF;
 }
 .dark .btn-filter {
-  border-color: rgba(139,184,232,0.18);
+  border-color: rgba(139, 184, 232, 0.16);
   color: var(--color-text);
 }
 .dark .btn-filter:hover { border-color: var(--ucla-blue-lighter); }
@@ -654,18 +700,22 @@ a, button, [role="button"] {
   min-width: 1.2rem;
   padding: 0 0.28rem;
   height: 1.05rem;
-  font-size: 0.67rem;
+  font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0;
   border-radius: 0;
-  background: rgba(0,0,0,0.10);
+  background: rgba(0, 0, 0, 0.10);
   color: inherit;
   line-height: 1;
 }
-.btn-filter--active .btn-filter__count { background: rgba(255,255,255,0.25); }
-.dark .btn-filter--active .btn-filter__count { background: rgba(0,0,0,0.18); }
+.btn-filter--active .btn-filter__count { background: rgba(255, 255, 255, 0.24); }
+.dark .btn-filter--active .btn-filter__count { background: rgba(0, 0, 0, 0.18); }
 
-/* ── GOLD RULE ─────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+══════════════════════════════════════════════════════════════ */
+
+/* Gold rule — decorative underline used on lamt.net section headings */
 .gold-rule {
   display: block;
   width: 2.5rem;
@@ -674,17 +724,17 @@ a, button, [role="button"] {
   flex-shrink: 0;
 }
 
-/* ── SECTION LABEL ─────────────────────────────────────────── */
+/* Section label — small-caps metadata */
 .section-label {
   font-family: var(--font-body);
   font-size: var(--text-xs);
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.20em;
   text-transform: uppercase;
   color: var(--color-text-faint);
 }
 
-/* ── STATUS BADGES ─────────────────────────────────────────── */
+/* ── Status badges ──────────────────────────────────────────── */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -704,7 +754,7 @@ a, button, [role="button"] {
 .status-idea          { background: var(--badge-idea-bg);           color: var(--badge-idea-text);           border-color: var(--badge-idea-border); }
 .status-archived      { background: var(--badge-archived-bg);       color: var(--badge-archived-text);       border-color: var(--badge-archived-border); }
 
-/* ── DIFFICULTY CHIP ───────────────────────────────────────── */
+/* ── Difficulty chip ────────────────────────────────────────── */
 .difficulty-chip {
   display: inline-flex;
   align-items: center;
@@ -718,19 +768,12 @@ a, button, [role="button"] {
   white-space: nowrap;
 }
 
-/* ── FORM INPUTS ───────────────────────────────────────────── */
-/*
-  Use padding-block + padding-inline-end instead of the shorthand `padding`
-  so that Tailwind pl-* / pr-* utilities (e.g. pl-8 on search bars) can
-  override the inline-start padding without being clobbered by specificity.
-  Default left padding is intentionally generous (space-4 = 1rem) so plain
-  inputs also have breathing room; search inputs override to pl-8 (2rem).
-*/
+/* ── Form inputs ────────────────────────────────────────────── */
 .input-base {
   width: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   padding-block: var(--space-2);
   padding-inline-start: var(--space-4);
   padding-inline-end: var(--space-3);
@@ -741,20 +784,20 @@ a, button, [role="button"] {
 .input-base:focus {
   outline: none;
   border-color: var(--ucla-blue);
-  box-shadow: 0 0 0 3px rgba(39, 116, 174, 0.15);
+  box-shadow: 0 0 0 3px rgba(39, 116, 174, 0.14);
 }
 .dark .input-base {
   background: var(--color-surface);
-  border-color: rgba(139, 184, 232, 0.15);
+  border-color: rgba(139, 184, 232, 0.14);
 }
 .dark .input-base:focus {
   border-color: var(--ucla-blue-lighter);
-  box-shadow: 0 0 0 3px rgba(139, 184, 232, 0.10);
+  box-shadow: 0 0 0 3px rgba(139, 184, 232, 0.09);
 }
 
-/* ── SURFACE CARD ──────────────────────────────────────────── */
+/* ── Surface card ───────────────────────────────────────────── */
 .surface-card {
-  background: var(--color-bg);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 0;
 }
@@ -763,58 +806,58 @@ a, button, [role="button"] {
   border-color: rgba(139, 184, 232, 0.10);
 }
 
-/* ── GLASS SYSTEM ──────────────────────────────────────────── */
+/* ── Glass panel ────────────────────────────────────────────── */
 .glass {
-  background: rgba(255,255,255,0.65);
+  background: rgba(255, 255, 255, 0.70);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.75);
-  box-shadow: 0 4px 24px rgba(39,116,174,0.10), 0 1px 2px rgba(0,0,0,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.80);
+  box-shadow: 0 4px 24px rgba(39, 116, 174, 0.08), 0 1px 2px rgba(0,0,0,0.05);
 }
 .dark .glass {
-  background: rgba(0,0,0,0.55);
-  border-color: rgba(255,255,255,0.08);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.4);
+  background: rgba(8, 12, 18, 0.72);
+  border-color: rgba(139, 184, 232, 0.10);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.5);
 }
 
-/* ── PROSE ─────────────────────────────────────────────────── */
+/* ── Prose text ─────────────────────────────────────────────── */
 .prose { font-size: var(--text-base); line-height: 1.75; color: var(--color-text-muted); }
 .prose p + p { margin-top: var(--space-4); }
 .prose a { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; }
 .prose a:hover { color: var(--color-accent-hover); }
 
-/* ── PAGE TRANSITION ───────────────────────────────────────── */
-.page-content { animation: fadeUp 0.4s var(--ease-out-expo) both; }
+/* ── Page enter animation ───────────────────────────────────── */
+.page-content { animation: fadeUp 0.35s var(--ease-out-expo) both; }
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── MODAL OVERLAY ─────────────────────────────────────────── */
+/* ── Modal overlay ──────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.48);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
-  animation: fadeIn 150ms ease-out;
+  animation: fadeIn 140ms ease-out;
 }
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-.dark .modal-overlay { background: rgba(0,0,0,0.72); }
+.dark .modal-overlay { background: rgba(0, 0, 0, 0.70); }
 
-/* ── SCROLLBAR ─────────────────────────────────────────────── */
+/* ── Scrollbar ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 9999px; }
-.dark ::-webkit-scrollbar-thumb { background: rgba(139,184,232,0.2); }
-* { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+::-webkit-scrollbar-thumb { background: rgba(39,116,174,0.25); border-radius: 0; }
+.dark ::-webkit-scrollbar-thumb { background: rgba(139, 184, 232, 0.18); }
+* { scrollbar-width: thin; scrollbar-color: rgba(39,116,174,0.25) transparent; }
 
-/* ── KATEX DARK MODE ───────────────────────────────────────── */
+/* ── KaTeX dark mode ────────────────────────────────────────── */
 .dark .katex,
 .dark .katex .mord,
 .dark .katex .mbin,
@@ -824,7 +867,7 @@ a, button, [role="button"] {
 .dark .katex .mpunct,
 .dark .katex .minner { color: var(--color-text); }
 
-/* ── RECHARTS DARK ─────────────────────────────────────────── */
+/* ── Recharts dark ──────────────────────────────────────────── */
 .dark .recharts-cartesian-axis-tick-value { fill: var(--color-text-muted) !important; }
 .dark .recharts-cartesian-grid line { stroke: var(--color-divider) !important; }
 .dark .recharts-tooltip-wrapper .recharts-default-tooltip {
@@ -833,5 +876,5 @@ a, button, [role="button"] {
   color: var(--color-text) !important;
 }
 
-/* ── DARK MAP ──────────────────────────────────────────────── */
+/* ── Dark map ───────────────────────────────────────────────── */
 .dark .map-iframe { filter: invert(1) hue-rotate(180deg); }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, X, ChevronRight, AlertCircle, Loader2, FileText, Eye } from 'lucide-react';
+import { Plus, Trash2, X, AlertCircle, Loader2, FileText, Edit2 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
@@ -371,16 +371,7 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
         </div>
 
         {/* Right: action buttons */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); onPreview(exam); }}
-            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-sm text-[var(--color-text-faint)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent)]/8 transition"
-            title="Preview problems"
-            aria-label="Preview problems"
-          >
-            <Eye size={13} />
-          </button>
-
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {canEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(exam.id); }}
@@ -392,7 +383,14 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
             </button>
           )}
 
-          <ChevronRight size={14} className="text-[var(--color-text-faint)]" />
+          <button
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+            className="opacity-0 group-hover:opacity-100 btn-outline flex items-center gap-1.5 px-2.5 py-1 text-xs"
+            title="Edit exam"
+            aria-label="Edit exam"
+          >
+            <Edit2 size={12} /> Edit
+          </button>
         </div>
       </div>
     </div>

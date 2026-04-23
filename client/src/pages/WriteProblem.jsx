@@ -5,7 +5,13 @@ import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-const TOPIC_OPTIONS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
+const [topicOptions, setTopicOptions] = useState([]);
+
+useEffect(() => {
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(d => setTopicOptions(d.topics || []));
+}, []);
 
 /* ── Theme helper ────────────────────────────────────────── */
 const isDarkMode = () =>
@@ -466,7 +472,7 @@ const WriteProblem = () => {
               <div>
                 <label className="section-label">Topics</label>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {TOPIC_OPTIONS.map(topic => (
+                  {topicOptions.map(topic => (
                     <TopicButton
                       key={topic}
                       label={topic}

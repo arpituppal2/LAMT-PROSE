@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useBlocker } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon, X, ArrowRightLeft, Send, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -117,7 +117,7 @@ const WriteProblem = () => {
   const [step, setStep]             = useState(1);
   const [latex, setLatex]           = useState('');
   const [solution, setSolution]     = useState('');
-  const [answer, setAnswer]         = useState('');
+  const [answer, setAnswer]         = useState('');  
   const [notes, setNotes]           = useState('');
   const [topics, setTopics]         = useState([]);
   const [difficulty, setDifficulty] = useState(5);
@@ -129,7 +129,7 @@ const WriteProblem = () => {
 
   const isDirty = !submitted && !!(latex || solution || answer || notes || topics.length || images.length);
 
-  /* beforeunload — browser tab/window close */
+  /* beforeunload — warn on tab/window close only */
   useEffect(() => {
     const handler = (e) => {
       if (!isDirty) return;
@@ -139,19 +139,6 @@ const WriteProblem = () => {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
-
-  /* useBlocker — in-app React Router navigation */
-  const blocker = useBlocker(isDirty);
-
-  useEffect(() => {
-    if (blocker.state === 'blocked') {
-      if (window.confirm('You have unsaved changes. Leave anyway?')) {
-        blocker.proceed();
-      } else {
-        blocker.reset();
-      }
-    }
-  }, [blocker]);
 
   const handleTopicToggle = (topic) =>
     setTopics(prev => prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]);
@@ -172,6 +159,12 @@ const WriteProblem = () => {
         i === idx ? { ...img, destination: img.destination === 'problem' ? 'solution' : 'problem' } : img,
       ),
     );
+
+  const safeNavigate = (to) => {
+    if (!isDirty || window.confirm('You have unsaved changes. Leave anyway?')) {
+      navigate(to);
+    }
+  };
 
   const goToStep2 = (e) => {
     e.preventDefault();

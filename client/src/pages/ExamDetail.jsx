@@ -469,6 +469,12 @@ const ExamDetail = () => {
     return set;
   }, [slotMap]);
 
+  const shortlistIds = useMemo(() => {
+    const set = new Set();
+    shortlist.forEach((p) => set.add(p.id));
+    return set;
+  }, [shortlist]);
+
   const dupes = useDuplicates(examId, slotMap);
 
   const bankProblems = useMemo(() => {
@@ -736,7 +742,7 @@ const ExamDetail = () => {
                 <BankRow
                   key={p.id}
                   problem={p}
-                  isUsed={usedIds.has(p.id)}
+                  isUsed={usedIds.has(p.id) || shortlistIds.has(p.id)}
                   onPreview={setPreviewProblem}
                 />
               ))

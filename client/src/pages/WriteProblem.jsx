@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useBlocker } from 'react-router-dom';
 import { Image as ImageIcon, X, ArrowRightLeft, Send, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -145,6 +145,12 @@ const WriteProblem = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
+  // Block in-app navigation (React Router) when there is unsaved content
+  useBlocker(() => {
+    if (!isDirtyRef.current) return false;
+    return !window.confirm('You have unsaved changes. Leave anyway?');
+  });
+
   const handleTopicToggle = (topic) =>
     setTopics(prev => prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]);
 
@@ -190,9 +196,9 @@ const WriteProblem = () => {
       const problemImgs  = images.filter(img => img.destination === 'problem');
       const solutionImgs = images.filter(img => img.destination === 'solution');
       if (problemImgs.length)
-        finalLatex += '\n\n' + problemImgs.map((img, i) => `![Problem Image ${i + 1}](${img.dataUrl})`).join('\n');
+        finalLatex += '\\n\\n' + problemImgs.map((img, i) => `![Problem Image ${i + 1}](${img.dataUrl})`).join('\\n');
       if (solutionImgs.length)
-        finalSolution += '\n\n' + solutionImgs.map((img, i) => `![Solution Image ${i + 1}](${img.dataUrl})`).join('\n');
+        finalSolution += '\\n\\n' + solutionImgs.map((img, i) => `![Solution Image ${i + 1}](${img.dataUrl})`).join('\\n');
 
       const response = await api.post('/problems', {
         latex: finalLatex,
@@ -306,7 +312,7 @@ const WriteProblem = () => {
                   type="text"
                   value={answer}
                   onChange={e => setAnswer(e.target.value)}
-                  placeholder="e.g. 42 or \frac{1}{2}"
+                  placeholder="e.g. 42 or \\frac{1}{2}"
                   className="input-base w-full font-mono mt-2"
                   required
                 />
@@ -415,10 +421,10 @@ const WriteProblem = () => {
                       onClick={() => handleTopicToggle(topic)}
                       className={[
                         'px-3 py-1.5 text-xs font-semibold transition-all',
-                        'border-2 rounded-sm',
+                        'border-2 rounded-none',
                         topics.includes(topic)
                           ? 'bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-white dark:text-black'
-                          : 'bg-transparent border-[var(--color-text-muted)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
+                          : 'bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
                       ].join(' ')}
                     >
                       {topic}

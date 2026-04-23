@@ -57,25 +57,6 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const FilterChip = ({ active, children, onClick, count }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`inline-flex items-center gap-2 rounded-sm border px-3 py-2 text-sm font-medium transition-colors ${
-      active
-        ? 'bg-[var(--ucla-blue)] text-white border-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] dark:text-black dark:border-[var(--ucla-gold)]'
-        : 'border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] hover:border-[var(--ucla-blue)] dark:hover:border-[var(--ucla-blue-lighter)]'
-    }`}
-  >
-    <span>{children}</span>
-    {typeof count === 'number' && (
-      <span className={`rounded-sm px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${active ? 'bg-white/20 dark:bg-black/15' : 'bg-[var(--color-surface)] text-[var(--color-text-muted)]'}`}>
-        {count}
-      </span>
-    )}
-  </button>
-);
-
 /* ── Preview modal with edit / archive / delete / close ─── */
 const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, onDelete }) => {
   const [showSol, setShowSol] = useState(false);
@@ -193,11 +174,11 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
             </section>
           )}
 
-          {/* Action buttons: Edit / Archive / Delete / Close */}
+          {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-[var(--color-border)]">
             <button
               onClick={() => { onClose(); onNavigate(data.id); }}
-              className="btn-filled text-sm py-2 px-4"
+              className="btn-primary btn-sm"
             >
               Edit
             </button>
@@ -208,7 +189,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
                   onClose();
                 }
               }}
-              className="btn-outline text-sm py-2 px-4"
+              className="btn-outline btn-sm"
             >
               Archive
             </button>
@@ -219,13 +200,13 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
                   onClose();
                 }
               }}
-              className="btn-outline text-sm py-2 px-4 hover:!bg-red-600 hover:!border-red-600 hover:!text-white"
+              className="btn-outline btn-sm hover:!bg-red-600 hover:!border-red-600 hover:!text-white"
             >
               Delete
             </button>
             <button
               onClick={onClose}
-              className="ml-auto text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors px-3 py-2"
+              className="btn-ghost btn-sm ml-auto"
             >
               Close
             </button>
@@ -372,7 +353,7 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-[1500px] space-y-5">
-        {/* ── Page header (clean, no clutter) ── */}
+        {/* ── Page header ── */}
         <header className="flex items-center justify-between">
           <div>
             <span className="gold-rule mb-3" />
@@ -382,7 +363,7 @@ const Dashboard = () => {
           </div>
           <button
             onClick={() => navigate('/write')}
-            className="btn-filled text-sm py-2 px-5"
+            className="btn-primary btn-sm"
           >
             New Problem
           </button>
@@ -390,30 +371,26 @@ const Dashboard = () => {
 
         {/* ── Tabs ── */}
         <section className="surface-card">
+          {/* Tab row — rectangular outline buttons */}
           <div className="border-b border-[var(--color-border)] px-4 py-3">
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-2">
               {DASHBOARD_TABS.map((tab) => {
                 const tabCount =
-                  tab.id === 'review' ? counts['Needs Review'] :
+                  tab.id === 'review'    ? counts['Needs Review'] :
                   tab.id === 'myreviews' ? myFeedback.length :
-                  tab.id === 'account' ? null :
+                  tab.id === 'account'   ? null :
                   problems.length;
                 const active = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
+                    type="button"
                     onClick={() => setParam('view', tab.id, 'overview')}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold transition-colors border-b-2 ${
-                      active
-                        ? 'border-[var(--ucla-gold)] text-[var(--color-text)]'
-                        : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]'
-                    }`}
+                    className={`btn-tab${active ? ' btn-tab--active' : ''}`}
                   >
                     {tab.label}
                     {tabCount !== null && (
-                      <span className={`rounded-sm px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${active ? 'bg-[var(--color-surface-2)]' : 'bg-[var(--color-surface)]'}`}>
-                        {tabCount}
-                      </span>
+                      <span className="btn-tab__count">{tabCount}</span>
                     )}
                   </button>
                 );
@@ -424,22 +401,27 @@ const Dashboard = () => {
           {/* ════ OVERVIEW TAB ════ */}
           {activeTab === 'overview' && (
             <div className="space-y-4 p-4">
-              {/* Filters */}
+              {/* Filters + search row */}
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                {/* Status filter buttons */}
                 <div className="flex flex-wrap gap-2">
                   {STATUS_FILTERS.map((item) => (
-                    <FilterChip
+                    <button
                       key={item.value}
-                      active={statusFilter === item.value}
-                      count={counts[item.value] ?? counts.all}
+                      type="button"
                       onClick={() => setParam('status', item.value, 'all')}
+                      className={`btn-filter${statusFilter === item.value ? ' btn-filter--active' : ''}`}
                     >
                       {item.label}
-                    </FilterChip>
+                      <span className="btn-filter__count">
+                        {item.value === 'all' ? counts.all : (counts[item.value] ?? 0)}
+                      </span>
+                    </button>
                   ))}
                 </div>
+                {/* Search + topic */}
                 <div className="flex gap-3">
-                  <label className="relative block flex-1 xl:w-56">
+                  <label className="relative block" style={{ width: '280px' }}>
                     <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
                     <input
                       value={query}
@@ -573,7 +555,7 @@ const Dashboard = () => {
             <div className="space-y-4 p-4">
               <div className="flex items-center justify-between">
                 <p className="section-label">Review history</p>
-                <button onClick={() => navigate('/feedback')} className="btn-filled text-sm py-2 px-4">
+                <button onClick={() => navigate('/feedback')} className="btn-primary btn-sm">
                   Give Feedback
                 </button>
               </div>

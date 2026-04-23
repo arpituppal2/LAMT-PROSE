@@ -50,14 +50,13 @@
   --transition-ui: 180ms cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Sidebar dimensions */
-  --sidebar-w:           13rem;   /* 208px expanded */
-  --sidebar-w-collapsed: 3.25rem; /* 52px collapsed  */
+  --sidebar-w:           13rem;
+  --sidebar-w-collapsed: 3.25rem;
 }
 
 /* ── LIGHT THEME ──────────────────────────────────────────── */
 :root,
 [data-theme="light"] {
-  /* Global bg = UCLA Blue lightest (#DAEBFE) — icy blue */
   --color-bg:             #DAEBFE;
   --color-surface:        #EBF4FF;
   --color-surface-2:      #C8DFF8;
@@ -78,7 +77,6 @@
   --shadow-md: 0 4px 16px rgba(0, 59, 92, 0.08);
   --shadow-lg: 0 12px 40px rgba(0, 59, 92, 0.10);
 
-  /* Sidebar — light: UCLA Blue bg */
   --sidebar-bg:           #2774AE;
   --sidebar-border:       rgba(255,255,255,0.10);
   --sidebar-text:         rgba(255,255,255,0.80);
@@ -88,7 +86,6 @@
   --sidebar-active-bar:   #FFD100;
   --sidebar-brand-rule:   rgba(255,255,255,0.15);
 
-  /* Status badges */
   --badge-needs-review-bg:    #fff1f2;
   --badge-needs-review-text:  #be123c;
   --badge-needs-review-border:#fecdd3;
@@ -109,7 +106,6 @@
 /* ── DARK THEME ─────────────────────────────────────────── */
 .dark,
 [data-theme="dark"] {
-  /* Global bg = OLED black */
   --color-bg:             #000000;
   --color-surface:        #0a0a0a;
   --color-surface-2:      #111111;
@@ -130,7 +126,6 @@
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
 
-  /* Sidebar — dark: true black */
   --sidebar-bg:           #000000;
   --sidebar-border:       rgba(139,184,232,0.08);
   --sidebar-text:         rgba(218,235,254,0.60);
@@ -140,7 +135,6 @@
   --sidebar-active-bar:   #FFD100;
   --sidebar-brand-rule:   rgba(139,184,232,0.12);
 
-  /* Status badges — dark */
   --badge-needs-review-bg:    rgba(190, 18, 60, 0.15);
   --badge-needs-review-text:  #fda4af;
   --badge-needs-review-border:rgba(190, 18, 60, 0.30);
@@ -219,8 +213,7 @@ a, button, [role="button"] {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SIDEBAR  —  matches lamt.net nav language
-   Uppercase tracked labels, gold active bar on left, no radius.
+   SIDEBAR
 ═══════════════════════════════════════════════════════════════ */
 .sidebar {
   background: var(--sidebar-bg);
@@ -231,7 +224,6 @@ a, button, [role="button"] {
 .sidebar--expanded  { width: var(--sidebar-w); }
 .sidebar--collapsed { width: var(--sidebar-w-collapsed); }
 
-/* Brand row */
 .sidebar__brand {
   display: flex;
   align-items: center;
@@ -260,7 +252,7 @@ a, button, [role="button"] {
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--sidebar-active-bar); /* gold */
+  color: var(--sidebar-active-bar);
   margin-top: 1px;
 }
 .sidebar__toggle {
@@ -283,7 +275,6 @@ a, button, [role="button"] {
   padding: 0.875rem 0;
 }
 
-/* Nav */
 .sidebar__nav {
   flex: 1;
   padding: 0.5rem 0;
@@ -292,9 +283,6 @@ a, button, [role="button"] {
   flex-direction: column;
 }
 
-/* Nav link — lamt.net style:
-   font-extrabold, text-xl, tracking-widest, uppercase
-   gold left-bar on active, opacity-70 on hover, no radius */
 .sidebar__link {
   display: flex;
   align-items: center;
@@ -322,13 +310,10 @@ a, button, [role="button"] {
   color: var(--sidebar-text-active);
   border-left-color: var(--sidebar-active-bar);
 }
-.sidebar__link:active {
-  opacity: 0.8;
-}
+.sidebar__link:active { opacity: 0.8; }
 .sidebar__link-icon  { flex-shrink: 0; }
 .sidebar__link-label { white-space: nowrap; overflow: hidden; }
 
-/* Collapsed: centre icon, no border-left accent */
 .sidebar--collapsed .sidebar__link {
   justify-content: center;
   padding: 0.75rem 0;
@@ -336,12 +321,10 @@ a, button, [role="button"] {
 }
 .sidebar--collapsed .sidebar__link--active {
   border-left-color: transparent;
-  /* show active as brighter icon instead */
   color: var(--sidebar-active-bar);
   background: var(--sidebar-active-bg);
 }
 
-/* Footer */
 .sidebar__footer {
   padding: 0.5rem 0;
   border-top: 1px solid var(--sidebar-brand-rule);
@@ -382,22 +365,9 @@ a, button, [role="button"] {
 /* ═══════════════════════════════════════════════════════════════
    BUTTONS  —  exact lamt.net treatment
    Shape: sharp (border-radius: 0). Weight: 800. Uppercase tracked.
-   Padding: 0.75rem 2rem. Letter-spacing: 0.15em.
-   Transition: 200ms ease-out-expo on bg, border, color.
-
-   btn-primary (filled):
-     Light: UCLA Blue fill, white text → hover Gold fill, dark blue text
-     Dark:  Gold fill, black text → hover UCLA Blue fill, white text
-
-   btn-outline:
-     Light: transparent bg, UCLA Blue border/text → hover Gold fill, dark blue text
-     Dark:  transparent bg, light-blue border/text → hover UCLA Blue fill, white text
-
-   btn-ghost: no border, subtle hover bg tint
-   btn-danger: red text, subtle hover bg
 ═══════════════════════════════════════════════════════════════ */
 
-/* Primary (filled) — matches lamt.net .btn-filled */
+/* Primary (filled) */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -444,7 +414,7 @@ a, button, [role="button"] {
   border-color: var(--ucla-blue-darker);
 }
 
-/* Outline — matches lamt.net .btn-outline */
+/* Outline */
 .btn-outline {
   display: inline-flex;
   align-items: center;
@@ -483,7 +453,7 @@ a, button, [role="button"] {
   color: #FFFFFF;
 }
 
-/* Ghost (text-only with hover bg, no border) */
+/* Ghost */
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -546,11 +516,182 @@ a, button, [role="button"] {
   color: #fca5a5;
 }
 
-/* Small modifier — for inline / compact use */
+/* Small modifier */
 .btn-sm {
   font-size: var(--text-xs);
   padding: 0.375rem 0.875rem;
   letter-spacing: 0.10em;
+}
+
+/* ── BTN-TAB  (Dashboard tab row: Overview / Review Queue / My Reviews / Account)
+   Rectangular outline buttons. Active = filled UCLA Blue (light) / Gold (dark).
+   Inactive = transparent bg, muted border, muted text → hover full border + text.
+──────────────────────────────────────────────────────────────────────────────── */
+.btn-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.9rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 180ms var(--ease-out-expo),
+    border-color     180ms var(--ease-out-expo),
+    color            180ms var(--ease-out-expo);
+}
+.btn-tab:hover {
+  border-color: var(--ucla-blue);
+  color: var(--color-text);
+}
+.btn-tab:active { opacity: 0.8; }
+
+/* Active state — light mode: filled UCLA Blue */
+.btn-tab--active {
+  background: var(--ucla-blue);
+  border-color: var(--ucla-blue);
+  color: #FFFFFF;
+}
+.btn-tab--active:hover {
+  background: var(--ucla-blue-darker);
+  border-color: var(--ucla-blue-darker);
+  color: #FFFFFF;
+}
+
+/* Dark mode overrides */
+.dark .btn-tab {
+  border-color: rgba(139,184,232,0.18);
+  color: var(--color-text-muted);
+}
+.dark .btn-tab:hover {
+  border-color: var(--ucla-blue-lighter);
+  color: var(--color-text);
+}
+.dark .btn-tab--active {
+  background: var(--ucla-gold);
+  border-color: var(--ucla-gold);
+  color: #000000;
+}
+.dark .btn-tab--active:hover {
+  background: var(--ucla-gold-darker);
+  border-color: var(--ucla-gold-darker);
+  color: #000000;
+}
+
+/* Count badge inside btn-tab */
+.btn-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  padding: 0 0.3rem;
+  height: 1.1rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  border-radius: 0;
+  background: rgba(0,0,0,0.12);
+  color: inherit;
+  line-height: 1;
+  tabular-nums: all;
+}
+.btn-tab--active .btn-tab__count {
+  background: rgba(255,255,255,0.25);
+}
+.dark .btn-tab--active .btn-tab__count {
+  background: rgba(0,0,0,0.18);
+}
+
+/* ── BTN-FILTER  (Status filters: All / Needs Review / Resolved / Idea / Endorsed)
+   Same rectangular outline language as btn-tab but slightly taller (matches search
+   bar height) and uses a normal-case label for readability at small size.
+──────────────────────────────────────────────────────────────────────────────── */
+.btn-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.85rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 180ms var(--ease-out-expo),
+    border-color     180ms var(--ease-out-expo),
+    color            180ms var(--ease-out-expo);
+}
+.btn-filter:hover {
+  border-color: var(--ucla-blue);
+  color: var(--color-text);
+}
+.btn-filter:active { opacity: 0.8; }
+
+/* Active state — light: UCLA Blue fill */
+.btn-filter--active {
+  background: var(--ucla-blue);
+  border-color: var(--ucla-blue);
+  color: #FFFFFF;
+}
+.btn-filter--active:hover {
+  background: var(--ucla-blue-darker);
+  border-color: var(--ucla-blue-darker);
+  color: #FFFFFF;
+}
+
+/* Dark mode overrides */
+.dark .btn-filter {
+  border-color: rgba(139,184,232,0.18);
+  color: var(--color-text);
+}
+.dark .btn-filter:hover {
+  border-color: var(--ucla-blue-lighter);
+}
+.dark .btn-filter--active {
+  background: var(--ucla-gold);
+  border-color: var(--ucla-gold);
+  color: #000000;
+}
+.dark .btn-filter--active:hover {
+  background: var(--ucla-gold-darker);
+  border-color: var(--ucla-gold-darker);
+  color: #000000;
+}
+
+/* Count badge inside btn-filter */
+.btn-filter__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  padding: 0 0.28rem;
+  height: 1.05rem;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  border-radius: 0;
+  background: rgba(0,0,0,0.10);
+  color: inherit;
+  line-height: 1;
+}
+.btn-filter--active .btn-filter__count {
+  background: rgba(255,255,255,0.25);
+}
+.dark .btn-filter--active .btn-filter__count {
+  background: rgba(0,0,0,0.18);
 }
 
 /* ── GOLD RULE ─────────────────────────────────────────────── */
@@ -605,7 +746,6 @@ a, button, [role="button"] {
   border: 1px solid;
   white-space: nowrap;
 }
-/* difficulty colours live inline via JS — only structural CSS here */
 
 /* ── FORM INPUTS ───────────────────────────────────────────── */
 .input-base {

@@ -111,7 +111,6 @@ router.put('/:id', authenticate, async (req, res) => {
       examTopics:      Array.isArray(examTopics) ? examTopics : undefined,
       tournamentId:    tournamentId    !== undefined ? (tournamentId || null)    : undefined,
     };
-    // Strip undefined keys
     Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
     const test = await prisma.test.update({
       where: { id: req.params.id },
@@ -200,7 +199,7 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
-// ── Comments ──────────────────────────────────────────────────────────────────────────────
+// ── Comments ──────────────────────────────────────────────────────────────
 router.get('/:id/comments', authenticate, async (req, res) => {
   try {
     const comments = await prisma.testComment.findMany({
@@ -241,6 +240,110 @@ router.delete('/:id/comments/:commentId', authenticate, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete comment' });
+  }
+});
+
+// ── Lock exam for testsolving ──────────────────────────────────────────────
+router.post('/:id/lock', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { isAdmin: true } });
+    if (!user?.isAdmin) return res.status(403).json({ error: 'Admin access required to lock exams.' });
+    const { timeLimit } = req.body;
+    if (!timeLimit || isNaN(parseInt(timeLimit)) || parseInt(timeLimit) < 1) {
+      return res.status(400).json({ error: 'A valid time limit is required.' });
+    }
+    const test = await prisma.test.update({
+      where: { id: req.params.id },
+      data: {
+        isLocked: true,
+        lockedAt: new Date(),
+        timeLimit: parseInt(timeLimit),
+      },
+    });
+    res.json(test);
+  } catch (error) {
+    console.error('Lock exam error:', error);
+    res.status(500).json({ error: 'Failed to lock exam' });
+  }
+});
+
+// ── Unlock exam ────────────────────────────────────────────────────────────
+router.post('/:id/unlock', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { isAdmin: true } });
+    if (!user?.isAdmin) return res.status(403).json({ error: 'Admin access required to unlock exams.' });
+    const current = await prisma.test.findUnique({
+      where: { id: req.params.id },
+      select: { testsolveVersion: true, testsolveStatus: true },
+    });
+    const test = await prisma.test.update({
+      where: { id: req.params.id },
+      data: {
+        isLocked: false,
+        lockedAt: null,
+        testsolveStatus: current?.testsolveStatus === 'active' ? 'paused' : (current?.testsolveStatus ?? 'none'),
+        testsolveVersion: { increment: 1 },
+      },
+    });
+    res.json(test);
+  } catch (error) {
+    console.error('Unlock exam error:', error);
+    res.status(500).json({ error: 'Failed to unlock exam' });
+  }
+});
+
+// ── Publish testsolving (set password + activate) ──────────────────────────
+router.post('/:id/testsolve/publish', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { isAdmin: true } });
+    if (!user?.isAdmin) return res.status(403).json({ error: 'Admin access required.' });
+    const { password } = req.body;
+    if (!password?.trim()) return res.status(400).json({ error: 'A testsolve password is required.' });
+    const test = await prisma.test.update({
+      where: { id: req.params.id },
+      data: { testsolveStatus: 'active', testsolvePassword: password.trim() },
+    });
+    res.json(test);
+  } catch (error) {
+    console.error('Publish testsolve error:', error);
+    res.status(500).json({ error: 'Failed to publish testsolving' });
+  }
+});
+
+// ── Get testsolve password (admin only) ────────────────────────────────────
+router.get('/:id/testsolve/password', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { isAdmin: true } });
+    if (!user?.isAdmin) return res.status(403).json({ error: 'Admin access required.' });
+    const test = await prisma.test.findUnique({
+      where: { id: req.params.id },
+      select: { testsolvePassword: true },
+    });
+    if (!test) return res.status(404).json({ error: 'Exam not found.' });
+    res.json({ password: test.testsolvePassword });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get password' });
+  }
+});
+
+// ── Get testsolve sessions for an exam (admin only) ────────────────────────
+router.get('/:id/testsolve/sessions', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { isAdmin: true } });
+    if (!user?.isAdmin) return res.status(403).json({ error: 'Admin access required.' });
+    const sessions = await prisma.testsolveSession.findMany({
+      where: { testId: req.params.id },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true, initials: true } },
+        problemResponses: true,
+        overall: true,
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+    res.json(sessions);
+  } catch (error) {
+    console.error('Fetch sessions error:', error);
+    res.status(500).json({ error: 'Failed to fetch sessions' });
   }
 });
 

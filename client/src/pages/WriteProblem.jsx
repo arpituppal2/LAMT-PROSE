@@ -190,9 +190,9 @@ const WriteProblem = () => {
   const [topicOptions, setTopicOptions] = useState([]);
 
 useEffect(() => {
-  fetch('/api/config')
-    .then(r => r.json())
-    .then(d => setTopicOptions(d.topics || []));
+  api.get('/config')
+    .then(r => setTopicOptions(r.data.topics || []))
+    .catch(() => {});
 }, []);
 
   

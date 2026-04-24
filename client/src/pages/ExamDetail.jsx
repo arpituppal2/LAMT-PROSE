@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, ChevronUp,
-  Loader2, X, AlertTriangle, Settings, Download, Lock, Unlock,
+  Loader2, X, AlertTriangle, Settings, Download, Lock, Unlock, ClipboardList,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -1046,15 +1046,25 @@ const ExamDetail = () => {
                 {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
               </button>
               {exam.isLocked ? (
-                <button
-                  onClick={handleUnlock}
-                  disabled={lockSaving}
-                  className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-amber-600 border-amber-400/50 hover:border-amber-500 whitespace-nowrap disabled:opacity-50"
-                  title="Unlock exam"
-                >
-                  <Unlock size={11} />
-                  {lockSaving ? 'Unlocking…' : 'Unlock'}
-                </button>
+                <>
+                  <Link
+                    to="/testsolving"
+                    className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-[var(--color-accent)] border-[var(--color-accent)]/40 hover:border-[var(--color-accent)] whitespace-nowrap"
+                    title="Go to testsolving page"
+                  >
+                    <ClipboardList size={11} />
+                    Testsolve
+                  </Link>
+                  <button
+                    onClick={handleUnlock}
+                    disabled={lockSaving}
+                    className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-amber-600 border-amber-400/50 hover:border-amber-500 whitespace-nowrap disabled:opacity-50"
+                    title="Unlock exam"
+                  >
+                    <Unlock size={11} />
+                    {lockSaving ? 'Unlocking…' : 'Unlock'}
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => setShowLockModal(true)}
@@ -1097,12 +1107,21 @@ const ExamDetail = () => {
               <strong>Locked for testsolving</strong> — v{exam.testsolveVersion} · status: <strong>{exam.testsolveStatus || 'inactive'}</strong>
               {exam.testsolvePassword && <> · password: <code className="font-mono">{exam.testsolvePassword}</code></>}
             </span>
-            <button
-              onClick={() => setShowLockModal(true)}
-              className="ml-auto text-[10px] font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
-            >
-              Edit
-            </button>
+            <div className="ml-auto flex items-center gap-3">
+              <Link
+                to="/testsolving"
+                className="inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+              >
+                <ClipboardList size={10} />
+                View Testsolve →
+              </Link>
+              <button
+                onClick={() => setShowLockModal(true)}
+                className="font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+              >
+                Edit
+              </button>
+            </div>
           </div>
         )}
 

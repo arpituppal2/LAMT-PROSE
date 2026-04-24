@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Clock, ChevronRight, Lock, ArrowLeft, CheckCircle2,
   Circle, Loader2, AlertTriangle, X, Send, Eye,
-  ClipboardList, Trophy, Timer, MessageSquare, ChevronDown, ChevronUp,
+  ClipboardList, Trophy, Timer, MessageSquare, ChevronDown, ChevronUp, User,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -243,8 +243,12 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
 /* ── PasswordModal ────────────────────────────────────────── */
 const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
   const [pwd, setPwd] = useState('');
-  const inputRef = useRef(null);
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  const [name, setName] = useState('');
+  const nameRef = useRef(null);
+  useEffect(() => { nameRef.current?.focus(); }, []);
+
+  const canSubmit = pwd.trim() && name.trim();
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
@@ -254,7 +258,7 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
         <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
           <div>
             <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>{exam.name}</p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Enter testsolve password to continue</p>
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Enter your name and password to continue</p>
           </div>
           <button type="button" onClick={onCancel} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
             <X size={16} />
@@ -268,19 +272,39 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
               Suggested time: <strong className="text-[var(--color-text)]">{exam.timeLimit} minutes</strong>
             </div>
           )}
+
+          {/* Solver name */}
+          <div>
+            <label className="section-label">Your Name</label>
+            <input
+              ref={nameRef}
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && canSubmit && onConfirm(pwd, name)}
+              placeholder="e.g. Jane Smith"
+              className="input-base w-full mt-2"
+              autoComplete="name"
+            />
+            <p className="text-[11px] text-[var(--color-text-faint)] mt-1">
+              Used to identify your submission — multiple people may share this account.
+            </p>
+          </div>
+
+          {/* Password */}
           <div>
             <label className="section-label">Testsolve Password</label>
             <input
-              ref={inputRef}
               type="password"
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && pwd.trim() && onConfirm(pwd)}
+              onKeyDown={(e) => e.key === 'Enter' && canSubmit && onConfirm(pwd, name)}
               placeholder="Enter password"
               className="input-base w-full mt-2"
               autoComplete="off"
             />
           </div>
+
           {error && (
             <div className="flex items-center gap-2 text-sm rounded-sm px-3 py-2.5" style={{ background: 'var(--badge-needs-review-bg)', color: 'var(--badge-needs-review-text)', border: '1px solid var(--badge-needs-review-border)' }}>
               <AlertTriangle size={13} />
@@ -293,11 +317,11 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
             </button>
             <button
               type="button"
-              onClick={() => pwd.trim() && onConfirm(pwd)}
-              disabled={loading || !pwd.trim()}
+              onClick={() => canSubmit && onConfirm(pwd, name)}
+              disabled={loading || !canSubmit}
               className="btn-filled flex-1 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? <Loader2 size={15} className="animate-spin mx-auto" /> : 'Verify'}
+              {loading ? <Loader2 size={15} className="animate-spin mx-auto" /> : 'Continue'}
             </button>
           </div>
         </div>
@@ -470,11 +494,11 @@ const Testsolving = () => {
   const [pwdLoading, setPwdLoading]           = useState(false);
   const [pwdError, setPwdError]               = useState('');
   const [showInstructions, setShowInstructions] = useState(false);
-  const [verifiedSession, setVerifiedSession]   = useState(null); // holds data from /testsolve/start before instructions
+  const [verifiedSession, setVerifiedSession]   = useState(null);
 
   /* ── Active testsolve ── */
   const [session, setSession]             = useState(null);
-  const [currentIdx, setCurrentIdx]       = useState(0);    // number or 'overall'
+  const [currentIdx, setCurrentIdx]       = useState(0);
   const [answers, setAnswers]             = useState({});
   const [elapsed, setElapsed]             = useState(0);
   const [overall, setOverall]             = useState({
@@ -522,14 +546,13 @@ const Testsolving = () => {
     setVerifiedSession(null);
   };
 
-  /* ── Step 2: User enters password → verify, then show instructions ── */
-  const handleConfirmPassword = useCallback(async (password) => {
+  /* ── Step 2: User enters name + password → verify, then show instructions ── */
+  const handleConfirmPassword = useCallback(async (password, solverName) => {
     if (!pendingExam) return;
     setPwdLoading(true);
     setPwdError('');
     try {
-      const res = await api.post('/testsolve/start', { testId: pendingExam.id, password });
-      // Password correct — store session data and show instructions
+      const res = await api.post('/testsolve/start', { testId: pendingExam.id, password, solverName });
       setVerifiedSession(res.data);
       setPendingExam(null);
       setShowInstructions(true);
@@ -543,8 +566,8 @@ const Testsolving = () => {
   /* ── Step 3: User clicks "Begin" in instructions → activate session ── */
   const handleBeginAfterInstructions = useCallback(() => {
     if (!verifiedSession) return;
-    const { sessionId, problems, timeLimit: tl, testName, examMeta } = verifiedSession;
-    setSession({ sessionId, problems, timeLimit: tl, testName, examMeta });
+    const { sessionId, problems, timeLimit: tl, testName, examMeta, solverName } = verifiedSession;
+    setSession({ sessionId, problems, timeLimit: tl, testName, examMeta, solverName });
     setAnswers({});
     setOverall({ generalComments: '', difficultyNotes: '', techniqueNotes: '', reworkNotes: '', finalRating: 'needs_work' });
     setElapsed(0);
@@ -654,6 +677,12 @@ const Testsolving = () => {
             <span className="text-sm font-bold truncate" style={{ fontFamily: 'var(--font-display)' }}>
               {session.testName}
             </span>
+            {session.solverName && (
+              <span className="inline-flex items-center gap-1 text-xs text-[var(--color-text-muted)] truncate">
+                <User size={11} />
+                {session.solverName}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             <span

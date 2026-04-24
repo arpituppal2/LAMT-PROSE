@@ -171,6 +171,7 @@ model TestsolveSession {
   id               String    @id @default(uuid())
   testId           String
   userId           String
+  solverName       String    @default("")
   examVersion      Int       @default(1)
   submittedAt      DateTime?
   createdAt        DateTime  @default(now())

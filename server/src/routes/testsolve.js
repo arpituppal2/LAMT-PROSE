@@ -34,8 +34,9 @@ router.get('/available', authenticate, async (req, res) => {
 // POST /api/testsolve/start
 router.post('/start', authenticate, async (req, res) => {
   try {
-    const { testId, password } = req.body;
+    const { testId, password, solverName } = req.body;
     if (!testId || !password) return res.status(400).json({ error: 'testId and password are required.' });
+    if (!solverName || !solverName.trim()) return res.status(400).json({ error: 'Your name is required.' });
 
     const test = await prisma.test.findUnique({
       where: { id: testId },
@@ -63,6 +64,7 @@ router.post('/start', authenticate, async (req, res) => {
       data: {
         testId,
         userId: req.userId,
+        solverName: solverName.trim(),
         examVersion: test.testsolveVersion,
       },
     });
@@ -82,6 +84,7 @@ router.post('/start', authenticate, async (req, res) => {
 
     res.json({
       sessionId: session.id,
+      solverName: solverName.trim(),
       problems: orderedProblems,
       timeLimit: test.timeLimit,
       testName: test.name,

@@ -6,6 +6,13 @@ import Layout from '../components/Layout';
 
 const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
+const TOPIC_CFG = {
+  Algebra:        { dot: 'bg-blue-500',   active: 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400',   idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-blue-400/50' },
+  Geometry:       { dot: 'bg-green-500',  active: 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-green-400/50' },
+  Combinatorics:  { dot: 'bg-amber-500',  active: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-amber-400/50' },
+  'Number Theory':{ dot: 'bg-purple-500', active: 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-purple-400/50' },
+};
+
 const Spinner = ({ size = 16 }) => <Loader2 size={size} className="animate-spin" />;
 
 const ErrorMsg = ({ msg }) =>
@@ -60,7 +67,6 @@ const NewExamModal = ({ onClose, onCreate }) => {
 
   const totalSlots = form.numSets * form.questionsPerSet + form.estimationSets;
 
-  // Round name options: from selected tournament's rounds, plus Other
   const selectedTournament = tournaments.find(t => t.id === form.tournamentId);
   const roundOptions = selectedTournament
     ? [...selectedTournament.rounds.filter(r => !form.roundType || r.roundType === form.roundType), { id: '__other__', name: 'Other' }]
@@ -126,23 +132,19 @@ const NewExamModal = ({ onClose, onCreate }) => {
               </div>
             </Field>
 
-            {/* Round type */}
+            {/* Round type — dropdown */}
             <Field label="Round Type">
-              <div className="flex gap-2">
-                {['Individual', 'Team'].map(rt => (
-                  <button
-                    key={rt} type="button"
-                    onClick={() => setForm(f => ({ ...f, roundType: rt }))}
-                    className={[
-                      'flex-1 py-2 text-xs font-semibold rounded-sm border transition',
-                      form.roundType === rt
-                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
-                        : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40',
-                    ].join(' ')}
-                  >
-                    {rt}
-                  </button>
-                ))}
+              <div className="relative">
+                <select
+                  className="input-base w-full pr-8 appearance-none"
+                  value={form.roundType}
+                  onChange={set('roundType')}
+                >
+                  <option value="Individual">Individual</option>
+                  <option value="Team">Team</option>
+                  <option value="Other">Other</option>
+                </select>
+                <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
               </div>
             </Field>
 
@@ -211,23 +213,27 @@ const NewExamModal = ({ onClose, onCreate }) => {
               </span>
             </div>
 
-            {/* Exam topics */}
+            {/* Exam topics — LAMT colored-dot chips */}
             <Field label="Exam Topics" hint="Which topics should appear in the problem bank for this exam? Leave blank to show all.">
-              <div className="flex flex-wrap gap-1.5">
-                {TOPICS.map(t => (
-                  <button
-                    key={t} type="button"
-                    onClick={() => toggleTopic(t)}
-                    className={[
-                      'px-2.5 py-1 text-xs font-medium rounded-sm border transition',
-                      form.examTopics.includes(t)
-                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
-                        : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40',
-                    ].join(' ')}
-                  >
-                    {t}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-2">
+                {TOPICS.map(t => {
+                  const cfg = TOPIC_CFG[t];
+                  const active = form.examTopics.includes(t);
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => toggleTopic(t)}
+                      className={[
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-xs font-semibold transition-all',
+                        active ? cfg.active : cfg.idle,
+                      ].join(' ')}
+                    >
+                      <span className={`h-2 w-2 rounded-full flex-shrink-0 ${cfg.dot} ${active ? 'opacity-100' : 'opacity-40'}`} />
+                      {t}
+                    </button>
+                  );
+                })}
               </div>
               {form.examTopics.length === 0 && (
                 <p className="text-[10px] text-[var(--color-text-faint)] mt-1">All topics shown.</p>

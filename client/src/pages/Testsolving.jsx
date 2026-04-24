@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Clock, ChevronRight, Lock, ArrowLeft, CheckCircle2,
   Circle, Loader2, AlertTriangle, X, Send, Eye,
-  ClipboardList, Trophy,
+  ClipboardList, Trophy, Timer, MessageSquare, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -12,9 +12,9 @@ import KatexRenderer from '../components/KatexRenderer';
    CONSTANTS
 ══════════════════════════════════════════════════════════════ */
 const FINAL_RATINGS = [
-  { value: 'needs_work',   label: 'Needs Work',   color: 'var(--badge-needs-review-text)',  bg: 'var(--badge-needs-review-bg)',  border: 'var(--badge-needs-review-border)' },
-  { value: 'mostly_good',  label: 'Mostly Good',  color: 'var(--badge-resolved-text)',       bg: 'var(--badge-resolved-bg)',       border: 'var(--badge-resolved-border)' },
-  { value: 'ready',        label: 'Ready',         color: 'var(--badge-endorsed-text)',       bg: 'var(--badge-endorsed-bg)',       border: 'var(--badge-endorsed-border)' },
+  { value: 'needs_work',  label: 'Needs Work',  color: 'var(--badge-needs-review-text)', bg: 'var(--badge-needs-review-bg)',  border: 'var(--badge-needs-review-border)' },
+  { value: 'mostly_good', label: 'Mostly Good', color: 'var(--badge-resolved-text)',      bg: 'var(--badge-resolved-bg)',       border: 'var(--badge-resolved-border)' },
+  { value: 'approved',    label: 'Approved',    color: 'var(--badge-endorsed-text)',      bg: 'var(--badge-endorsed-bg)',       border: 'var(--badge-endorsed-border)' },
 ];
 
 /* ══════════════════════════════════════════════════════════════
@@ -134,6 +134,109 @@ const ProblemNav = ({ problems, currentIndex, answers, onSelect, examMeta }) => 
         </button>
       );
     })}
+    {/* Overall section link */}
+    <div className="mt-auto border-t border-[var(--color-border)]">
+      <button
+        type="button"
+        onClick={() => onSelect('overall')}
+        className="flex items-center gap-2 px-3 py-2.5 w-full text-left transition-colors"
+        style={{
+          background: currentIndex === 'overall' ? 'var(--sidebar-active-bg)' : 'transparent',
+          borderLeft: currentIndex === 'overall' ? '2px solid var(--ucla-gold)' : '2px solid transparent',
+          color: currentIndex === 'overall' ? 'var(--color-text)' : 'var(--color-text-muted)',
+        }}
+      >
+        <MessageSquare size={13} style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: '0.75rem', fontWeight: currentIndex === 'overall' ? 700 : 500 }}>Overall</span>
+      </button>
+    </div>
+  </div>
+);
+
+/* ── InstructionsModal ────────────────────────────────────── */
+const InstructionsModal = ({ exam, onBegin, onCancel }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+    onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+  >
+    <div className="w-full max-w-lg border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+        <div>
+          <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+            {exam.name} — Testsolve Instructions
+          </p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Please read before beginning</p>
+        </div>
+        <button type="button" onClick={onCancel} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
+          <X size={16} />
+        </button>
+      </div>
+      <div className="px-5 py-5 space-y-4">
+        {/* Exam info */}
+        <div
+          className="rounded-sm border px-4 py-3 text-sm space-y-1"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+            <Clock size={12} />
+            <span className="font-semibold">
+              {exam.timeLimit ? `${exam.timeLimit} minutes suggested` : 'No hard time limit'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+            <ClipboardList size={12} />
+            <span>
+              {exam.numSets > 1 ? `${exam.numSets} × ${exam.questionsPerSet}` : exam.questionsPerSet || '?'} problems
+              {exam.estimationSets > 0 && ` + ${exam.estimationSets} estimation`}
+            </span>
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="space-y-3 text-sm text-[var(--color-text)]">
+          <p className="font-semibold" style={{ color: 'var(--color-accent)' }}>
+            How to testsolve:
+          </p>
+          <ul className="space-y-2 text-[var(--color-text-muted)]" style={{ listStyle: 'none', padding: 0 }}>
+            {[
+              'Attempt every problem — even a partial attempt or a comment is valuable.',
+              'Don\'t spend too long on any single problem. If you\'re stuck, move on and come back. We need feedback on all problems, not a perfect score.',
+              'There is no strict time limit — but try to simulate real exam conditions.',
+              'For each problem, record your answer, your work, and any comments about clarity, difficulty, or issues.',
+              'At the end, fill out the Overall Comments section — this is critical for helping us improve the exam.',
+              'Do not share answers or solutions with others testsolving this exam.',
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span
+                  className="flex-shrink-0 mt-0.5 h-4 w-4 flex items-center justify-center rounded-full text-[9px] font-bold"
+                  style={{ background: 'var(--color-accent)', color: 'white' }}
+                >
+                  {i + 1}
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div
+          className="rounded-sm border px-3 py-2.5 text-xs flex items-start gap-2"
+          style={{ background: 'var(--badge-idea-bg)', borderColor: 'var(--badge-idea-border)', color: 'var(--badge-idea-text)' }}
+        >
+          <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
+          <span>No solutions are shown during testsolving. Focus on your own approach.</span>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button type="button" onClick={onCancel} className="btn-outline px-5 py-2.5 text-sm">
+            Cancel
+          </button>
+          <button type="button" onClick={onBegin} className="btn-filled flex-1 py-2.5 text-sm font-semibold">
+            Begin Testsolve →
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 );
 
@@ -151,22 +254,29 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
         <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
           <div>
             <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>{exam.name}</p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Enter testsolve password to begin</p>
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Enter testsolve password to continue</p>
           </div>
           <button type="button" onClick={onCancel} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
             <X size={16} />
           </button>
         </div>
         <div className="px-5 py-5 space-y-4">
+          {/* Exam info row */}
+          {exam.timeLimit && (
+            <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+              <Clock size={12} />
+              Suggested time: <strong className="text-[var(--color-text)]">{exam.timeLimit} minutes</strong>
+            </div>
+          )}
           <div>
-            <label className="section-label">Password</label>
+            <label className="section-label">Testsolve Password</label>
             <input
               ref={inputRef}
               type="password"
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && pwd.trim() && onConfirm(pwd)}
-              placeholder="Testsolve password"
+              placeholder="Enter password"
               className="input-base w-full mt-2"
               autoComplete="off"
             />
@@ -187,7 +297,7 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
               disabled={loading || !pwd.trim()}
               className="btn-filled flex-1 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? <Loader2 size={15} className="animate-spin mx-auto" /> : 'Begin'}
+              {loading ? <Loader2 size={15} className="animate-spin mx-auto" /> : 'Verify'}
             </button>
           </div>
         </div>
@@ -196,146 +306,148 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
   );
 };
 
-/* ── ReviewModal ──────────────────────────────────────────── */
-const ReviewModal = ({ problems, answers, examMeta, onClose, onSubmit, loading }) => {
-  const [overall, setOverall] = useState({
-    generalComments: '', difficultyNotes: '', techniqueNotes: '',
-    reworkNotes: '', finalRating: 'needs_work',
-  });
-  const answered = problems.filter(p => !!answers[p.problemId]?.answer?.trim()).length;
+/* ── OverallFeedbackPanel ─────────────────────────────────── */
+const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit, loading, submitError }) => {
+  const answeredCount = problems.filter(p => !!answers[p.problemId]?.answer?.trim()).length;
+  const unanswered = problems.length - answeredCount;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-8 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-2xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl my-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
-          <div>
-            <p className="text-base font-bold" style={{ fontFamily: 'var(--font-display)' }}>Review & Submit</p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-              {answered}/{problems.length} answered
-            </p>
-          </div>
-          <button type="button" onClick={onClose} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
-            <X size={16} />
-          </button>
+    <div className="mx-auto max-w-3xl px-6 py-6 space-y-6 pb-12">
+      <div className="flex items-center gap-3">
+        <span className="gold-rule" />
+        <h2 className="text-base font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+          Overall Comments
+        </h2>
+      </div>
+
+      {unanswered > 0 && (
+        <div
+          className="flex items-start gap-2 rounded-sm border px-4 py-3 text-sm"
+          style={{ background: 'var(--badge-idea-bg)', borderColor: 'var(--badge-idea-border)', color: 'var(--badge-idea-text)' }}
+        >
+          <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+          <span>
+            <strong>{unanswered} problem{unanswered !== 1 ? 's' : ''}</strong> still unanswered.
+            You can still submit, but try to attempt every problem before finishing.
+          </span>
+        </div>
+      )}
+
+      <div className="surface-card px-5 py-5 space-y-5">
+        {/* 1. General Comments */}
+        <div>
+          <label className="section-label">
+            1. General Comments
+          </label>
+          <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
+            Overall impressions, flow, balance across topics, pacing of the exam.
+          </p>
+          <textarea
+            value={overall.generalComments}
+            onChange={e => setOverall(o => ({ ...o, generalComments: e.target.value }))}
+            rows={4}
+            placeholder="e.g. The exam felt well-balanced. The problems flowed nicely from easier to harder…"
+            className="input-base w-full resize-y"
+          />
         </div>
 
-        <div className="px-5 py-5 space-y-6">
+        {/* 2. Difficulty / Ordering */}
+        <div>
+          <label className="section-label">
+            2. Difficulty &amp; Ordering of Problems
+          </label>
+          <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
+            Was the difficulty curve appropriate? Were any problems out of order? Too easy/hard for their position?
+          </p>
+          <textarea
+            value={overall.difficultyNotes}
+            onChange={e => setOverall(o => ({ ...o, difficultyNotes: e.target.value }))}
+            rows={3}
+            placeholder="e.g. Q3 felt harder than Q5. The jump from Q7 to Q8 was too steep…"
+            className="input-base w-full resize-y"
+          />
+        </div>
 
-          {/* Per-problem summary */}
-          <div>
-            <p className="section-label mb-3">Answers</p>
-            <div className="border border-[var(--color-border)] divide-y divide-[var(--color-border)]">
-              {problems.map((p) => {
-                const label = buildSlotLabel(examMeta, p.slotIndex);
-                const resp = answers[p.problemId] || {};
-                const hasAnswer = !!resp.answer?.trim();
-                return (
-                  <div key={p.problemId} className="flex items-start gap-3 px-4 py-3 text-sm">
-                    <span className="w-16 flex-shrink-0 font-semibold tabular-nums text-[var(--color-text-muted)]">{label}</span>
-                    <span className="flex-1 font-mono text-[var(--color-text)] truncate">
-                      {hasAnswer ? resp.answer : <span className="italic text-[var(--color-text-faint)]">—</span>}
-                    </span>
-                    {hasAnswer
-                      ? <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--badge-endorsed-text)' }} />
-                      : <Circle size={14} className="flex-shrink-0 mt-0.5 text-[var(--color-text-faint)]" />
-                    }
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* 3. Technique Repetition */}
+        <div>
+          <label className="section-label">
+            3. Repeated or Missing Techniques
+          </label>
+          <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
+            Are there techniques, formulas, or problem types that appear too often? Anything you felt was missing entirely?
+          </p>
+          <textarea
+            value={overall.techniqueNotes}
+            onChange={e => setOverall(o => ({ ...o, techniqueNotes: e.target.value }))}
+            rows={3}
+            placeholder="e.g. Q2 and Q6 both rely on AM-GM in the same way. No combinatorics problems at all…"
+            className="input-base w-full resize-y"
+          />
+        </div>
 
-          {/* Overall feedback */}
-          <div className="space-y-4">
-            <p className="section-label">Overall Feedback</p>
+        {/* 4. Rework / Replace */}
+        <div>
+          <label className="section-label">
+            4. Problems That Need Rework or Replacement
+          </label>
+          <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
+            List specific problems you think need to be revised or swapped out entirely, and why.
+          </p>
+          <textarea
+            value={overall.reworkNotes}
+            onChange={e => setOverall(o => ({ ...o, reworkNotes: e.target.value }))}
+            rows={3}
+            placeholder="e.g. Q4 has an ambiguous condition. Q9 is essentially the same as a well-known Olympiad problem…"
+            className="input-base w-full resize-y"
+          />
+        </div>
 
-            <div>
-              <label className="section-label text-xs">General comments</label>
-              <textarea
-                value={overall.generalComments}
-                onChange={e => setOverall(o => ({ ...o, generalComments: e.target.value }))}
-                rows={3}
-                placeholder="Overall impressions, flow, balance across topics…"
-                className="input-base w-full resize-y mt-2"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="section-label text-xs">Difficulty notes</label>
-                <textarea
-                  value={overall.difficultyNotes}
-                  onChange={e => setOverall(o => ({ ...o, difficultyNotes: e.target.value }))}
-                  rows={3}
-                  placeholder="Was the difficulty curve appropriate?"
-                  className="input-base w-full resize-y mt-2"
-                />
-              </div>
-              <div>
-                <label className="section-label text-xs">Technique notes</label>
-                <textarea
-                  value={overall.techniqueNotes}
-                  onChange={e => setOverall(o => ({ ...o, techniqueNotes: e.target.value }))}
-                  rows={3}
-                  placeholder="Diversity of techniques used across problems?"
-                  className="input-base w-full resize-y mt-2"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="section-label text-xs">What needs rework?</label>
-              <textarea
-                value={overall.reworkNotes}
-                onChange={e => setOverall(o => ({ ...o, reworkNotes: e.target.value }))}
-                rows={3}
-                placeholder="List specific problems or sections that need revision…"
-                className="input-base w-full resize-y mt-2"
-              />
-            </div>
-
-            {/* Final rating */}
-            <div>
-              <p className="section-label mb-3">Final rating</p>
-              <div className="flex gap-3">
-                {FINAL_RATINGS.map(r => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setOverall(o => ({ ...o, finalRating: r.value }))}
-                    className="flex-1 rounded-sm border-2 px-3 py-2.5 text-sm font-semibold transition-colors"
-                    style={
-                      overall.finalRating === r.value
-                        ? { borderColor: r.border, background: r.bg, color: r.color }
-                        : { borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }
-                    }
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Action row */}
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-outline px-5 py-2.5 text-sm">
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={() => onSubmit(overall)}
-              disabled={loading}
-              className="btn-filled flex-1 py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading
-                ? <><Loader2 size={15} className="animate-spin" /> Submitting…</>
-                : <><Send size={14} /> Submit Testsolve</>
-              }
-            </button>
+        {/* 5. Final Rating */}
+        <div>
+          <label className="section-label mb-3 block">5. Final Rating</label>
+          <div className="flex gap-3">
+            {FINAL_RATINGS.map(r => (
+              <button
+                key={r.value}
+                type="button"
+                onClick={() => setOverall(o => ({ ...o, finalRating: r.value }))}
+                className="flex-1 rounded-sm border-2 px-3 py-3 text-sm font-semibold transition-colors"
+                style={
+                  overall.finalRating === r.value
+                    ? { borderColor: r.border, background: r.bg, color: r.color }
+                    : { borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }
+                }
+              >
+                {r.label}
+              </button>
+            ))}
           </div>
         </div>
+      </div>
+
+      {submitError && (
+        <div
+          className="flex items-center gap-2 rounded-sm border px-4 py-3 text-sm"
+          style={{ background: 'var(--badge-needs-review-bg)', border: '1px solid var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}
+        >
+          <AlertTriangle size={14} />
+          {submitError}
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={loading}
+          className="btn-filled flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: 'var(--color-accent)' }}
+        >
+          {loading
+            ? <><Loader2 size={15} className="animate-spin" /> Submitting…</>
+            : <><Send size={14} /> Submit Testsolve</>
+          }
+        </button>
       </div>
     </div>
   );
@@ -353,19 +465,24 @@ const Testsolving = () => {
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError]     = useState('');
 
-  /* ── Password modal ── */
-  const [pendingExam, setPendingExam] = useState(null);
-  const [pwdLoading, setPwdLoading]   = useState(false);
-  const [pwdError, setPwdError]       = useState('');
+  /* ── Password + instructions modal state ── */
+  const [pendingExam, setPendingExam]         = useState(null);
+  const [pwdLoading, setPwdLoading]           = useState(false);
+  const [pwdError, setPwdError]               = useState('');
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [verifiedSession, setVerifiedSession]   = useState(null); // holds data from /testsolve/start before instructions
 
   /* ── Active testsolve ── */
-  const [session, setSession]               = useState(null);
-  const [currentIdx, setCurrentIdx]         = useState(0);
-  const [answers, setAnswers]               = useState({});
-  const [elapsed, setElapsed]               = useState(0);
-  const [showReview, setShowReview]         = useState(false);
-  const [submitLoading, setSubmitLoading]   = useState(false);
-  const [submitError, setSubmitError]       = useState('');
+  const [session, setSession]             = useState(null);
+  const [currentIdx, setCurrentIdx]       = useState(0);    // number or 'overall'
+  const [answers, setAnswers]             = useState({});
+  const [elapsed, setElapsed]             = useState(0);
+  const [overall, setOverall]             = useState({
+    generalComments: '', difficultyNotes: '', techniqueNotes: '',
+    reworkNotes: '', finalRating: 'needs_work',
+  });
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError]     = useState('');
 
   /* ── Unsaved guard ── */
   const isDirtyRef = useRef(false);
@@ -397,28 +514,45 @@ const Testsolving = () => {
   const remaining = timeLimitSeconds != null ? timeLimitSeconds - elapsed : null;
   const timerOverrun = remaining != null && remaining < 0;
 
-  /* ── Start exam ── */
-  const handleStartExam = (exam) => { setPendingExam(exam); setPwdError(''); };
+  /* ── Step 1: User clicks exam card → show password modal ── */
+  const handleStartExam = (exam) => {
+    setPendingExam(exam);
+    setPwdError('');
+    setShowInstructions(false);
+    setVerifiedSession(null);
+  };
 
+  /* ── Step 2: User enters password → verify, then show instructions ── */
   const handleConfirmPassword = useCallback(async (password) => {
     if (!pendingExam) return;
     setPwdLoading(true);
     setPwdError('');
     try {
       const res = await api.post('/testsolve/start', { testId: pendingExam.id, password });
-      const { sessionId, problems, timeLimit: tl, testName } = res.data;
-      setSession({ sessionId, problems, timeLimit: tl, testName, examMeta: pendingExam });
-      setAnswers({});
-      setElapsed(0);
-      setCurrentIdx(0);
+      // Password correct — store session data and show instructions
+      setVerifiedSession(res.data);
       setPendingExam(null);
-      setPhase('active');
+      setShowInstructions(true);
     } catch (err) {
-      setPwdError(err.response?.data?.error || 'Failed to start. Please try again.');
+      setPwdError(err.response?.data?.error || 'Incorrect password. Please try again.');
     } finally {
       setPwdLoading(false);
     }
   }, [pendingExam]);
+
+  /* ── Step 3: User clicks "Begin" in instructions → activate session ── */
+  const handleBeginAfterInstructions = useCallback(() => {
+    if (!verifiedSession) return;
+    const { sessionId, problems, timeLimit: tl, testName, examMeta } = verifiedSession;
+    setSession({ sessionId, problems, timeLimit: tl, testName, examMeta });
+    setAnswers({});
+    setOverall({ generalComments: '', difficultyNotes: '', techniqueNotes: '', reworkNotes: '', finalRating: 'needs_work' });
+    setElapsed(0);
+    setCurrentIdx(0);
+    setShowInstructions(false);
+    setVerifiedSession(null);
+    setPhase('active');
+  }, [verifiedSession]);
 
   /* ── Update answer field ── */
   const setField = useCallback((problemId, field, value) => {
@@ -426,7 +560,7 @@ const Testsolving = () => {
   }, []);
 
   /* ── Final submit ── */
-  const handleSubmit = useCallback(async (overall) => {
+  const handleSubmit = useCallback(async () => {
     if (!session) return;
     setSubmitLoading(true);
     setSubmitError('');
@@ -434,10 +568,10 @@ const Testsolving = () => {
       const responses = session.problems.map(p => ({
         problemId:   p.problemId,
         slotIndex:   p.slotIndex,
-        answer:      answers[p.problemId]?.answer   || '',
-        workArea:    answers[p.problemId]?.workArea  || '',
-        comment:     answers[p.problemId]?.comment   || '',
-        timeMinutes: null,
+        answer:      answers[p.problemId]?.answer      || '',
+        workArea:    answers[p.problemId]?.workArea     || '',
+        comment:     answers[p.problemId]?.comment      || '',
+        timeMinutes: answers[p.problemId]?.timeMinutes  || null,
       }));
       await api.post(`/testsolve/session/${session.sessionId}/submit`, { responses, overall });
       isDirtyRef.current = false;
@@ -447,7 +581,7 @@ const Testsolving = () => {
     } finally {
       setSubmitLoading(false);
     }
-  }, [session, answers]);
+  }, [session, answers, overall]);
 
   /* ════════════════════════════════════════════════════════════
      RENDER — DONE
@@ -457,7 +591,10 @@ const Testsolving = () => {
       <Layout>
         <div className="mx-auto max-w-xl py-20 text-center space-y-6">
           <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ background: 'var(--badge-endorsed-bg)' }}>
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-full"
+              style={{ background: 'var(--badge-endorsed-bg)' }}
+            >
               <Trophy size={28} style={{ color: 'var(--badge-endorsed-text)' }} />
             </div>
           </div>
@@ -471,7 +608,7 @@ const Testsolving = () => {
           </div>
           <button
             type="button"
-            onClick={() => { setPhase('list'); setSession(null); setAnswers({}); setElapsed(0); }}
+            onClick={() => { setPhase('list'); setSession(null); setAnswers({}); setElapsed(0); setOverall({ generalComments: '', difficultyNotes: '', techniqueNotes: '', reworkNotes: '', finalRating: 'needs_work' }); }}
             className="btn-filled px-6 py-2.5 text-sm"
           >
             Back to testsolves
@@ -485,9 +622,10 @@ const Testsolving = () => {
      RENDER — ACTIVE TESTSOLVE
   ════════════════════════════════════════════════════════════ */
   if (phase === 'active' && session) {
-    const problems = session.problems;
-    const current  = problems[currentIdx];
-    const resp     = current ? (answers[current.problemId] || {}) : {};
+    const problems    = session.problems;
+    const isOverall   = currentIdx === 'overall';
+    const current     = !isOverall ? problems[currentIdx] : null;
+    const resp        = current ? (answers[current.problemId] || {}) : {};
     const answeredCount = problems.filter(p => !!answers[p.problemId]?.answer?.trim()).length;
 
     return (
@@ -533,11 +671,12 @@ const Testsolving = () => {
             </span>
             <button
               type="button"
-              onClick={() => setShowReview(true)}
-              className="btn-filled px-3 py-1.5 text-xs flex items-center gap-1.5"
+              onClick={() => setCurrentIdx('overall')}
+              className="btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5"
+              style={isOverall ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' } : {}}
             >
-              <ClipboardList size={13} />
-              Review &amp; Submit
+              <MessageSquare size={13} />
+              Overall
             </button>
           </div>
         </div>
@@ -553,19 +692,32 @@ const Testsolving = () => {
           />
 
           <div className="flex-1 overflow-y-auto">
-            {current ? (
+            {/* ── OVERALL FEEDBACK PANEL ── */}
+            {isOverall ? (
+              <OverallFeedbackPanel
+                overall={overall}
+                setOverall={setOverall}
+                problems={problems}
+                answers={answers}
+                onSubmit={handleSubmit}
+                loading={submitLoading}
+                submitError={submitError}
+              />
+            ) : current ? (
               <div className="mx-auto max-w-3xl px-6 py-6 space-y-6">
 
+                {/* Problem header */}
                 <div className="flex items-center gap-3">
                   <span className="gold-rule" />
                   <h2 className="text-base font-bold" style={{ fontFamily: 'var(--font-display)' }}>
                     {buildSlotLabel(session.examMeta, current.slotIndex)}
                   </h2>
                   <span className="text-xs text-[var(--color-text-faint)] tabular-nums">
-                    {currentIdx + 1} / {problems.length}
+                    {typeof currentIdx === 'number' ? currentIdx + 1 : '?'} / {problems.length}
                   </span>
                 </div>
 
+                {/* 1. Problem */}
                 <div className="surface-card px-5 py-5">
                   <p className="section-label">Problem</p>
                   <div className="mt-3 text-[15px] leading-7">
@@ -576,9 +728,10 @@ const Testsolving = () => {
                   </div>
                 </div>
 
+                {/* 2. Answer + Work Area */}
                 <div className="surface-card px-5 py-5 space-y-4">
                   <div>
-                    <label className="section-label">Your answer</label>
+                    <label className="section-label">Your Answer</label>
                     <input
                       type="text"
                       value={resp.answer || ''}
@@ -589,44 +742,79 @@ const Testsolving = () => {
                     />
                   </div>
                   <div>
-                    <label className="section-label">Work area</label>
+                    <label className="section-label">Work Area</label>
                     <textarea
                       value={resp.workArea || ''}
                       onChange={e => setField(current.problemId, 'workArea', e.target.value)}
-                      rows={6}
-                      placeholder="Scratch work, approach, reasoning…"
-                      className="input-base w-full resize-y mt-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="section-label">
-                      Comment on this problem{' '}
-                      <span className="font-normal text-[var(--color-text-faint)]">(optional)</span>
-                    </label>
-                    <textarea
-                      value={resp.comment || ''}
-                      onChange={e => setField(current.problemId, 'comment', e.target.value)}
-                      rows={3}
-                      placeholder="Clarity issues, notation, difficulty, what you'd change…"
+                      rows={7}
+                      placeholder="Scratch work, approach, full solution attempt…"
                       className="input-base w-full resize-y mt-2"
                     />
                   </div>
                 </div>
 
+                {/* 3. Per-problem comments */}
+                <div className="surface-card px-5 py-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare size={14} style={{ color: 'var(--color-accent)' }} />
+                    <p className="section-label">Problem Feedback</p>
+                  </div>
+
+                  <div>
+                    <label className="section-label text-xs">
+                      Comments on this problem{' '}
+                      <span className="font-normal text-[var(--color-text-faint)]">(required for each problem)</span>
+                    </label>
+                    <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
+                      Clarity issues, notation, difficulty impression, what you'd change, whether it felt appropriate for its position…
+                    </p>
+                    <textarea
+                      value={resp.comment || ''}
+                      onChange={e => setField(current.problemId, 'comment', e.target.value)}
+                      rows={3}
+                      placeholder="e.g. The problem statement was unclear about whether x is an integer. Felt harder than its position suggests…"
+                      className="input-base w-full resize-y"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="section-label text-xs flex items-center gap-1.5">
+                      <Timer size={12} />
+                      Estimated time spent on this problem
+                    </label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={resp.timeMinutes || ''}
+                        onChange={e => setField(current.problemId, 'timeMinutes', e.target.value ? parseInt(e.target.value) : null)}
+                        placeholder="0"
+                        className="input-base w-24 text-center"
+                      />
+                      <span className="text-sm text-[var(--color-text-muted)]">minutes</span>
+                    </div>
+                    <p className="text-[11px] text-[var(--color-text-faint)] mt-1">
+                      Approximate is fine — helps us calibrate difficulty.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Navigation */}
                 <div className="flex gap-3 pb-8">
                   <button
                     type="button"
-                    onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
+                    onClick={() => setCurrentIdx(i => typeof i === 'number' ? Math.max(0, i - 1) : problems.length - 1)}
                     disabled={currentIdx === 0}
                     className="btn-outline px-4 py-2 text-sm disabled:opacity-40"
                   >
                     ← Previous
                   </button>
                   <div className="flex-1" />
-                  {currentIdx < problems.length - 1 ? (
+                  {typeof currentIdx === 'number' && currentIdx < problems.length - 1 ? (
                     <button
                       type="button"
-                      onClick={() => setCurrentIdx(i => i + 1)}
+                      onClick={() => setCurrentIdx(i => typeof i === 'number' ? i + 1 : 0)}
                       className="btn-filled px-4 py-2 text-sm"
                     >
                       Next →
@@ -634,11 +822,11 @@ const Testsolving = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setShowReview(true)}
+                      onClick={() => setCurrentIdx('overall')}
                       className="btn-filled px-4 py-2 text-sm flex items-center gap-1.5"
                     >
-                      <Eye size={14} />
-                      Review all
+                      <MessageSquare size={14} />
+                      Overall Comments →
                     </button>
                   )}
                 </div>
@@ -650,26 +838,6 @@ const Testsolving = () => {
             )}
           </div>
         </div>
-
-        {showReview && (
-          <ReviewModal
-            problems={problems}
-            answers={answers}
-            examMeta={session.examMeta}
-            onClose={() => setShowReview(false)}
-            onSubmit={handleSubmit}
-            loading={submitLoading}
-          />
-        )}
-        {submitError && (
-          <div
-            className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-sm border px-4 py-3 text-sm font-medium shadow-lg"
-            style={{ background: 'var(--badge-needs-review-bg)', border: '1px solid var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}
-          >
-            <AlertTriangle size={14} />
-            {submitError}
-          </div>
-        )}
       </Layout>
     );
   }
@@ -728,6 +896,7 @@ const Testsolving = () => {
         )}
       </div>
 
+      {/* Password modal */}
       {pendingExam && (
         <PasswordModal
           exam={pendingExam}
@@ -735,6 +904,15 @@ const Testsolving = () => {
           onCancel={() => { setPendingExam(null); setPwdError(''); }}
           loading={pwdLoading}
           error={pwdError}
+        />
+      )}
+
+      {/* Instructions modal — shown after password verified */}
+      {showInstructions && verifiedSession && (
+        <InstructionsModal
+          exam={verifiedSession.examMeta || exams.find(e => e.id === verifiedSession.testId) || { name: verifiedSession.testName }}
+          onBegin={handleBeginAfterInstructions}
+          onCancel={() => { setShowInstructions(false); setVerifiedSession(null); }}
         />
       )}
     </Layout>

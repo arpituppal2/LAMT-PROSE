@@ -227,6 +227,7 @@ const Layout = ({ children, noPadding = false, pageKey = null }) => {
             background: 'var(--color-bg)',
             color: 'var(--color-text)',
             paddingTop: noPadding ? 0 : '3vh',
+            paddingInline: noPadding ? 0 : '3%',
           }}
         >
           {blocked ? <AccessWall pageName={blockedPage} /> : children}

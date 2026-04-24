@@ -388,7 +388,7 @@ const ExamManager = () => {
   };
 
   return (
-    <Layout>
+    <Layout pageKey="exams">
       <div className="max-w-[960px] mx-auto space-y-5">
         <header className="flex items-center justify-between">
           <div>

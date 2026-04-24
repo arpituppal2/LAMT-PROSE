@@ -56,7 +56,6 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         score += points;
         if (badges[category] !== undefined) badges[category] = (badges[category] || 0) + 1;
       });
-      // Deduplicate feedbacks by id before scoring to prevent double-counting
       const uniqueFeedbacks = Array.from(new Map(user.feedbacks.map((f) => [f.id, f])).values());
       const reviewsGiven = uniqueFeedbacks.length;
       score += reviewsGiven * 0.5;
@@ -67,7 +66,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         initials: user.initials,
         badges,
         score,
-        totalProblems: user.problems.length,
+        totalProblems: user.problems.filter(p => p.stage !== 'Archived').length,
         reviewsGiven,
       };
     });
@@ -76,6 +75,53 @@ router.get('/leaderboard', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Leaderboard error:', error);
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
+// Single user stats — same logic as leaderboard, plus rank
+router.get('/user/:id', authenticate, async (req, res) => {
+  try {
+    // Fetch all users to compute rank (same as leaderboard)
+    const users = await prisma.user.findMany({
+      include: {
+        problems: { include: { feedbacks: true } },
+        feedbacks: {
+          select: { id: true, problemId: true, isEndorsement: true, resolved: true, createdAt: true },
+        },
+      },
+    });
+
+    const scores = users.map((user) => {
+      const badges = { endorsed: 0, idea: 0, needsReview: 0, resolved: 0 };
+      let score = 0;
+      user.problems.forEach((p) => {
+        if (p.stage === 'Archived') return;
+        const { category, points } = classifyProblem(p);
+        score += points;
+        if (badges[category] !== undefined) badges[category] = (badges[category] || 0) + 1;
+      });
+      const uniqueFeedbacks = Array.from(new Map(user.feedbacks.map((f) => [f.id, f])).values());
+      const reviewsGiven = uniqueFeedbacks.length;
+      score += reviewsGiven * 0.5;
+      score = Math.round(score * 100) / 100;
+      return {
+        userId: user.id,
+        badges,
+        score,
+        totalProblems: user.problems.filter(p => p.stage !== 'Archived').length,
+        reviewsGiven,
+      };
+    });
+
+    scores.sort((a, b) => b.score - a.score);
+    const entry = scores.find(s => s.userId === req.params.id);
+    if (!entry) return res.status(404).json({ error: 'User not found' });
+
+    const rank = scores.findIndex(s => s.userId === req.params.id) + 1;
+    res.json({ ...entry, rank, total: scores.filter(s => s.score > 0).length });
+  } catch (error) {
+    console.error('User stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch user stats' });
   }
 });
 

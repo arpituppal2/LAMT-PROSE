@@ -670,12 +670,14 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
 };
 
 /* ── LockModal ─────────────────────────────────────────────── */
-const LockModal = ({ exam, onClose, onLocked }) => {
+const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
   const [password, setPassword] = useState('');
   const [version, setVersion]   = useState((exam.testsolveVersion || 0) + 1);
   const [status, setStatus]     = useState(exam.testsolveStatus || 'inactive');
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
+
+  const hasEmptySlots = emptySlotCount > 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -711,6 +713,27 @@ const LockModal = ({ exam, onClose, onLocked }) => {
           <p className="text-xs text-[var(--color-text-muted)]">
             Locking freezes the exam for testsolvers. They will need the password to access it.
           </p>
+
+          {/* ── Empty slot warning ── */}
+          {hasEmptySlots && (
+            <div
+              className="flex items-start gap-2.5 rounded-sm border px-3 py-2.5 text-xs"
+              style={{
+                background: 'var(--badge-idea-bg)',
+                borderColor: 'var(--badge-idea-border)',
+                color: 'var(--badge-idea-text)',
+              }}
+            >
+              <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold">
+                  {emptySlotCount} of {totalSlots} slot{totalSlots !== 1 ? 's' : ''} {emptySlotCount === 1 ? 'is' : 'are'} empty.
+                </span>
+                {' '}Testsolvers will see blank problems for those slots. You can still lock and proceed.
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="section-label">Testsolve Password *</label>
             <input
@@ -853,6 +876,12 @@ const ExamDetail = () => {
   }, [shortlist]);
 
   const dupes = useDuplicates(examId, slotMap);
+
+  /* ── Empty slot count for lock warning ── */
+  const emptySlotCount = useMemo(
+    () => slotDefs.length - Object.keys(slotMap).length,
+    [slotDefs.length, slotMap]
+  );
 
   const bankProblems = useMemo(() => {
     let list = problems.filter((p) => p.stage !== 'Archived');
@@ -1029,10 +1058,18 @@ const ExamDetail = () => {
               ) : (
                 <button
                   onClick={() => setShowLockModal(true)}
-                  className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-green-600 border-green-400/50 hover:border-green-500 whitespace-nowrap"
-                  title="Lock for testsolving"
+                  className={[
+                    'btn-outline flex items-center gap-1.5 px-2.5 py-1 text-[11px] whitespace-nowrap',
+                    emptySlotCount > 0
+                      ? 'text-amber-600 border-amber-400/50 hover:border-amber-500'
+                      : 'text-green-600 border-green-400/50 hover:border-green-500',
+                  ].join(' ')}
+                  title={emptySlotCount > 0 ? `${emptySlotCount} slot${emptySlotCount !== 1 ? 's' : ''} empty` : 'Lock for testsolving'}
                 >
-                  <Lock size={11} />
+                  {emptySlotCount > 0
+                    ? <AlertTriangle size={11} />
+                    : <Lock size={11} />
+                  }
                   Lock
                 </button>
               )}
@@ -1237,6 +1274,8 @@ const ExamDetail = () => {
           exam={exam}
           onClose={() => setShowLockModal(false)}
           onLocked={handleLocked}
+          emptySlotCount={emptySlotCount}
+          totalSlots={slotDefs.length}
         />
       )}
     </Layout>

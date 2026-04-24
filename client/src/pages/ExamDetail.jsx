@@ -955,7 +955,7 @@ const ExamDetail = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <Layout noPadding>
         <div className="flex h-64 items-center justify-center gap-2 text-[var(--color-text-muted)]">
           <Loader2 size={18} className="animate-spin text-[var(--color-accent)]" />
           Loading exam…
@@ -966,7 +966,7 @@ const ExamDetail = () => {
 
   if (!exam) {
     return (
-      <Layout>
+      <Layout noPadding>
         <div className="text-center py-20">
           <p className="text-sm text-[var(--color-text-muted)]">Exam not found.</p>
           <Link to="/exams" className="text-sm text-[var(--color-accent)] hover:underline mt-2 inline-block">Back to exams</Link>
@@ -978,7 +978,7 @@ const ExamDetail = () => {
   /* ── Configure panel shown ── */
   if (showConfigure) {
     return (
-      <Layout>
+      <Layout noPadding>
         <div className="flex flex-col" style={{ height: 'calc(100vh - 3vh)', overflow: 'hidden' }}>
           <ConfigureExam
             exam={exam}
@@ -992,8 +992,8 @@ const ExamDetail = () => {
   }
 
   return (
-    <Layout>
-      <div className="flex flex-col" style={{ height: 'calc(100vh - 3vh)', overflow: 'hidden' }}>
+    <Layout noPadding>
+      <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
 
         {/* ── Top bar ─────────────────────────────────────── */}
         <div className="flex-shrink-0 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2">

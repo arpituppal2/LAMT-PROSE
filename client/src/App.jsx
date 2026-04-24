@@ -14,6 +14,7 @@ import ExamManager from './pages/ExamManager';
 import ExamDetail from './pages/ExamDetail';
 import ArchivePage from './pages/ArchivePage';
 import AdminPanel from './pages/AdminPanel';
+import Testsolving from './pages/Testsolving';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -64,6 +65,7 @@ function App() {
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
+          <Route path="/testsolving" element={<PrivateRoute><Testsolving /></PrivateRoute>} />
 
           {/* Fallback Route */}
           <Route path="/" element={<Navigate to="/dashboard" />} />

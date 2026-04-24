@@ -27,7 +27,6 @@ const USER_SELECT = {
 };
 
 // ── GET /api/admin/users ─────────────────────────────────────
-// Returns all non-admin users
 router.get('/users', authenticate, requireAdmin, async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -59,8 +58,6 @@ router.get('/users/:id', authenticate, requireAdmin, async (req, res) => {
 });
 
 // ── PATCH /api/admin/users/:id ──────────────────────────────
-// Accepts: firstName, lastName, initials, disabled, pageAccess
-// If initials change, also rewrites all Problem IDs belonging to this user.
 router.patch('/users/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const { firstName, lastName, initials, disabled, pageAccess } = req.body;
@@ -76,7 +73,6 @@ router.patch('/users/:id', authenticate, requireAdmin, async (req, res) => {
     if (disabled   !== undefined) data.disabled   = disabled;
     if (pageAccess !== undefined) data.pageAccess = pageAccess;
 
-    // Rename problem IDs if initials changed
     if (initials !== undefined && initials.toUpperCase() !== existing.initials) {
       const oldPrefix = existing.initials + '-';
       const newPrefix = initials.toUpperCase() + '-';
@@ -87,7 +83,6 @@ router.patch('/users/:id', authenticate, requireAdmin, async (req, res) => {
       for (const p of problems) {
         if (p.id.startsWith(oldPrefix)) {
           const newId = newPrefix + p.id.slice(oldPrefix.length);
-          // Prisma doesn't support updating @id directly via update — use raw SQL
           await prisma.$executeRawUnsafe(
             `UPDATE "Problem" SET id = $1 WHERE id = $2`,
             newId, p.id
@@ -108,7 +103,7 @@ router.patch('/users/:id', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
-// ── GET /api/admin/guest-content (existing) ─────────────────
+// ── GET /api/admin/guest-content ────────────────────────────
 router.get('/guest-content', authenticate, requireAdmin, async (req, res) => {
   try {
     const guest = await prisma.user.findUnique({ where: { email: GUEST_EMAIL } });
@@ -144,6 +139,123 @@ router.get('/guest-content', authenticate, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('guest-content error:', error);
     res.status(500).json({ error: 'Failed to load guest content' });
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// TOURNAMENTS
+// ════════════════════════════════════════════════════════════
+
+// GET /api/admin/tournaments — list all (any authenticated user can read)
+router.get('/tournaments', authenticate, async (req, res) => {
+  try {
+    const tournaments = await prisma.tournament.findMany({
+      orderBy: { name: 'asc' },
+      include: { rounds: { orderBy: { name: 'asc' } } },
+    });
+    res.json(tournaments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch tournaments' });
+  }
+});
+
+// POST /api/admin/tournaments — create
+router.post('/tournaments', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Tournament name is required.' });
+    const tournament = await prisma.tournament.create({
+      data: { name: name.trim(), description: description?.trim() || null },
+      include: { rounds: true },
+    });
+    res.json(tournament);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create tournament' });
+  }
+});
+
+// PATCH /api/admin/tournaments/:id — update name/description
+router.patch('/tournaments/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const data = {};
+    if (name !== undefined) data.name = name.trim();
+    if (description !== undefined) data.description = description?.trim() || null;
+    const tournament = await prisma.tournament.update({
+      where: { id: req.params.id },
+      data,
+      include: { rounds: { orderBy: { name: 'asc' } } },
+    });
+    res.json(tournament);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update tournament' });
+  }
+});
+
+// DELETE /api/admin/tournaments/:id
+router.delete('/tournaments/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await prisma.tournamentRound.deleteMany({ where: { tournamentId: req.params.id } });
+    // Null out tournamentId on any associated tests
+    await prisma.test.updateMany({ where: { tournamentId: req.params.id }, data: { tournamentId: null } });
+    await prisma.tournament.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete tournament' });
+  }
+});
+
+// ── Rounds ───────────────────────────────────────────────────
+
+// POST /api/admin/tournaments/:id/rounds
+router.post('/tournaments/:id/rounds', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { name, roundType } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Round name is required.' });
+    const round = await prisma.tournamentRound.create({
+      data: {
+        tournamentId: req.params.id,
+        name: name.trim(),
+        roundType: roundType || 'Individual',
+      },
+    });
+    res.json(round);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create round' });
+  }
+});
+
+// PATCH /api/admin/tournaments/:id/rounds/:roundId
+router.patch('/tournaments/:id/rounds/:roundId', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { name, roundType } = req.body;
+    const data = {};
+    if (name !== undefined) data.name = name.trim();
+    if (roundType !== undefined) data.roundType = roundType;
+    const round = await prisma.tournamentRound.update({
+      where: { id: req.params.roundId },
+      data,
+    });
+    res.json(round);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update round' });
+  }
+});
+
+// DELETE /api/admin/tournaments/:id/rounds/:roundId
+router.delete('/tournaments/:id/rounds/:roundId', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await prisma.tournamentRound.delete({ where: { id: req.params.roundId } });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete round' });
   }
 });
 

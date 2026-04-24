@@ -27,7 +27,7 @@ const ErrorMsg = ({ msg }) =>
 const Field = ({ label, hint, children }) => (
   <div>
     <label className="section-label">{label}</label>
-    {hint && <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-1">{hint}</p>}
+    {hint && <p className="text-[13px] text-[var(--color-text-faint)] mt-0.5 mb-1">{hint}</p>}
     <div className="mt-1.5">{children}</div>
   </div>
 );
@@ -236,7 +236,7 @@ const NewExamModal = ({ onClose, onCreate }) => {
                 })}
               </div>
               {form.examTopics.length === 0 && (
-                <p className="text-[10px] text-[var(--color-text-faint)] mt-1">All topics shown.</p>
+                <p className="text-[13px] text-[var(--color-text-faint)] mt-1">All topics shown.</p>
               )}
             </Field>
 
@@ -285,7 +285,7 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick }) => {
           <span className="font-semibold text-sm whitespace-nowrap">{exam.name}</span>
 
           {exam.roundType && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15 whitespace-nowrap">
+            <span className="text-[13px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15 whitespace-nowrap">
               {exam.roundType}
             </span>
           )}
@@ -298,7 +298,7 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick }) => {
           )}
 
           <span className="text-[var(--color-text-faint)] text-xs">·</span>
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] whitespace-nowrap tabular-nums">
+          <span className="text-[13px] font-medium px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] whitespace-nowrap tabular-nums">
             {totalSlots} slots
           </span>
 

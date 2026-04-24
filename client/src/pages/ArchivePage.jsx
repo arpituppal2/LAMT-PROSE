@@ -151,13 +151,13 @@ const ArchivePage = () => {
                           />
                         </div>
                         <div className="flex gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]">
+                          <span className="text-[13px] font-semibold px-2 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]">
                             {problem.quality ? `${problem.quality}/10` : '?'}
                           </span>
                           {(problem.topics || []).map((t) => (
                             <span
                               key={t}
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]"
+                              className="text-[13px] font-medium px-1.5 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]"
                             >
                               {t}
                             </span>

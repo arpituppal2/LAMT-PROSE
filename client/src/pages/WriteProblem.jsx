@@ -113,11 +113,11 @@ const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, image
         </div>
       )}
       <div className="flex items-center gap-2 flex-wrap pt-1">
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
+        <span className="text-[13px] font-semibold px-2 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
           Difficulty {difficulty}/10
         </span>
         {topics.map(t => (
-          <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]">
+          <span key={t} className="text-[13px] font-medium px-1.5 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]">
             {t}
           </span>
         ))}
@@ -159,7 +159,7 @@ const DifficultySlider = ({ value, onChange }) => {
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            className={`text-[10px] font-semibold w-5 text-center transition-colors ${
+            className={`text-[13px] font-semibold w-5 text-center transition-colors ${
               n === value
                 ? 'text-[var(--color-accent)]'
                 : 'text-[var(--color-text-faint)] hover:text-[var(--color-text-muted)]'
@@ -421,7 +421,7 @@ useEffect(() => {
                 ))}
                 <label className="w-24 h-28 flex flex-col items-center justify-center rounded-sm border-2 border-dashed border-[var(--color-border)] cursor-pointer hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 transition-all group">
                   <ImageIcon size={16} className="text-[var(--color-text-faint)] group-hover:text-[var(--color-accent)] transition-colors" />
-                  <span className="text-[10px] text-[var(--color-text-faint)] mt-1.5 font-semibold uppercase">Add File</span>
+                  <span className="text-[13px] text-[var(--color-text-faint)] mt-1.5 font-semibold uppercase">Add File</span>
                   <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
                 </label>
               </div>

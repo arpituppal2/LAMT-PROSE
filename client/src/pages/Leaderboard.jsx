@@ -67,7 +67,7 @@ const Leaderboard = () => {
               {SCORE_CHIPS.map((chip) => (
                 <span
                   key={chip.label}
-                  className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em]"
+                  className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[13px] font-bold uppercase tracking-[0.1em]"
                   style={{
                     color: chip.color,
                     backgroundColor: chip.bg,

@@ -375,11 +375,11 @@ const GiveFeedback = () => {
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono text-sm font-semibold text-[var(--color-accent)]">{rp.id}</span>
                             {(rp.topics || []).map((t) => (
-                              <span key={t} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] font-medium">
+                              <span key={t} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[13px] font-medium">
                                 {t}
                               </span>
                             ))}
-                            <span className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold border ${STATUS_BADGE_CLASS[statusForProblem(rp)] || STATUS_BADGE_CLASS.Idea}`}>
+                            <span className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[13px] font-semibold border ${STATUS_BADGE_CLASS[statusForProblem(rp)] || STATUS_BADGE_CLASS.Idea}`}>
                               {statusForProblem(rp)}
                             </span>
                             {rp.quality && (
@@ -418,7 +418,7 @@ const GiveFeedback = () => {
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="font-mono text-sm font-semibold text-[var(--color-accent)]">{problem.id}</span>
                 {(problem.topics || []).map((t) => (
-                  <span key={t} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-0.5 text-[10px] font-medium">
+                  <span key={t} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-0.5 text-[13px] font-medium">
                     {t}
                   </span>
                 ))}

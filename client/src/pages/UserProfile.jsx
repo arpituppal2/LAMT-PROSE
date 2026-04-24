@@ -59,7 +59,7 @@ const MathBackground = () => {
 
 const StatTile = ({ label, value, accent = false }) => (
   <div className="text-right">
-    <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-0.5" style={{ color: 'var(--color-text-faint)' }}>{label}</p>
+    <p className="text-[13px] font-bold uppercase tracking-[0.12em] mb-0.5" style={{ color: 'var(--color-text-faint)' }}>{label}</p>
     <p className="tabular-nums leading-none" style={{
       fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 800,
       color: accent ? 'var(--color-accent)' : 'var(--color-text)',
@@ -150,7 +150,7 @@ const UserProfile = () => {
         {/* Back */}
         <div className="relative z-10 px-8 pt-5">
           <button onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors"
+            className="inline-flex items-center gap-1 text-[13px] font-bold uppercase tracking-[0.08em] transition-colors"
             style={{ color: 'var(--color-text-faint)', background: 'none', border: 'none', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-faint)'}>
@@ -270,7 +270,7 @@ const UserProfile = () => {
                           ? <span className={cls} style={{ fontSize: '0.65rem' }}>{label}</span>
                           : <span className="text-xs font-bold" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
                         }
-                        <span className="text-[10px] tabular-nums" style={{ color: 'var(--color-text-faint)', fontFamily: 'monospace' }}>
+                        <span className="text-[13px] tabular-nums" style={{ color: 'var(--color-text-faint)', fontFamily: 'monospace' }}>
                           ×+{pts}
                         </span>
                       </div>
@@ -314,7 +314,7 @@ const UserProfile = () => {
                     <button
                       type="button"
                       onClick={() => setStageFilter(null)}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.06em] px-2 py-0.5 transition-colors"
+                      className="inline-flex items-center gap-1 text-[13px] font-bold uppercase tracking-[0.06em] px-2 py-0.5 transition-colors"
                       style={{
                         background: 'var(--color-surface-offset)',
                         border: '1px solid var(--color-accent)',
@@ -326,7 +326,7 @@ const UserProfile = () => {
                     </button>
                   )}
                 </div>
-                <span className="tabular-nums font-bold text-[10px]" style={{
+                <span className="tabular-nums font-bold text-[13px]" style={{
                   fontFamily: 'monospace', color: 'var(--color-text-faint)',
                   background: 'var(--color-surface-offset)', border: '1px solid var(--color-border)',
                   padding: '0.1rem 0.45rem',
@@ -417,7 +417,7 @@ const UserProfile = () => {
                   <MessageSquare size={13} style={{ color: 'var(--color-text-faint)' }} />
                   <span className="section-label">Reviews Given</span>
                 </div>
-                <span className="tabular-nums font-bold text-[10px]" style={{
+                <span className="tabular-nums font-bold text-[13px]" style={{
                   fontFamily: 'monospace', color: 'var(--color-text-faint)',
                   background: 'var(--color-surface-offset)', border: '1px solid var(--color-border)',
                   padding: '0.1rem 0.45rem',

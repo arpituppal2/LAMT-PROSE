@@ -136,11 +136,11 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="text-xs font-semibold">{fb.user?.firstName} {fb.user?.lastName}</span>
                       {fb.isEndorsement
-                        ? <span className="text-[10px] font-semibold text-[var(--badge-endorsed-text)]">✓ Endorsed</span>
+                        ? <span className="text-[13px] font-semibold text-[var(--badge-endorsed-text)]">✓ Endorsed</span>
                         : fb.resolved
-                          ? <span className="text-[10px] font-semibold text-[var(--color-accent)]">Resolved</span>
-                          : <span className="rounded-sm bg-[var(--badge-needs-review-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--badge-needs-review-text)]">Needs Review</span>}
-                      <span className="ml-auto text-[10px] tabular-nums text-[var(--color-text-muted)]">
+                          ? <span className="text-[13px] font-semibold text-[var(--color-accent)]">Resolved</span>
+                          : <span className="rounded-sm bg-[var(--badge-needs-review-bg)] px-1.5 py-0.5 text-[13px] font-semibold text-[var(--badge-needs-review-text)]">Needs Review</span>}
+                      <span className="ml-auto text-[13px] tabular-nums text-[var(--color-text-muted)]">
                         {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}
                       </span>
                     </div>
@@ -412,7 +412,7 @@ const ProblemInventory = () => {
                         <td className="px-5 py-4">
                           <div className="flex flex-wrap gap-1">
                             {(problem.topics || []).map((t) => (
-                              <span key={t} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] font-medium">
+                              <span key={t} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[13px] font-medium">
                                 {t}
                               </span>
                             ))}

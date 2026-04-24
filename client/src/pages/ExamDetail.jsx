@@ -193,7 +193,7 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
         <span className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider flex-shrink-0">{slot.label}</span>
         {problem ? (
           <>
-            <span className="font-mono text-[10px] font-bold text-[var(--color-accent)] leading-none flex-shrink-0">{problem.id}</span>
+            <span className="font-mono text-[13px] font-bold text-[var(--color-accent)] leading-none flex-shrink-0">{problem.id}</span>
             <span className="text-[9px] tabular-nums font-semibold text-[var(--color-text-faint)] flex-shrink-0">{problem.quality || '?'}/10</span>
             <div className="flex items-center gap-0.5 flex-1 min-w-0 flex-wrap">
               {topics.map(t => (
@@ -240,7 +240,7 @@ const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
       onClick={() => onPreview(problem)}
     >
       <Grip />
-      <span className="font-mono text-[10px] font-bold text-[var(--color-accent)] leading-none flex-shrink-0">{problem.id}</span>
+      <span className="font-mono text-[13px] font-bold text-[var(--color-accent)] leading-none flex-shrink-0">{problem.id}</span>
       <StageChip stage={status} />
       <div className="flex items-center gap-0.5">
         {topics.map(t => (
@@ -283,7 +283,7 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
             <span key={t} className="text-[9px] font-medium px-1 py-0.5 rounded-sm bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">{t}</span>
           ))}
         </div>
-        <span className="flex-shrink-0 text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)] ml-auto">{problem.quality || '?'}/10</span>
+        <span className="flex-shrink-0 text-[13px] tabular-nums font-semibold text-[var(--color-text-faint)] ml-auto">{problem.quality || '?'}/10</span>
         {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)] flex-shrink-0">✓</span>}
       </div>
       <div className="mt-0.5 pl-5 text-[13px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
@@ -528,7 +528,7 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {warning.removedIds.map(id => (
-                    <span key={id} className="font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-accent)]">{id}</span>
+                    <span key={id} className="font-mono text-[13px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-accent)]">{id}</span>
                   ))}
                 </div>
               </div>
@@ -599,7 +599,7 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
           {/* Competition label */}
           <div>
             <label className="section-label">Competition Label</label>
-            <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-1">Shown on the exam header. Defaults to the tournament name if blank.</p>
+            <p className="text-[13px] text-[var(--color-text-faint)] mt-0.5 mb-1">Shown on the exam header. Defaults to the tournament name if blank.</p>
             <input className="input-base w-full" value={form.competition} onChange={set('competition')} placeholder={selectedTournament?.name || 'e.g. LAMT 2026'} />
           </div>
 
@@ -633,7 +633,7 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
           {/* Exam topics — LAMT styled chips */}
           <div>
             <label className="section-label">Exam Topics</label>
-            <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-2.5">
+            <p className="text-[13px] text-[var(--color-text-faint)] mt-0.5 mb-2.5">
               Which topics should appear in the problem bank for this exam? Leave blank to show all.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -754,7 +754,7 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
               value={version}
               onChange={e => setVersion(Math.max(1, parseInt(e.target.value) || 1))}
             />
-            <p className="text-[10px] text-[var(--color-text-faint)] mt-1">Increment when re-locking after edits so testsolvers know which version they solved.</p>
+            <p className="text-[13px] text-[var(--color-text-faint)] mt-1">Increment when re-locking after edits so testsolvers know which version they solved.</p>
           </div>
           <div>
             <label className="section-label">Testsolve Status</label>
@@ -1014,7 +1014,7 @@ const ExamDetail = () => {
               <Settings size={12} className="flex-shrink-0 text-[var(--color-text-faint)] group-hover:text-[var(--color-accent)] transition-colors" />
             </button>
 
-            <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] leading-tight flex-shrink-0">
+            <div className="flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] leading-tight flex-shrink-0">
               {exam.roundType && (
                 <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15">
                   {exam.roundType}
@@ -1087,13 +1087,13 @@ const ExamDetail = () => {
           </div>
 
           {dupes.length > 0 && (
-            <div className="mt-1.5 flex items-start gap-2 rounded-sm border border-[var(--badge-idea-border)] bg-[var(--badge-idea-bg)] px-3 py-1.5 text-[10px] text-[var(--badge-idea-text)]">
+            <div className="mt-1.5 flex items-start gap-2 rounded-sm border border-[var(--badge-idea-border)] bg-[var(--badge-idea-bg)] px-3 py-1.5 text-[13px] text-[var(--badge-idea-text)]">
               <AlertTriangle size={11} className="flex-shrink-0 mt-0.5" />
               <span>Duplicates in: {dupes.map((d) => `${d.examName} (${d.problems.join(', ')})`).join('; ')}</span>
             </div>
           )}
           {topicRestriction && (
-            <div className="mt-1 text-[10px] text-[var(--color-text-faint)]">
+            <div className="mt-1 text-[13px] text-[var(--color-text-faint)]">
               Topic filter: {topicRestriction.join(', ')}. Bank is pre-filtered.
             </div>
           )}
@@ -1101,7 +1101,7 @@ const ExamDetail = () => {
 
         {/* ── Locked banner ────────────────────────────────── */}
         {exam.isLocked && (
-          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-500/10 border-b border-amber-400/30 text-[10px] text-amber-700 dark:text-amber-400">
+          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-500/10 border-b border-amber-400/30 text-[13px] text-amber-700 dark:text-amber-400">
             <Lock size={10} className="flex-shrink-0" />
             <span>
               <strong>Locked for testsolving</strong> — v{exam.testsolveVersion} · status: <strong>{exam.testsolveStatus || 'inactive'}</strong>
@@ -1136,7 +1136,7 @@ const ExamDetail = () => {
             {/* EXAM SLOTS */}
             <div className="p-3">
               <div className="flex items-center gap-2 px-1 mb-2">
-                <p className="section-label uppercase tracking-widest text-[10px] flex-1">
+                <p className="section-label uppercase tracking-widest text-[13px] flex-1">
                   Exam Slots ({Object.keys(slotMap).length}/{slotDefs.length})
                 </p>
                 <label className="flex items-center gap-1.5 text-[9px] text-[var(--color-text-muted)] flex-shrink-0">
@@ -1172,12 +1172,12 @@ const ExamDetail = () => {
 
             {/* SHORTLIST */}
             <div className="px-3 pb-3">
-              <p className="section-label px-1 mb-1 uppercase tracking-widest text-[10px]">
+              <p className="section-label px-1 mb-1 uppercase tracking-widest text-[13px]">
                 Shortlist ({shortlist.length})
               </p>
               {shortlist.length === 0 ? (
                 <div
-                  className="border border-dashed border-[var(--color-border)] rounded-sm px-3 py-3 text-[10px] text-[var(--color-text-faint)] italic text-center"
+                  className="border border-dashed border-[var(--color-border)] rounded-sm px-3 py-3 text-[13px] text-[var(--color-text-faint)] italic text-center"
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
@@ -1242,13 +1242,13 @@ const ExamDetail = () => {
                   <option value="">All stages</option>
                   {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)] flex-shrink-0">
+                <div className="flex items-center gap-1 text-[13px] text-[var(--color-text-muted)] flex-shrink-0">
                   <span>Diff</span>
                   <input type="number" min={1} max={10} value={bankDiffMin} onChange={(e) => setBankDiffMin(+e.target.value)} className="input-base w-9 py-1 px-1 text-center text-xs" />
                   <span>–</span>
                   <input type="number" min={1} max={10} value={bankDiffMax} onChange={(e) => setBankDiffMax(+e.target.value)} className="input-base w-9 py-1 px-1 text-center text-xs" />
                 </div>
-                <span className="text-[10px] text-[var(--color-text-muted)] tabular-nums flex-shrink-0">{bankProblems.length}</span>
+                <span className="text-[13px] text-[var(--color-text-muted)] tabular-nums flex-shrink-0">{bankProblems.length}</span>
               </div>
             </div>
 

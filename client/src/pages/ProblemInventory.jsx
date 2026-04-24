@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, X, Archive } from 'lucide-react';
 import api from '../utils/api';
 import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-/* ── Shimmer skeleton ──────────────────────────────────────── */
+/* ── Shimmer skeleton ──────────────────────────────────────────── */
 const shimmerBase = [
   'bg-gradient-to-r from-[var(--color-surface)] via-[var(--color-surface-2)] to-[var(--color-surface)]',
   'bg-[length:200%_100%] animate-[shimmer_1.5s_ease-in-out_infinite]',
@@ -51,7 +51,7 @@ const InventorySkeleton = () => (
   </Layout>
 );
 
-/* ── Preview modal ─────────────────────────────────────────── */
+/* ── Preview modal ───────────────────────────────────────────── */
 const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   const [showSol, setShowSol] = useState(false);
   const data = fullProblem || problem;
@@ -179,7 +179,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   );
 };
 
-/* ── Status count cards ────────────────────────────────────── */
+/* ── Status count cards ──────────────────────────────────────────── */
 const StatusCard = ({ label, count, color }) => (
   <div className="surface-card px-4 py-4">
     <p className="section-label">{label}</p>
@@ -302,7 +302,7 @@ const ProblemInventory = () => {
   if (loading) return <InventorySkeleton />;
 
   return (
-    <Layout>
+    <Layout pageKey="inventory">
       <div className="max-w-7xl mx-auto space-y-5">
 
         {/* ── Page header ── */}
@@ -345,7 +345,6 @@ const ProblemInventory = () => {
 
         {/* ── Filter bar ── */}
         <div className="flex flex-wrap items-center gap-3 surface-card p-4">
-          {/* Search — flex-1 so it takes remaining space */}
           <label className="relative flex-1 min-w-[200px]">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
             <input
@@ -356,7 +355,6 @@ const ProblemInventory = () => {
               className="input-base w-full pl-8"
             />
           </label>
-          {/* Dropdowns pushed to the right */}
           <div className="flex flex-wrap gap-2 ml-auto">
             {[
               { val: sortBy,           fn: setSortBy,           opts: [['newest','Newest'],['oldest','Oldest'],['diff','Hardest first'],['easiest','Easiest first']] },
@@ -377,13 +375,12 @@ const ProblemInventory = () => {
           </div>
         </div>
 
-        {/* ── Table: Problem (wide) / Topics / Stage / Difficulty ── */}
+        {/* ── Table ── */}
         <div className="surface-card overflow-hidden">
           <div className="overflow-x-auto w-full">
             <table className="w-full min-w-[600px] text-left">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  {/* Problem gets the majority of the space */}
                   <th className="px-5 py-3.5 section-label" style={{ width: '52%' }}>Problem</th>
                   <th className="px-5 py-3.5 section-label" style={{ width: '20%' }}>Topics</th>
                   <th className="px-5 py-3.5 section-label" style={{ width: '16%' }}>Stage</th>
@@ -436,6 +433,18 @@ const ProblemInventory = () => {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* ── Archive button ── */}
+        <div className="flex justify-end pb-2">
+          <button
+            type="button"
+            onClick={() => navigate('/archive')}
+            className="btn-outline inline-flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <Archive size={13} />
+            Archive
+          </button>
         </div>
 
       </div>

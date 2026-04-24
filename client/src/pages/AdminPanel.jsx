@@ -5,6 +5,7 @@ import {
   Save, X, ToggleLeft, ToggleRight, Check, AlertTriangle,
   User, Lock, Unlock, Eye, EyeOff,
   Plus, Trash2, Pencil, Trophy, ChevronDown,
+  FlaskConical, KeyRound, Users, Copy, ChevronUp,
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
@@ -57,7 +58,7 @@ const Tag = ({ label, active }) => (
   }}>{label}</span>
 );
 
-/* ── Non-admin gate ─────────────────────────────────────────── */
+/* ── Non-admin gate ─────────────────────────────────────────────── */
 const NotAdminGate = () => {
   const navigate = useNavigate();
   return (
@@ -345,27 +346,22 @@ const TournamentsTab = () => {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState('');
 
-  // tournament create form
   const [newTName, setNewTName] = useState('');
   const [newTDesc, setNewTDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [tError, setTError]     = useState('');
 
-  // editing tournament name inline
-  const [editingT, setEditingT]   = useState(null); // id
+  const [editingT, setEditingT]   = useState(null);
   const [editTName, setEditTName] = useState('');
   const [savingT, setSavingT]     = useState(false);
 
-  // expanded tournament
   const [expanded, setExpanded] = useState(null);
 
-  // new round per tournament { [tId]: { name, roundType } }
   const [newRound, setNewRound]   = useState({});
-  const [addingR, setAddingR]     = useState({}); // tId -> bool
+  const [addingR, setAddingR]     = useState({});
   const [rError, setRError]       = useState({});
 
-  // editing a round inline
-  const [editingR, setEditingR]   = useState(null); // roundId
+  const [editingR, setEditingR]   = useState(null);
   const [editRName, setEditRName] = useState('');
   const [editRType, setEditRType] = useState('');
   const [savingR, setSavingR]     = useState(false);
@@ -381,7 +377,6 @@ const TournamentsTab = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  /* ── Create tournament ── */
   const handleCreateT = async (e) => {
     e.preventDefault();
     if (!newTName.trim()) { setTError('Tournament name is required.'); return; }
@@ -395,7 +390,6 @@ const TournamentsTab = () => {
     finally { setCreating(false); }
   };
 
-  /* ── Delete tournament ── */
   const handleDeleteT = async (id) => {
     if (!window.confirm('Delete this tournament and all its rounds? This cannot be undone.')) return;
     try {
@@ -405,7 +399,6 @@ const TournamentsTab = () => {
     } catch (err) { alert(err.response?.data?.error || 'Failed to delete.'); }
   };
 
-  /* ── Save tournament name ── */
   const handleSaveT = async (id) => {
     if (!editTName.trim()) return;
     setSavingT(true);
@@ -417,7 +410,6 @@ const TournamentsTab = () => {
     finally { setSavingT(false); }
   };
 
-  /* ── Create round ── */
   const handleCreateR = async (e, tId) => {
     e.preventDefault();
     const nr = newRound[tId] || {};
@@ -437,7 +429,6 @@ const TournamentsTab = () => {
     finally { setAddingR(prev => ({ ...prev, [tId]: false })); }
   };
 
-  /* ── Delete round ── */
   const handleDeleteR = async (tId, roundId) => {
     if (!window.confirm('Delete this round?')) return;
     try {
@@ -448,7 +439,6 @@ const TournamentsTab = () => {
     } catch (err) { alert(err.response?.data?.error || 'Failed to delete.'); }
   };
 
-  /* ── Save round ── */
   const handleSaveR = async (tId, roundId) => {
     setSavingR(true);
     try {
@@ -471,7 +461,6 @@ const TournamentsTab = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 800 }}>Tournaments &amp; Rounds</h2>
         <span style={{
@@ -481,20 +470,13 @@ const TournamentsTab = () => {
         }}>{tournaments.length} TOURNAMENT{tournaments.length !== 1 ? 'S' : ''}</span>
       </div>
 
-      {/* Create tournament form */}
       <form onSubmit={handleCreateT} className={card} style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <span className={hdr}>New Tournament</span>
         <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
-          <input
-            className={inp} placeholder="Tournament name (e.g. LAMT 2026)" value={newTName}
-            onChange={e => setNewTName(e.target.value)}
-            style={{ flex: '1 1 200px', minWidth: 0 }}
-          />
-          <input
-            className={inp} placeholder="Description (optional)" value={newTDesc}
-            onChange={e => setNewTDesc(e.target.value)}
-            style={{ flex: '2 1 260px', minWidth: 0 }}
-          />
+          <input className={inp} placeholder="Tournament name (e.g. LAMT 2026)" value={newTName}
+            onChange={e => setNewTName(e.target.value)} style={{ flex: '1 1 200px', minWidth: 0 }} />
+          <input className={inp} placeholder="Description (optional)" value={newTDesc}
+            onChange={e => setNewTDesc(e.target.value)} style={{ flex: '2 1 260px', minWidth: 0 }} />
           <button type="submit" disabled={creating} className="btn-filled"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap', padding: '0 1rem' }}>
             <Plus size={14} />{creating ? 'Creating…' : 'Add Tournament'}
@@ -503,7 +485,6 @@ const TournamentsTab = () => {
         {tError && <p style={{ fontSize: 'var(--text-xs)', color: '#dc2626', margin: 0 }}>{tError}</p>}
       </form>
 
-      {/* Tournament list */}
       {tournaments.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: '3rem 2rem', border: '1px dashed var(--color-border)',
@@ -518,55 +499,38 @@ const TournamentsTab = () => {
             const isExpanded = expanded === t.id;
             const isEditing  = editingT === t.id;
             const nr = newRound[t.id] || { name: '', roundType: 'Individual' };
-
             return (
               <div key={t.id} className={card} style={{ overflow: 'hidden' }}>
-                {/* Tournament header row */}
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '0.625rem',
                   padding: '0.75rem 1rem', cursor: 'pointer',
                   borderBottom: isExpanded ? '1px solid var(--color-border)' : 'none',
-                }}
-                  onClick={() => setExpanded(isExpanded ? null : t.id)}
-                >
+                }} onClick={() => setExpanded(isExpanded ? null : t.id)}>
                   <ChevronDown size={14} style={{
                     color: 'var(--color-text-faint)', flexShrink: 0,
                     transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
                     transition: 'transform 0.15s',
                   }} />
-
                   {isEditing ? (
-                    <input
-                      className={inp}
-                      value={editTName}
-                      onChange={e => setEditTName(e.target.value)}
+                    <input className={inp} value={editTName} onChange={e => setEditTName(e.target.value)}
                       onClick={e => e.stopPropagation()}
                       onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); handleSaveT(t.id); } if (e.key === 'Escape') { e.stopPropagation(); setEditingT(null); } }}
-                      autoFocus
-                      style={{ flex: 1, minWidth: 0, fontWeight: 700 }}
-                    />
+                      autoFocus style={{ flex: 1, minWidth: 0, fontWeight: 700 }} />
                   ) : (
                     <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)', flex: 1 }}>{t.name}</span>
                   )}
-
                   <span style={{
                     fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)',
                     background: 'var(--color-surface-offset)', border: '1px solid var(--color-border)',
                     padding: '0.15em 0.5em', whiteSpace: 'nowrap',
-                  }}>
-                    {(t.rounds || []).length} round{(t.rounds || []).length !== 1 ? 's' : ''}
-                  </span>
-
-                  {/* Edit name button */}
+                  }}>{(t.rounds || []).length} round{(t.rounds || []).length !== 1 ? 's' : ''}</span>
                   {isEditing ? (
                     <>
-                      <button onClick={e => { e.stopPropagation(); handleSaveT(t.id); }}
-                        disabled={savingT} className="btn-primary btn-sm"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem' }}>
+                      <button onClick={e => { e.stopPropagation(); handleSaveT(t.id); }} disabled={savingT}
+                        className="btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem' }}>
                         <Check size={12} />{savingT ? '…' : 'Save'}
                       </button>
-                      <button onClick={e => { e.stopPropagation(); setEditingT(null); }}
-                        className="btn-ghost btn-sm" style={{ padding: '0.25rem 0.5rem' }}>
+                      <button onClick={e => { e.stopPropagation(); setEditingT(null); }} className="btn-ghost btn-sm" style={{ padding: '0.25rem 0.5rem' }}>
                         <X size={12} />
                       </button>
                     </>
@@ -577,19 +541,14 @@ const TournamentsTab = () => {
                       <Pencil size={12} />
                     </button>
                   )}
-
                   <button onClick={e => { e.stopPropagation(); handleDeleteT(t.id); }}
                     className="btn-ghost btn-sm" title="Delete tournament"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.5rem', color: 'var(--color-text-faint)' }}>
                     <Trash2 size={12} />
                   </button>
                 </div>
-
-                {/* Rounds panel */}
                 {isExpanded && (
                   <div style={{ padding: '0.875rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-
-                    {/* Existing rounds */}
                     {(t.rounds || []).length === 0 ? (
                       <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic', margin: '0 0 0.5rem' }}>No rounds yet.</p>
                     ) : (
@@ -605,28 +564,18 @@ const TournamentsTab = () => {
                             }}>
                               {isEditR ? (
                                 <>
-                                  <input
-                                    className={inp}
-                                    value={editRName}
-                                    onChange={e => setEditRName(e.target.value)}
+                                  <input className={inp} value={editRName} onChange={e => setEditRName(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter') handleSaveR(t.id, r.id); if (e.key === 'Escape') setEditingR(null); }}
-                                    autoFocus
-                                    style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)' }}
-                                  />
+                                    autoFocus style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)' }} />
                                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                                    <select
-                                      className={inp}
-                                      value={editRType}
-                                      onChange={e => setEditRType(e.target.value)}
-                                      style={{ fontSize: 'var(--text-xs)', paddingRight: '1.5rem', appearance: 'none' }}
-                                    >
+                                    <select className={inp} value={editRType} onChange={e => setEditRType(e.target.value)}
+                                      style={{ fontSize: 'var(--text-xs)', paddingRight: '1.5rem', appearance: 'none' }}>
                                       {ROUND_TYPES.map(rt => <option key={rt} value={rt}>{rt}</option>)}
                                     </select>
                                     <ChevronDown size={10} style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--color-text-faint)' }} />
                                   </div>
                                   <button onClick={() => handleSaveR(t.id, r.id)} disabled={savingR}
-                                    className="btn-primary btn-sm"
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem' }}>
+                                    className="btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem' }}>
                                     <Check size={11} />{savingR ? '…' : 'Save'}
                                   </button>
                                   <button onClick={() => setEditingR(null)} className="btn-ghost btn-sm" style={{ padding: '0.25rem 0.4rem' }}>
@@ -640,8 +589,7 @@ const TournamentsTab = () => {
                                     fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.07em',
                                     textTransform: 'uppercase', padding: '0.15em 0.5em',
                                     background: 'var(--color-accent-alpha, rgba(39,116,174,0.1))',
-                                    color: 'var(--color-accent)', border: '1px solid var(--color-accent)',
-                                    opacity: 0.75,
+                                    color: 'var(--color-accent)', border: '1px solid var(--color-accent)', opacity: 0.75,
                                   }}>{r.roundType}</span>
                                   <button onClick={() => { setEditingR(r.id); setEditRName(r.name); setEditRType(r.roundType || 'Individual'); }}
                                     className="btn-ghost btn-sm" title="Edit round"
@@ -660,23 +608,14 @@ const TournamentsTab = () => {
                         })}
                       </div>
                     )}
-
-                    {/* Add round form */}
                     <form onSubmit={e => handleCreateR(e, t.id)} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <input
-                        className={inp}
-                        placeholder="Round name (e.g. Individual: Algebra)"
-                        value={nr.name}
-                        onChange={e => setNewRound(prev => ({ ...prev, [t.id]: { ...nr, name: e.target.value } }))}
-                        style={{ flex: '1 1 180px', minWidth: 0, fontSize: 'var(--text-xs)' }}
-                      />
+                      <input className={inp} placeholder="Round name (e.g. Individual: Algebra)"
+                        value={nr.name} onChange={e => setNewRound(prev => ({ ...prev, [t.id]: { ...nr, name: e.target.value } }))}
+                        style={{ flex: '1 1 180px', minWidth: 0, fontSize: 'var(--text-xs)' }} />
                       <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <select
-                          className={inp}
-                          value={nr.roundType || 'Individual'}
+                        <select className={inp} value={nr.roundType || 'Individual'}
                           onChange={e => setNewRound(prev => ({ ...prev, [t.id]: { ...nr, roundType: e.target.value } }))}
-                          style={{ fontSize: 'var(--text-xs)', paddingRight: '1.5rem', appearance: 'none' }}
-                        >
+                          style={{ fontSize: 'var(--text-xs)', paddingRight: '1.5rem', appearance: 'none' }}>
                           {ROUND_TYPES.map(rt => <option key={rt} value={rt}>{rt}</option>)}
                         </select>
                         <ChevronDown size={10} style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--color-text-faint)' }} />
@@ -699,11 +638,391 @@ const TournamentsTab = () => {
 };
 
 /* ══════════════════════════════════════════════════════════════
+   TESTSOLVING TAB
+══════════════════════════════════════════════════════════════ */
+
+const TESTSOLVE_STATUS_COLORS = {
+  active:  { bg: 'rgba(67,122,34,0.1)',  border: 'rgba(67,122,34,0.4)',  color: '#437a22', label: 'Active' },
+  paused:  { bg: 'rgba(209,153,0,0.1)',  border: 'rgba(209,153,0,0.4)',  color: '#d19900', label: 'Paused' },
+  none:    { bg: 'var(--color-surface-offset)', border: 'var(--color-border)', color: 'var(--color-text-faint)', label: 'None' },
+};
+
+const StatusPill = ({ status }) => {
+  const s = TESTSOLVE_STATUS_COLORS[status] || TESTSOLVE_STATUS_COLORS.none;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+      fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.08em',
+      textTransform: 'uppercase', padding: '0.2em 0.6em',
+      background: s.bg, border: `1px solid ${s.border}`, color: s.color,
+    }}>{s.label}</span>
+  );
+};
+
+/* Password modal */
+const PasswordModal = ({ testName, password, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(password || '');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 999,
+      background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+    }} onClick={onClose}>
+      <div className={card} style={{ padding: '1.5rem', minWidth: '320px', maxWidth: '440px', width: '100%' }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <KeyRound size={15} style={{ color: 'var(--color-accent)' }} />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'var(--text-base)' }}>Testsolve Password</span>
+          </div>
+          <button onClick={onClose} className="btn-ghost btn-sm" style={{ padding: '0.25rem' }}><X size={14} /></button>
+        </div>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '0.875rem' }}>{testName}</p>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          background: 'var(--color-surface-offset)', border: '1px solid var(--color-border)',
+          padding: '0.625rem 0.875rem',
+        }}>
+          <code style={{ flex: 1, fontFamily: 'monospace', fontSize: 'var(--text-sm)', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-text)', wordBreak: 'break-all' }}>
+            {password || <span style={{ color: 'var(--color-text-faint)', fontStyle: 'italic' }}>No password set</span>}
+          </code>
+          {password && (
+            <button onClick={handleCopy} className="btn-ghost btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+              {copied ? <Check size={13} style={{ color: '#437a22' }} /> : <Copy size={13} />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Session viewer for one exam */
+const SessionViewer = ({ testId, testName, onClose }) => {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
+  const [expanded, setExpanded] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/tests/${testId}/testsolve/sessions`);
+        setSessions(res.data);
+      } catch { setError('Failed to load sessions.'); }
+      finally { setLoading(false); }
+    })();
+  }, [testId]);
+
+  const submitted = sessions.filter(s => s.submittedAt);
+  const inProgress = sessions.filter(s => !s.submittedAt);
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 999,
+      background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+    }} onClick={onClose}>
+      <div className={card} style={{
+        width: '100%', maxWidth: '700px', maxHeight: '85vh',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '1rem 1.25rem', borderBottom: '1px solid var(--color-border)', flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Users size={15} style={{ color: 'var(--color-accent)' }} />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'var(--text-base)' }}>Testsolve Sessions</span>
+          </div>
+          <button onClick={onClose} className="btn-ghost btn-sm" style={{ padding: '0.25rem' }}><X size={14} /></button>
+        </div>
+        <p style={{ padding: '0.625rem 1.25rem 0', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', flexShrink: 0 }}>{testName}</p>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1.25rem 1.25rem' }}>
+          {loading && <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)', padding: '2rem 0', textAlign: 'center' }}>Loading sessions…</p>}
+          {error   && <p style={{ fontSize: 'var(--text-sm)', color: '#dc2626', padding: '1rem 0' }}>{error}</p>}
+          {!loading && !error && sessions.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-text-faint)' }}>
+              <Users size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.25 }} />
+              <p style={{ fontSize: 'var(--text-sm)' }}>No sessions yet.</p>
+            </div>
+          )}
+          {!loading && !error && sessions.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {/* Summary counts */}
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                  <strong style={{ color: 'var(--color-text)' }}>{submitted.length}</strong> submitted
+                </span>
+                {inProgress.length > 0 && (
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                    <strong style={{ color: 'var(--color-text)' }}>{inProgress.length}</strong> in progress
+                  </span>
+                )}
+              </div>
+
+              {sessions.map(s => {
+                const isOpen = expanded === s.id;
+                const userName = `${s.user.firstName} ${s.user.lastName}`;
+                const rating = s.overall?.finalRating;
+                const ratingColors = {
+                  ready_to_use: { color: '#437a22', label: 'Ready to Use' },
+                  needs_work:   { color: '#d19900', label: 'Needs Work' },
+                  major_issues: { color: '#a12c7b', label: 'Major Issues' },
+                };
+                const rc = ratingColors[rating] || null;
+
+                return (
+                  <div key={s.id} style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                    {/* Session row */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.625rem',
+                      padding: '0.625rem 0.875rem', cursor: 'pointer',
+                    }} onClick={() => setExpanded(isOpen ? null : s.id)}>
+                      {isOpen
+                        ? <ChevronUp size={13} style={{ color: 'var(--color-text-faint)', flexShrink: 0 }} />
+                        : <ChevronDown size={13} style={{ color: 'var(--color-text-faint)', flexShrink: 0 }} />}
+                      <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)', flex: 1 }}>{userName}</span>
+                      {rc && (
+                        <span style={{
+                          fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.06em',
+                          textTransform: 'uppercase', padding: '0.15em 0.5em',
+                          border: `1px solid ${rc.color}`, color: rc.color,
+                          background: `${rc.color}18`,
+                        }}>{rc.label}</span>
+                      )}
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', whiteSpace: 'nowrap' }}>
+                        {s.submittedAt
+                          ? new Date(s.submittedAt).toLocaleDateString()
+                          : <span style={{ color: '#d19900' }}>In progress</span>}
+                      </span>
+                      <span style={{
+                        fontSize: 'var(--text-xs)', fontWeight: 700, padding: '0.15em 0.5em',
+                        background: 'var(--color-surface-offset)', border: '1px solid var(--color-border)',
+                        color: 'var(--color-text-faint)',
+                      }}>{s.problemResponses?.length ?? 0} responses</span>
+                    </div>
+
+                    {/* Expanded detail */}
+                    {isOpen && (
+                      <div style={{ borderTop: '1px solid var(--color-border)', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                        {/* Overall feedback */}
+                        {s.overall ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <span className={hdr}>Overall Feedback</span>
+                            {[
+                              ['General Comments',    s.overall.generalComments],
+                              ['Difficulty Notes',    s.overall.difficultyNotes],
+                              ['Technique Notes',     s.overall.techniqueNotes],
+                              ['Rework Notes',        s.overall.reworkNotes],
+                            ].map(([label, val]) => val ? (
+                              <div key={label}>
+                                <p style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{label}</p>
+                                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text)', whiteSpace: 'pre-wrap' }}>{val}</p>
+                              </div>
+                            ) : null)}
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>No overall feedback submitted.</p>
+                        )}
+
+                        {/* Per-problem responses */}
+                        {s.problemResponses?.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                            <span className={hdr}>Problem Responses ({s.problemResponses.length})</span>
+                            {[...s.problemResponses]
+                              .sort((a, b) => a.slotIndex - b.slotIndex)
+                              .map(r => (
+                                <div key={r.id} style={{
+                                  background: 'var(--color-surface-offset)',
+                                  border: '1px solid var(--color-border)',
+                                  padding: '0.5rem 0.75rem',
+                                  display: 'flex', flexDirection: 'column', gap: '0.25rem',
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 800, color: 'var(--color-text-faint)' }}>#{r.slotIndex + 1}</span>
+                                    {r.answer && (
+                                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                                        Answer: <strong style={{ color: 'var(--color-text)' }}>{r.answer}</strong>
+                                      </span>
+                                    )}
+                                    {r.timeMinutes != null && (
+                                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{r.timeMinutes} min</span>
+                                    )}
+                                  </div>
+                                  {r.comment && (
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', whiteSpace: 'pre-wrap', marginTop: '0.15rem' }}>{r.comment}</p>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Main Testsolving tab */
+const TestsolvingTab = () => {
+  const [exams, setExams]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+  const [pwModal, setPwModal]     = useState(null); // { testId, testName, password }
+  const [pwLoading, setPwLoading] = useState(null); // testId being loaded
+  const [sessions, setSessions]   = useState(null); // { testId, testName }
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/tests');
+      setExams(res.data.filter(t => t.isLocked));
+    } catch { setError('Failed to load exams.'); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleViewPassword = async (testId, testName) => {
+    setPwLoading(testId);
+    try {
+      const res = await api.get(`/tests/${testId}/testsolve/password`);
+      setPwModal({ testId, testName, password: res.data.password });
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to fetch password.');
+    } finally { setPwLoading(null); }
+  };
+
+  if (loading) return <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)', padding: '2rem 0' }}>Loading…</p>;
+  if (error)   return <p style={{ fontSize: 'var(--text-sm)', color: '#dc2626', padding: '2rem 0' }}>{error}</p>;
+
+  return (
+    <>
+      {pwModal && (
+        <PasswordModal
+          testName={pwModal.testName}
+          password={pwModal.password}
+          onClose={() => setPwModal(null)}
+        />
+      )}
+      {sessions && (
+        <SessionViewer
+          testId={sessions.testId}
+          testName={sessions.testName}
+          onClose={() => setSessions(null)}
+        />
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 800 }}>Testsolving</h2>
+          <span style={{
+            background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+            fontSize: 'var(--text-xs)', fontWeight: 700, padding: '0.25em 0.65em',
+            color: 'var(--color-text-muted)', letterSpacing: '0.08em',
+          }}>{exams.length} LOCKED EXAM{exams.length !== 1 ? 'S' : ''}</span>
+        </div>
+
+        {exams.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '3rem 2rem', border: '1px dashed var(--color-border)',
+            color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)',
+          }}>
+            <FlaskConical size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
+            No locked exams. Lock an exam from the Exams page to enable testsolving.
+          </div>
+        ) : (
+          <div className={card} style={{ overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  {['Exam', 'Status', 'Version', 'Time Limit', 'Actions'].map(col => (
+                    <th key={col} style={{
+                      padding: '0.65rem 1rem', textAlign: 'left',
+                      fontSize: 'var(--text-xs)', fontWeight: 700,
+                      letterSpacing: '0.14em', textTransform: 'uppercase',
+                      color: 'var(--color-text-faint)', background: 'var(--color-surface-2)',
+                    }}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {exams.map((exam, i) => (
+                  <tr key={exam.id} style={{
+                    borderBottom: i < exams.length - 1 ? '1px solid var(--color-border)' : 'none',
+                    background: 'transparent',
+                  }}>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{exam.name}</div>
+                      {exam.competition && (
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginTop: '0.1rem' }}>{exam.competition}</div>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <StatusPill status={exam.testsolveStatus || 'none'} />
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      v{exam.testsolveVersion ?? 1}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      {exam.timeLimit ? `${exam.timeLimit} min` : '—'}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
+                        <button
+                          className="btn-ghost btn-sm"
+                          disabled={pwLoading === exam.id}
+                          onClick={() => handleViewPassword(exam.id, exam.name)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <KeyRound size={12} />
+                          {pwLoading === exam.id ? 'Loading…' : 'Password'}
+                        </button>
+                        <button
+                          className="btn-ghost btn-sm"
+                          onClick={() => setSessions({ testId: exam.id, testName: exam.name })}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Users size={12} /> Sessions
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════════════════════ */
 const TABS = [
-  { id: 'users',       label: 'Users' },
-  { id: 'tournaments', label: 'Tournaments' },
+  { id: 'users',        label: 'Users' },
+  { id: 'tournaments',  label: 'Tournaments' },
+  { id: 'testsolving',  label: 'Testsolving' },
 ];
 
 export default function AdminPanel() {
@@ -785,6 +1104,7 @@ export default function AdminPanel() {
         )}
 
         {tab === 'tournaments' && <TournamentsTab />}
+        {tab === 'testsolving'  && <TestsolvingTab />}
       </div>
     </Layout>
   );

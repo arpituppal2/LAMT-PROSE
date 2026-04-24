@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+<![CDATA[import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, ChevronUp,
@@ -182,7 +182,7 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
         slot.slotType === 'estimation' ? 'border-l-2 border-l-[var(--ucla-gold)]' : '',
         problem ? 'bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] cursor-pointer' : 'bg-[var(--color-bg)] cursor-default',
       ].join(' ')}
-      style={{ minHeight: '52px' }}
+      style={{ minHeight: '78px' }}
       onClick={() => problem && onPreview(problem)}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
@@ -236,7 +236,7 @@ const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
         'flex items-center gap-2 px-3 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
         isUsed ? 'opacity-40' : 'hover:bg-[var(--color-surface)]',
       ].join(' ')}
-      style={{ height: '42px' }}
+      style={{ height: '63px' }}
       onClick={() => onPreview(problem)}
     >
       <Grip />
@@ -286,7 +286,7 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
         <span className="flex-shrink-0 text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)] ml-auto">{problem.quality || '?'}/10</span>
         {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)] flex-shrink-0">✓</span>}
       </div>
-      <div className="mt-0.5 pl-5 text-[13px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+      <div className="mt-0.5 pl-5 text-[15px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
         <KatexRenderer latex={(problem.latex || '').slice(0, 300)} />
       </div>
     </div>
@@ -902,46 +902,51 @@ const ExamDetail = () => {
               </button>
             </div>
           </div>
-
-          {dupes.length > 0 && (
-            <div className="mt-1.5 flex items-start gap-2 rounded-sm border border-[var(--badge-idea-border)] bg-[var(--badge-idea-bg)] px-3 py-1.5 text-[10px] text-[var(--badge-idea-text)]">
-              <AlertTriangle size={11} className="flex-shrink-0 mt-0.5" />
-              <span>Duplicates in: {dupes.map((d) => `${d.examName} (${d.problems.join(', ')})`).join('; ')}</span>
-            </div>
-          )}
-          {topicRestriction && (
-            <div className="mt-1 text-[10px] text-[var(--color-text-faint)]">
-              Topic filter: {topicRestriction.join(', ')}. Bank is pre-filtered.
-            </div>
-          )}
         </div>
 
-        {/* ── Body: resizable split ───────────────────────── */}
-        <div ref={containerRef} className="flex flex-1 overflow-hidden">
+        {/* ── Duplicate warning banner ─────────────────── */}
+        {dupes.length > 0 && (
+          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 text-[11px] text-amber-700 dark:text-amber-300">
+            <AlertTriangle size={12} className="flex-shrink-0" />
+            <span>
+              Cross-exam duplicates detected:{' '}
+              {dupes.map((d, i) => (
+                <span key={i}>
+                  <strong>{d.examName}</strong> shares{' '}
+                  {d.problems.map((pid) => (
+                    <span key={pid} className="font-mono font-semibold">{pid} </span>
+                  ))}
+                  {i < dupes.length - 1 ? '· ' : ''}
+                </span>
+              ))}
+            </span>
+          </div>
+        )}
 
-          {/* LEFT: Slot grid + Shortlist */}
-          <div
-            className="overflow-y-auto border-r border-[var(--color-border)] bg-[var(--color-bg)] flex-shrink-0"
-            style={{ width: `${splitPct}%` }}
-          >
-            {/* EXAM SLOTS */}
-            <div className="p-3">
-              <div className="flex items-center gap-2 px-1 mb-2">
-                <p className="section-label uppercase tracking-widest text-[10px] flex-1">
-                  Exam Slots ({Object.keys(slotMap).length}/{slotDefs.length})
-                </p>
-                <label className="flex items-center gap-1.5 text-[9px] text-[var(--color-text-muted)] flex-shrink-0">
-                  <span className="whitespace-nowrap">Per row</span>
-                  <input
-                    type="range" min={1} max={5} value={slotsPerRow}
-                    onChange={(e) => setSlotsPerRow(+e.target.value)}
-                    className="w-16 accent-[var(--color-accent)]"
-                    style={{ height: '3px' }}
-                  />
-                  <span className="tabular-nums w-3 text-center">{slotsPerRow}</span>
-                </label>
+        {/* ── Main 3-pane layout ───────────────────────── */}
+        <div ref={containerRef} className="flex flex-1 min-h-0 overflow-hidden">
+
+          {/* LEFT — Exam slots ────────────────────────── */}
+          <div className="flex flex-col min-h-0 overflow-hidden border-r border-[var(--color-border)]" style={{ width: `${splitPct}%` }}>
+
+            {/* Slot header */}
+            <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] flex-1">Exam Slots</span>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setSlotsPerRow(n)}
+                    className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-sm transition-colors ${slotsPerRow === n ? 'bg-[var(--color-accent)] text-white' : 'text-[var(--color-text-faint)] hover:text-[var(--color-text-muted)]'}`}
+                  >
+                    {n}col
+                  </button>
+                ))}
               </div>
+            </div>
 
+            {/* Slot grid */}
+            <div className="flex-1 overflow-y-auto p-2">
               <div
                 className="grid gap-1.5"
                 style={{ gridTemplateColumns: `repeat(${slotsPerRow}, minmax(0, 1fr))` }}
@@ -960,106 +965,108 @@ const ExamDetail = () => {
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* SHORTLIST */}
-            <div className="px-3 pb-3">
-              <p className="section-label px-1 mb-1 uppercase tracking-widest text-[10px]">
-                Shortlist ({shortlist.length})
-              </p>
-              {shortlist.length === 0 ? (
-                <div
-                  className="border border-dashed border-[var(--color-border)] rounded-sm px-3 py-3 text-[10px] text-[var(--color-text-faint)] italic text-center"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const id = e.dataTransfer.getData('problemId');
-                    const p = problems.find(pr => pr.id === id);
-                    if (p && !shortlist.some(s => s.id === id)) setShortlist(prev => [...prev, p]);
-                  }}
-                >
-                  Drag problems from the bank to shortlist them
-                </div>
-              ) : (
-                <div
-                  className="border border-[var(--color-border)] rounded-sm overflow-hidden"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const id = e.dataTransfer.getData('problemId');
-                    const p = problems.find(pr => pr.id === id);
-                    if (p && !shortlist.some(s => s.id === id)) setShortlist(prev => [...prev, p]);
-                  }}
-                >
-                  {shortlist.map(p => (
+          {/* DIVIDER */}
+          <div
+            className="w-[3px] flex-shrink-0 bg-[var(--color-border)] hover:bg-[var(--color-accent)] cursor-col-resize transition-colors"
+            style={{ height: '3px' }}
+            onMouseDown={onDividerMouseDown}
+          />
+
+          {/* RIGHT — Shortlist + Bank ─────────────────── */}
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+
+            {/* SHORTLIST ─── */}
+            <div className="flex flex-col border-b border-[var(--color-border)]" style={{ maxHeight: '35%' }}>
+              <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] flex-1">Shortlist</span>
+                <span className="text-[9px] text-[var(--color-text-faint)] tabular-nums">{shortlist.length} problems</span>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {shortlist.length === 0 ? (
+                  <div className="flex items-center justify-center h-10 text-[10px] text-[var(--color-text-faint)] italic">
+                    No problems shortlisted yet
+                  </div>
+                ) : (
+                  shortlist.map((p) => (
                     <ShortlistRow
                       key={p.id}
                       problem={p}
                       isUsed={usedIds.has(p.id)}
                       onPreview={setPreviewProblem}
-                      onRemove={(id) => setShortlist(prev => prev.filter(s => s.id !== id))}
+                      onRemove={(id) => setShortlist(prev => prev.filter(x => x.id !== id))}
                     />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* DRAG HANDLE */}
-          <div
-            onMouseDown={onDividerMouseDown}
-            className="w-1 flex-shrink-0 cursor-col-resize bg-[var(--color-border)] hover:bg-[var(--color-accent)] active:bg-[var(--color-accent)] transition-colors relative group"
-          >
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              {[0,1,2,3,4].map(i => <div key={i} className="w-1 h-1 rounded-full bg-[var(--color-accent)]" />)}
-            </div>
-          </div>
-
-          {/* RIGHT: Problem bank */}
-          <div className="overflow-y-auto bg-[var(--color-bg)] flex-1">
-            <div className="sticky top-0 z-10 bg-[var(--color-bg)] border-b border-[var(--color-border)] px-3 py-1.5">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <input
-                  value={bankSearch}
-                  onChange={(e) => setBankSearch(e.target.value)}
-                  placeholder="Search bank"
-                  className="input-base py-1 text-xs"
-                  style={{ flex: '2 1 120px', minWidth: 0 }}
-                />
-                <select value={bankTopic} onChange={(e) => setBankTopic(e.target.value)} className="input-base py-1 text-xs" style={{ flex: '1 1 90px', minWidth: 0 }}>
-                  <option value="">All topics</option>
-                  {TOPICS.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <select value={bankStage} onChange={(e) => setBankStage(e.target.value)} className="input-base py-1 text-xs" style={{ flex: '1 1 90px', minWidth: 0 }}>
-                  <option value="">All stages</option>
-                  {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)] flex-shrink-0">
-                  <span>Diff</span>
-                  <input type="number" min={1} max={10} value={bankDiffMin} onChange={(e) => setBankDiffMin(+e.target.value)} className="input-base w-9 py-1 px-1 text-center text-xs" />
-                  <span>–</span>
-                  <input type="number" min={1} max={10} value={bankDiffMax} onChange={(e) => setBankDiffMax(+e.target.value)} className="input-base w-9 py-1 px-1 text-center text-xs" />
-                </div>
-                <span className="text-[10px] text-[var(--color-text-muted)] tabular-nums flex-shrink-0">{bankProblems.length}</span>
+                  ))
+                )}
               </div>
             </div>
 
-            {bankProblems.length === 0 ? (
-              <div className="py-16 text-center text-sm text-[var(--color-text-muted)]">No problems match the current filters.</div>
-            ) : (
-              bankProblems.map((p) => (
-                <BankRow
-                  key={p.id}
-                  problem={p}
-                  isUsed={usedIds.has(p.id) || shortlistIds.has(p.id)}
-                  onPreview={setPreviewProblem}
-                />
-              ))
-            )}
+            {/* BANK ─── */}
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+
+              {/* Bank toolbar */}
+              <div className="flex-shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Problem Bank</span>
+                  <span className="text-[9px] text-[var(--color-text-faint)] tabular-nums ml-auto">{bankProblems.length} problems</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="Search…"
+                    value={bankSearch}
+                    onChange={(e) => setBankSearch(e.target.value)}
+                    className="input-base flex-1 py-0.5 text-[11px] h-6"
+                  />
+                  <select value={bankTopic} onChange={(e) => setBankTopic(e.target.value)} className="input-base py-0.5 text-[11px] h-6 pr-5">
+                    <option value="">All Topics</option>
+                    {TOPICS.map(t => <option key={t} value={t}>{TOPIC_ABBR[t]}</option>)}
+                  </select>
+                  <select value={bankStage} onChange={(e) => setBankStage(e.target.value)} className="input-base py-0.5 text-[11px] h-6 pr-5">
+                    <option value="">All Stages</option>
+                    {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-muted)]">
+                  <span>Difficulty</span>
+                  <input type="range" min={1} max={10} value={bankDiffMin} onChange={(e) => setBankDiffMin(Number(e.target.value))} className="flex-1 h-3 accent-[var(--color-accent)]" />
+                  <span className="tabular-nums w-6 text-center font-semibold text-[var(--color-accent)]">{bankDiffMin}</span>
+                  <span>–</span>
+                  <input type="range" min={1} max={10} value={bankDiffMax} onChange={(e) => setBankDiffMax(Number(e.target.value))} className="flex-1 h-3 accent-[var(--color-accent)]" />
+                  <span className="tabular-nums w-6 text-center font-semibold text-[var(--color-accent)]">{bankDiffMax}</span>
+                </div>
+              </div>
+
+              {/* Bank list */}
+              <div className="flex-1 overflow-y-auto">
+                {bankProblems.length === 0 ? (
+                  <div className="flex items-center justify-center h-20 text-[11px] text-[var(--color-text-faint)] italic">No problems match filters</div>
+                ) : (
+                  bankProblems.map((p) => (
+                    <div
+                      key={p.id}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setShortlist(prev => shortlistIds.has(p.id) ? prev.filter(x => x.id !== p.id) : [...prev, p]);
+                      }}
+                    >
+                      <BankRow
+                        problem={p}
+                        isUsed={usedIds.has(p.id)}
+                        onPreview={setPreviewProblem}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Preview modals ────────────────────────────────── */}
+      {/* Modals */}
+      {previewProblem && <ProbModal problem={previewProblem} onClose={() => setPreviewProblem(null)} />}
       {showPreview && (
         <PreviewModal
           exam={exam}
@@ -1070,15 +1077,13 @@ const ExamDetail = () => {
           onClose={() => setShowPreview(false)}
           onDownload={() => {
             const tex = buildLatex(exam, slotDefs, slotMap, problemMap, previewWithSolutions);
-            downloadTex(tex, `${exam?.name || 'exam'}_${previewWithSolutions ? 'key' : 'problems'}.tex`);
+            downloadTex(tex, `${exam.name || 'exam'}.tex`);
           }}
         />
       )}
-
-      {/* ── Problem quick-view modal ──────────────────────── */}
-      {previewProblem && <ProbModal problem={previewProblem} onClose={() => setPreviewProblem(null)} />}
     </Layout>
   );
 };
 
 export default ExamDetail;
+]]>

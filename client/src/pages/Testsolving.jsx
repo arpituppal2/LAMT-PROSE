@@ -700,11 +700,23 @@ const ResultsView = ({ exam, onBack }) => {
 
 /* ══════════════════════════════════════════════════════════════
    MAIN COMPONENT
+   Props:
+     initialTestId  — exam id to jump straight to (from URL param)
+     initialPhase   — 'results' to skip the list and open results view
 ══════════════════════════════════════════════════════════════ */
-const Testsolving = () => {
+const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
   /* ── Phase: 'list' | 'results' | 'active' | 'done' ── */
-  const [phase, setPhase] = useState('list');
-  const [resultsExam, setResultsExam] = useState(null);
+  const [phase, setPhase] = useState(initialPhase);
+
+  /*
+    When arriving via /testsolving/:testId/results the exam list hasn't
+    loaded yet, so we synthesise a minimal stub { id } for ResultsView.
+    Once the list loads we swap it for the full exam object so metadata
+    (name, round, etc.) renders correctly.
+  */
+  const [resultsExam, setResultsExam] = useState(
+    initialTestId ? { id: initialTestId, name: 'Loading…' } : null,
+  );
 
   /* ── List phase ── */
   const [exams, setExams]             = useState([]);
@@ -743,9 +755,21 @@ const Testsolving = () => {
   useEffect(() => {
     setListLoading(true);
     api.get('/testsolve/available')
-      .then(res => setExams(res.data || []))
+      .then(res => {
+        const list = res.data || [];
+        setExams(list);
+        /*
+          If we deep-linked to a results view, replace the stub exam object
+          with the full one from the list so name/metadata render correctly.
+        */
+        if (initialTestId && initialPhase === 'results') {
+          const full = list.find(e => String(e.id) === String(initialTestId));
+          if (full) setResultsExam(full);
+        }
+      })
       .catch(() => setListError('Failed to load available exams. Please try again.'))
       .finally(() => setListLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ── Timer ── */

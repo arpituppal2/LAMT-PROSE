@@ -82,20 +82,48 @@ model Notification {
   @@index([userId])
   @@index([problemId])
 }
-model Test {
+
+model Tournament {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rounds      TournamentRound[]
+  tests       Test[]
+}
+
+model TournamentRound {
   id           String   @id @default(uuid())
-  competition  String
+  tournamentId String
   name         String
-  description  String?
-  version      String
-  authorId     String?
-  templateType String?
-  slots        Json?
+  roundType    String   @default("Individual") // "Individual" | "Team"
   createdAt    DateTime @default(now())
-  author       User?         @relation("TestAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  problems     Problem[]     @relation("ProblemToTest")
-  comments     TestComment[]
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  @@index([tournamentId])
+}
+
+model Test {
+  id               String   @id @default(uuid())
+  competition      String
+  name             String
+  description      String?
+  roundType        String?  // "Individual" | "Team"
+  roundName        String?  // free-text or from TournamentRound
+  numSets          Int      @default(1)
+  questionsPerSet  Int      @default(10)
+  estimationSets   Int      @default(0)
+  examTopics       String[]
+  tournamentId     String?
+  authorId         String?
+  slots            Json?
+  createdAt        DateTime @default(now())
+  author           User?         @relation("TestAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  tournament       Tournament?   @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+  problems         Problem[]     @relation("ProblemToTest")
+  comments         TestComment[]
   @@index([authorId])
+  @@index([tournamentId])
 }
 model TestComment {
   id        String   @id @default(uuid())

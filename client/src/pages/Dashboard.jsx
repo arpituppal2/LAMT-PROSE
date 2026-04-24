@@ -542,7 +542,7 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-[1500px] space-y-5">
+      <div className="mx-auto max-w-[1500px] space-y-5 px-[3%]">
         {/* Page header */}
         <header className="flex items-center justify-between">
           <div>

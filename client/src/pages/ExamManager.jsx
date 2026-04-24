@@ -1,61 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, X, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { Plus, Trash2, X, AlertCircle, Loader2, FileText, ChevronDown } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
-/* ── constants ───────────────────────────────────────────────── */
-const TEMPLATES = [
-  {
-    key: 'indiv-alg-nt',
-    label: 'Individual: Algebra & NT',
-    description: '10 problems + 1 Estimation. Topics: Algebra / Number Theory. 50 min.',
-    slots: 11,
-    estimationSlot: true,
-    allowedTopics: ['Algebra', 'Number Theory'],
-    scoring: 'Individual scoring: problems with fewer total solves are worth more points. Score = ⌈N / solves⌉ where N = number of competitors.',
-  },
-  {
-    key: 'indiv-geo',
-    label: 'Individual: Geometry',
-    description: '10 problems + 1 Estimation. Topic: Geometry. 50 min.',
-    slots: 11,
-    estimationSlot: true,
-    allowedTopics: ['Geometry'],
-    scoring: 'Individual scoring: problems with fewer total solves are worth more points. Score = ⌈N / solves⌉ where N = number of competitors.',
-  },
-  {
-    key: 'indiv-combo',
-    label: 'Individual: Combinatorics',
-    description: '10 problems + 1 Estimation. Topic: Combinatorics. 50 min.',
-    slots: 11,
-    estimationSlot: true,
-    allowedTopics: ['Combinatorics'],
-    scoring: 'Individual scoring: problems with fewer total solves are worth more points. Score = ⌈N / solves⌉ where N = number of competitors.',
-  },
-  {
-    key: 'shopping',
-    label: 'Team: Shopping Spree',
-    description: '24 questions (any topics) + 1 Estimation Wager. Budget: $500. 75 min.',
-    slots: 25,
-    estimationSlot: true,
-    allowedTopics: null,
-    topicWarn: true,
-    scoring: 'Shopping scoring: see rules page in generated PDF. Final Score = leftover cash + points from correct answers + estimation bonus.',
-  },
-  {
-    key: 'guts',
-    label: 'Team: Guts',
-    description: '23 questions + 1 Estimation. Sets of 3 (Sets 1–7) + Set 8: 2 problems + estimation.',
-    slots: 24,
-    estimationSlot: true,
-    allowedTopics: null,
-    topicWarn: true,
-    scoring: 'Guts scoring: teams submit answers per set. Earlier correct answers yield bonus time multiplier.',
-  },
-];
+const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
-/* ── helpers ──────────────────────────────────────────────────── */
 const Spinner = ({ size = 16 }) => <Loader2 size={size} className="animate-spin" />;
 
 const ErrorMsg = ({ msg }) =>
@@ -66,221 +16,78 @@ const ErrorMsg = ({ msg }) =>
     </div>
   ) : null;
 
-/* ── KaTeX renderer ───────────────────────────────────────────── */
-const renderMath = (tex, display = false) => {
-  if (typeof window !== 'undefined' && window.katex) {
-    try {
-      return window.katex.renderToString(tex, { throwOnError: false, displayMode: display });
-    } catch { return tex; }
-  }
-  return tex;
-};
-
-const MathText = ({ text }) => {
-  if (!text) return null;
-  const parts = [];
-  const pattern = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g;
-  let last = 0;
-  let match;
-  while ((match = pattern.exec(text)) !== null) {
-    if (match.index > last) parts.push({ type: 'text', val: text.slice(last, match.index) });
-    const raw = match[0];
-    const display = raw.startsWith('$$');
-    const inner = display ? raw.slice(2, -2) : raw.slice(1, -1);
-    parts.push({ type: 'math', val: inner, display });
-    last = match.index + raw.length;
-  }
-  if (last < text.length) parts.push({ type: 'text', val: text.slice(last) });
-  return (
-    <span>
-      {parts.map((p, i) =>
-        p.type === 'text' ? (
-          <span key={i}>{p.val}</span>
-        ) : (
-          <span key={i} dangerouslySetInnerHTML={{ __html: renderMath(p.val, p.display) }} />
-        )
-      )}
-    </span>
-  );
-};
-
-/* ── Guts set builder ─────────────────────────────────────────
-   Layout: Sets 1–7 → 3 problems each (21 total)
-           Set 8   → 2 problems + 1 estimation (slots 22–24)
-   Returns array of { setNum, label, problems[] }
-──────────────────────────────────────────────────────────────── */
-const buildGutsSets = (problems) => {
-  const sets = [];
-  // Sets 1–7: 3 problems each
-  for (let s = 1; s <= 7; s++) {
-    const start = (s - 1) * 3;
-    sets.push({
-      setNum: s,
-      label: `Set ${s}`,
-      isEstimation: false,
-      problems: problems.slice(start, start + 3),
-    });
-  }
-  // Set 8: problems at index 21–22, estimation at index 23
-  const set8Problems = problems.slice(21, 23);
-  const estimation = problems[23] ?? null;
-  sets.push({
-    setNum: 8,
-    label: 'Set 8',
-    isEstimation: true,
-    problems: set8Problems,
-    estimation,
-  });
-  return sets;
-};
-
-/* ── Problem row ──────────────────────────────────────────────── */
-const ProblemRow = ({ problem, num, isEstimation = false }) => (
-  <li className="px-5 py-4">
-    <div className="flex gap-3">
-      <span className="flex-shrink-0 w-6 text-right text-xs font-semibold tabular-nums text-[var(--color-text-muted)] pt-0.5">
-        {isEstimation ? 'Est.' : `${num}.`}
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap gap-1 mb-1.5">
-          {problem.topic && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
-              {problem.topic}
-            </span>
-          )}
-          {problem.subtopic && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-faint)]">
-              {problem.subtopic}
-            </span>
-          )}
-          {problem.difficulty != null && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
-              D{problem.difficulty}
-            </span>
-          )}
-          {isEstimation && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15">
-              Estimation
-            </span>
-          )}
-        </div>
-        <p className="text-sm leading-relaxed">
-          <MathText text={problem.problem} />
-        </p>
-      </div>
-    </div>
-  </li>
+/* ── Field wrapper ───────────────────────────────────────────── */
+const Field = ({ label, hint, children }) => (
+  <div>
+    <label className="section-label">{label}</label>
+    {hint && <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-1">{hint}</p>}
+    <div className="mt-1.5">{children}</div>
+  </div>
 );
-
-/* ── Preview Modal ───────────────────────────────────────────── */
-const PreviewModal = ({ exam, onClose }) => {
-  const problems = exam.problems ?? [];
-  const isGuts = exam.templateType === 'guts';
-
-  const renderGuts = () => {
-    const sets = buildGutsSets(problems);
-    let globalNum = 1;
-    return sets.map((set) => (
-      <div key={set.setNum}>
-        {/* Set header */}
-        <div className="px-5 py-2 bg-[var(--color-surface-offset)] border-y border-[var(--color-border)] flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-            {set.label}
-          </span>
-          <span className="text-[10px] text-[var(--color-text-faint)]">
-            {set.isEstimation
-              ? `${set.problems.length} problem${set.problems.length !== 1 ? 's' : ''} + estimation`
-              : `${set.problems.length} problem${set.problems.length !== 1 ? 's' : ''}`}
-          </span>
-        </div>
-        <ol className="divide-y divide-[var(--color-border)]">
-          {set.problems.map((p) => {
-            const n = globalNum++;
-            return <ProblemRow key={p.id ?? n} problem={p} num={n} />;
-          })}
-          {set.isEstimation && set.estimation && (
-            <ProblemRow key="est" problem={set.estimation} num={null} isEstimation />
-          )}
-        </ol>
-      </div>
-    ));
-  };
-
-  const renderFlat = () => (
-    <ol className="divide-y divide-[var(--color-border)]">
-      {problems.map((p, idx) => (
-        <ProblemRow key={p.id ?? idx} problem={p} num={idx + 1} />
-      ))}
-    </ol>
-  );
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="surface-card shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
-        style={{ maxHeight: '90dvh' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold truncate">{exam.name}</h2>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-              {exam.competition} · {exam.version} · {problems.length} problem{problems.length !== 1 ? 's' : ''}
-              {isGuts && <span className="ml-1 text-[var(--color-text-faint)]">(8 sets)</span>}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="ml-4 flex-shrink-0 p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Problem list */}
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(90dvh - 65px)' }}>
-          {problems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <FileText size={28} className="text-[var(--color-text-faint)] mb-2" />
-              <p className="text-sm text-[var(--color-text-muted)]">No problems in this exam yet.</p>
-            </div>
-          ) : isGuts ? renderGuts() : renderFlat()}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 /* ── New Exam Modal ──────────────────────────────────────────── */
 const NewExamModal = ({ onClose, onCreate }) => {
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [form, setForm] = useState({ competition: '', name: '', description: '', version: 'v1' });
+  const [tournaments, setTournaments] = useState([]);
+  const [form, setForm] = useState({
+    name: '',
+    competition: '',
+    description: '',
+    roundType: 'Individual',
+    roundName: '',
+    numSets: 1,
+    questionsPerSet: 10,
+    estimationSets: 0,
+    examTopics: [],
+    tournamentId: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  useEffect(() => {
+    api.get('/admin/tournaments').then(r => setTournaments(r.data || [])).catch(() => {});
+  }, []);
 
-  const applyTemplate = (tpl) => {
-    setSelectedTemplate(tpl.key === selectedTemplate?.key ? null : tpl);
-    if (tpl.key !== selectedTemplate?.key) setForm((f) => ({ ...f, name: tpl.label }));
-  };
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const setNum = (k) => (e) => setForm(f => ({ ...f, [k]: Math.max(0, parseInt(e.target.value) || 0) }));
+
+  const toggleTopic = (t) =>
+    setForm(f => ({
+      ...f,
+      examTopics: f.examTopics.includes(t)
+        ? f.examTopics.filter(x => x !== t)
+        : [...f.examTopics, t],
+    }));
+
+  const totalSlots = form.numSets * form.questionsPerSet + form.estimationSets;
+
+  // Round name options: from selected tournament's rounds, plus Other
+  const selectedTournament = tournaments.find(t => t.id === form.tournamentId);
+  const roundOptions = selectedTournament
+    ? [...selectedTournament.rounds.filter(r => !form.roundType || r.roundType === form.roundType), { id: '__other__', name: 'Other' }]
+    : [{ id: '__other__', name: 'Other' }];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.competition.trim() || !form.name.trim() || !form.version.trim()) {
-      setError('Competition, Name, and Version are required.');
-      return;
-    }
+    if (!form.name.trim()) { setError('Exam name is required.'); return; }
+    if (form.numSets < 1) { setError('Must have at least 1 set.'); return; }
+    if (form.questionsPerSet < 1) { setError('Must have at least 1 question per set.'); return; }
     setLoading(true);
     setError('');
     try {
-      const res = await api.post('/tests', {
-        ...form,
+      const payload = {
+        name: form.name.trim(),
+        competition: form.competition.trim() || (selectedTournament?.name || ''),
+        description: form.description.trim() || null,
+        roundType: form.roundType,
+        roundName: form.roundName === '__other__' ? '' : (form.roundName || null),
+        numSets: form.numSets,
+        questionsPerSet: form.questionsPerSet,
+        estimationSets: form.estimationSets,
+        examTopics: form.examTopics,
+        tournamentId: form.tournamentId || null,
         problemIds: [],
-        templateType: selectedTemplate?.key || null,
-      });
+      };
+      const res = await api.post('/tests', payload);
       onCreate(res.data);
       onClose();
     } catch {
@@ -294,102 +101,173 @@ const NewExamModal = ({ onClose, onCreate }) => {
     <div className="modal-overlay">
       <div
         className="surface-card shadow-2xl w-full max-w-xl mx-4 overflow-hidden"
-        style={{ maxHeight: '90dvh' }}
-        onClick={(e) => e.stopPropagation()}
+        style={{ maxHeight: '92dvh' }}
+        onClick={e => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
           <h2 className="text-sm font-semibold">New Exam</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-            aria-label="Close"
-          >
+          <button onClick={onClose} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors" aria-label="Close">
             <X size={16} />
           </button>
         </div>
 
-        <div className="overflow-y-auto p-5 space-y-5" style={{ maxHeight: 'calc(90dvh - 57px)' }}>
-          <div>
-            <p className="section-label">
-              Template <span className="normal-case font-normal text-[var(--color-text-faint)]">(optional)</span>
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2">
-              {TEMPLATES.map((tpl) => (
-                <button
-                  key={tpl.key}
-                  type="button"
-                  onClick={() => applyTemplate(tpl)}
-                  className={[
-                    'text-left px-3 py-2.5 rounded-sm border transition text-xs',
-                    selectedTemplate?.key === tpl.key
-                      ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
-                      : 'border-[var(--color-border)] hover:border-[var(--color-accent)]/40 bg-[var(--color-bg)]',
-                  ].join(' ')}
-                >
-                  <p className="font-semibold">{tpl.label}</p>
-                  <p className="text-[var(--color-text-faint)] text-[11px] mt-0.5 leading-snug">{tpl.description}</p>
-                </button>
-              ))}
-            </div>
-            {selectedTemplate && (
-              <div className="mt-2 px-3 py-2 rounded-sm bg-[var(--color-accent)]/5 border border-[var(--color-accent)]/15 text-[11px] text-[var(--color-text-muted)] leading-relaxed">
-                <strong>Scoring:</strong> {selectedTemplate.scoring}
+        <form onSubmit={handleSubmit} id="new-exam-form">
+          <div className="overflow-y-auto p-5 space-y-4" style={{ maxHeight: 'calc(92dvh - 113px)' }}>
+
+            {/* Tournament */}
+            <Field label="Tournament" hint="Select the tournament this exam belongs to.">
+              <div className="relative">
+                <select className="input-base w-full pr-8 appearance-none" value={form.tournamentId} onChange={set('tournamentId')}>
+                  <option value="">— None / standalone —</option>
+                  {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+                <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
               </div>
-            )}
+            </Field>
+
+            {/* Round type */}
+            <Field label="Round Type">
+              <div className="flex gap-2">
+                {['Individual', 'Team'].map(rt => (
+                  <button
+                    key={rt} type="button"
+                    onClick={() => setForm(f => ({ ...f, roundType: rt }))}
+                    className={[
+                      'flex-1 py-2 text-xs font-semibold rounded-sm border transition',
+                      form.roundType === rt
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
+                        : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40',
+                    ].join(' ')}
+                  >
+                    {rt}
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {/* Round name */}
+            <Field label="Round Name" hint={selectedTournament ? 'Pick a pre-defined round or choose Other to type freely.' : 'Type the round name, or set up rounds in the Admin panel first.'}>
+              {selectedTournament ? (
+                <div className="space-y-1.5">
+                  <div className="relative">
+                    <select className="input-base w-full pr-8 appearance-none" value={form.roundName} onChange={set('roundName')}>
+                      <option value="">— Select —</option>
+                      {roundOptions.map(r => <option key={r.id} value={r.id === '__other__' ? '__other__' : r.name}>{r.name}</option>)}
+                    </select>
+                    <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
+                  </div>
+                  {form.roundName === '__other__' && (
+                    <input className="input-base w-full" placeholder="e.g. Individual: Algebra & NT" onChange={e => setForm(f => ({ ...f, roundName: e.target.value }))} />
+                  )}
+                </div>
+              ) : (
+                <input className="input-base w-full" value={form.roundName} onChange={set('roundName')} placeholder="e.g. Individual: Algebra & NT" />
+              )}
+            </Field>
+
+            {/* Exam name */}
+            <Field label="Exam Name *">
+              <input className="input-base w-full" value={form.name} onChange={set('name')} placeholder="e.g. LAMT 2026 — Individual: Algebra & NT" autoFocus />
+            </Field>
+
+            {/* Competition / tournament label */}
+            <Field label="Competition Label" hint="Shown on the exam header. Defaults to the tournament name if left blank.">
+              <input className="input-base w-full" value={form.competition} onChange={set('competition')} placeholder={selectedTournament?.name || 'e.g. LAMT 2026'} />
+            </Field>
+
+            {/* Structure */}
+            <div className="grid grid-cols-3 gap-3">
+              <Field
+                label="Sets"
+                hint="Groups of questions. Use 1 for most rounds; Guts uses multiple sets."
+              >
+                <input
+                  type="number" min={1} className="input-base w-full"
+                  value={form.numSets} onChange={setNum('numSets')}
+                />
+              </Field>
+              <Field label="Questions / Set" hint="Number of scored questions in each set.">
+                <input
+                  type="number" min={1} className="input-base w-full"
+                  value={form.questionsPerSet} onChange={setNum('questionsPerSet')}
+                />
+              </Field>
+              <Field label="Estimation Slots" hint="Tiebreak / estimation questions appended after the main questions.">
+                <input
+                  type="number" min={0} className="input-base w-full"
+                  value={form.estimationSets} onChange={setNum('estimationSets')}
+                />
+              </Field>
+            </div>
+
+            {/* Total count badge */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-sm bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-xs">
+              <span className="text-[var(--color-text-muted)]">Total slots:</span>
+              <span className="font-bold tabular-nums text-[var(--color-accent)]">{totalSlots}</span>
+              <span className="text-[var(--color-text-faint)]">
+                ({form.numSets} set{form.numSets !== 1 ? 's' : ''} × {form.questionsPerSet} q{form.questionsPerSet !== 1 ? 's' : ''}
+                {form.estimationSets > 0 ? ` + ${form.estimationSets} estimation` : ''})
+              </span>
+            </div>
+
+            {/* Exam topics */}
+            <Field label="Exam Topics" hint="Which topics should appear in the problem bank for this exam? Leave blank to show all.">
+              <div className="flex flex-wrap gap-1.5">
+                {TOPICS.map(t => (
+                  <button
+                    key={t} type="button"
+                    onClick={() => toggleTopic(t)}
+                    className={[
+                      'px-2.5 py-1 text-xs font-medium rounded-sm border transition',
+                      form.examTopics.includes(t)
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
+                        : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40',
+                    ].join(' ')}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              {form.examTopics.length === 0 && (
+                <p className="text-[10px] text-[var(--color-text-faint)] mt-1">All topics shown.</p>
+              )}
+            </Field>
+
+            {/* Description */}
+            <Field label={<>Description <span className="normal-case font-normal text-[var(--color-text-faint)]">— optional</span></>}>
+              <textarea
+                className="input-base w-full resize-none" rows={2}
+                value={form.description} onChange={set('description')}
+                placeholder="Notes, scoring rules, time limit…"
+              />
+            </Field>
+
+            <ErrorMsg msg={error} />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4" id="new-exam-form">
-            <div>
-              <label className="section-label">Competition *</label>
-              <input className="input-base w-full mt-1.5" value={form.competition} onChange={set('competition')} placeholder="e.g. LAMT 2026" autoFocus />
-            </div>
-            <div>
-              <label className="section-label">Exam Name *</label>
-              <input className="input-base w-full mt-1.5" value={form.name} onChange={set('name')} placeholder="e.g. Individual: Algebra & NT" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="section-label">Version *</label>
-                <input className="input-base w-full mt-1.5" value={form.version} onChange={set('version')} placeholder="v1" />
-              </div>
-            </div>
-            <div>
-              <label className="section-label">
-                Description <span className="normal-case font-normal text-[var(--color-text-faint)]">— optional</span>
-              </label>
-              <textarea className="input-base w-full resize-none mt-1.5" rows={2} value={form.description} onChange={set('description')} placeholder="Brief description..." />
-            </div>
-            <ErrorMsg msg={error} />
-          </form>
-        </div>
-
-        <div className="px-5 py-4 border-t border-[var(--color-border)] flex gap-2.5">
-          <button type="button" onClick={onClose} className="btn-outline flex-1 py-2 text-sm">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="new-exam-form"
-            disabled={loading}
-            className="btn-filled flex-1 py-2 text-sm flex items-center justify-center gap-2"
-          >
-            {loading ? <Spinner size={15} /> : <Plus size={15} />}
-            {loading ? 'Creating…' : 'Create Exam'}
-          </button>
-        </div>
+          {/* Footer */}
+          <div className="px-5 py-4 border-t border-[var(--color-border)] flex gap-2.5">
+            <button type="button" onClick={onClose} className="btn-outline flex-1 py-2 text-sm">Cancel</button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-filled flex-1 py-2 text-sm flex items-center justify-center gap-2"
+            >
+              {loading ? <Spinner size={15} /> : <Plus size={15} />}
+              {loading ? 'Creating…' : 'Create Exam'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
 
 /* ── Exam card ───────────────────────────────────────────────── */
-const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
-  const problemCount =
-    Array.isArray(exam.problems)
-      ? exam.problems.length
-      : Array.isArray(exam.problemIds)
-      ? exam.problemIds.length
-      : 0;
+const ExamCard = ({ exam, canEdit, onDelete, onClick }) => {
+  const problemCount = Array.isArray(exam.problems) ? exam.problems.length : 0;
+  const totalSlots = (exam.numSets ?? 1) * (exam.questionsPerSet ?? 10) + (exam.estimationSets ?? 0);
 
   return (
     <div
@@ -397,27 +275,30 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
       className="cursor-pointer surface-card px-5 py-3.5 hover:bg-[var(--color-surface)] transition-all"
     >
       <div className="flex items-center gap-2 min-w-0">
-        {/* Left: meta */}
         <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
           <span className="font-semibold text-sm whitespace-nowrap">{exam.name}</span>
 
-          {exam.templateType && (
+          {exam.roundType && (
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15 whitespace-nowrap">
-              {exam.templateType}
+              {exam.roundType}
             </span>
           )}
 
-          <span className="text-[var(--color-text-faint)] text-xs">·</span>
-          <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap truncate max-w-[160px]">{exam.competition}</span>
+          {exam.tournament?.name && (
+            <>
+              <span className="text-[var(--color-text-faint)] text-xs">·</span>
+              <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap truncate max-w-[160px]">{exam.tournament.name}</span>
+            </>
+          )}
 
           <span className="text-[var(--color-text-faint)] text-xs">·</span>
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] whitespace-nowrap">
-            {exam.version}
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] whitespace-nowrap tabular-nums">
+            {totalSlots} slots
           </span>
 
           <span className="text-[var(--color-text-faint)] text-xs">·</span>
           <span className="text-xs text-[var(--color-text-muted)] tabular-nums whitespace-nowrap">
-            {problemCount} problem{problemCount !== 1 ? 's' : ''}
+            {problemCount} filled
           </span>
 
           {(exam.author?.firstName || exam.author?.lastName) && (
@@ -430,24 +311,19 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
           )}
         </div>
 
-        {/* Right: action buttons — always visible */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {canEdit && (
             <button
-              onClick={(e) => { e.stopPropagation(); onDelete(exam.id); }}
+              onClick={e => { e.stopPropagation(); onDelete(exam.id); }}
               className="p-1.5 rounded-sm text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)] hover:bg-[var(--badge-needs-review-bg)] transition"
-              title="Delete exam"
-              aria-label="Delete exam"
+              title="Delete exam" aria-label="Delete exam"
             >
               <Trash2 size={13} />
             </button>
           )}
-
           <button
-            onClick={(e) => { e.stopPropagation(); onClick(); }}
+            onClick={e => { e.stopPropagation(); onClick(); }}
             className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-xs"
-            title="Edit exam"
-            aria-label="Edit exam"
           >
             View
           </button>
@@ -457,9 +333,9 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
   );
 };
 
-/* ══════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    EXAM MANAGER
-══════════════════════════════════════════════════════════════ */
+════════════════════════════════════════════════════════════ */
 const ExamManager = () => {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
@@ -467,10 +343,9 @@ const ExamManager = () => {
   const [examsLoading, setExamsLoading] = useState(true);
   const [examsError, setExamsError] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [previewExam, setPreviewExam] = useState(null);
 
   useEffect(() => {
-    api.get('/auth/me').then((r) => setCurrentUser(r.data.user)).catch(() => {});
+    api.get('/auth/me').then(r => setCurrentUser(r.data.user)).catch(() => {});
     fetchExams();
   }, []);
 
@@ -488,19 +363,19 @@ const ExamManager = () => {
   };
 
   const isAdmin = currentUser?.isAdmin || false;
-  const canEditExam = (exam) =>
+  const canEditExam = exam =>
     isAdmin || !exam.authorId || exam.author?.id === currentUser?.id || exam.authorId === currentUser?.id;
 
-  const handleCreated = (newExam) => {
-    setExams((prev) => [newExam, ...prev]);
+  const handleCreated = newExam => {
+    setExams(prev => [newExam, ...prev]);
     navigate(`/exams/${newExam.id}`);
   };
 
-  const handleDeleteExam = async (examId) => {
+  const handleDeleteExam = async examId => {
     if (!window.confirm('Delete this exam? This cannot be undone.')) return;
     try {
       await api.delete(`/tests/${examId}`);
-      setExams((prev) => prev.filter((e) => e.id !== examId));
+      setExams(prev => prev.filter(e => e.id !== examId));
     } catch (err) {
       alert(err?.response?.data?.error || 'Failed to delete exam.');
     }
@@ -509,13 +384,10 @@ const ExamManager = () => {
   return (
     <Layout>
       <div className="max-w-[960px] mx-auto space-y-5">
-
         <header className="flex items-center justify-between">
           <div>
             <span className="gold-rule mb-3" />
-            <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-              Exams
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Exams</h1>
           </div>
           <button onClick={() => setShowModal(true)} className="btn-filled flex items-center gap-1.5 px-4 py-2.5 text-sm">
             <Plus size={15} /> New Exam
@@ -523,9 +395,7 @@ const ExamManager = () => {
         </header>
 
         {examsLoading ? (
-          <div className="flex items-center justify-center py-20 text-[var(--color-text-muted)]">
-            <Spinner size={20} />
-          </div>
+          <div className="flex items-center justify-center py-20 text-[var(--color-text-muted)]"><Spinner size={20} /></div>
         ) : examsError ? (
           <div className="flex items-center gap-2 px-4 py-3 rounded-sm bg-[var(--badge-needs-review-bg)] border border-[var(--badge-needs-review-border)] text-[var(--badge-needs-review-text)] text-sm">
             <AlertCircle size={14} className="flex-shrink-0" />{examsError}
@@ -541,27 +411,20 @@ const ExamManager = () => {
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {exams.map((exam) => (
+            {exams.map(exam => (
               <ExamCard
                 key={exam.id}
                 exam={exam}
                 canEdit={canEditExam(exam)}
                 onDelete={handleDeleteExam}
                 onClick={() => navigate(`/exams/${exam.id}`)}
-                onPreview={setPreviewExam}
               />
             ))}
           </div>
         )}
       </div>
 
-      {showModal && (
-        <NewExamModal onClose={() => setShowModal(false)} onCreate={handleCreated} />
-      )}
-
-      {previewExam && (
-        <PreviewModal exam={previewExam} onClose={() => setPreviewExam(null)} />
-      )}
+      {showModal && <NewExamModal onClose={() => setShowModal(false)} onCreate={handleCreated} />}
     </Layout>
   );
 };

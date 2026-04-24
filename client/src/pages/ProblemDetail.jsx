@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Edit, User, Archive, Star, ChevronDown, ChevronUp,
   CheckCircle, Image as ImageIcon, X,
   AlertCircle, Save, ArrowLeft, MessageSquare, Trash2,
-  Eye,
+  Eye, Heart, Reply, Send,
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
@@ -73,6 +73,269 @@ const DiffBar = ({ value }) => (
     </span>
   </div>
 );
+
+/* ── Avatar ──────────────────────────────────────────────────── */
+const Avatar = ({ user, size = 28 }) => (
+  <div style={{
+    width: size, height: size, borderRadius: '50%', flexShrink: 0,
+    background: 'var(--color-surface-offset)', border: '1px solid var(--color-border)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: size * 0.35, fontWeight: 700, color: 'var(--color-text-muted)',
+    userSelect: 'none',
+  }}>
+    {user.firstName[0]}{user.lastName[0]}
+  </div>
+);
+
+/* ── Single comment card ─────────────────────────────────────── */
+const CommentCard = ({ comment, myId, isAdmin, onDelete, onLike, onReply, depth = 0 }) => {
+  const liked = comment.likes?.includes(myId);
+  const isOwn = comment.user?.id === myId;
+
+  return (
+    <div style={{ marginLeft: depth > 0 ? '2rem' : 0 }}>
+      <div style={{
+        display: 'flex', gap: '0.625rem',
+        padding: '0.875rem 0',
+        borderTop: depth === 0 ? '1px solid var(--color-border)' : 'none',
+      }}>
+        <Avatar user={comment.user} size={28} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: 'var(--color-text)' }}>
+              {comment.user.firstName} {comment.user.lastName}
+            </span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+              {new Date(comment.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          </div>
+          {/* Body */}
+          <p style={{ whiteSpace: 'pre-wrap', fontSize: 'var(--text-sm)', lineHeight: 1.65, color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+            {comment.body}
+          </p>
+          {/* Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button
+              onClick={() => onLike(comment.id)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                fontSize: 'var(--text-xs)', fontWeight: 600,
+                color: liked ? 'var(--color-accent)' : 'var(--color-text-faint)',
+                transition: 'color 0.15s',
+              }}
+            >
+              <Heart size={12} style={{ fill: liked ? 'currentColor' : 'none' }} />
+              {comment.likes?.length > 0 && comment.likes.length}
+            </button>
+            {depth === 0 && (
+              <button
+                onClick={() => onReply(comment.id)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-faint)',
+                }}
+              >
+                <Reply size={12} /> Reply
+              </button>
+            )}
+            {(isOwn || isAdmin) && (
+              <button
+                onClick={() => onDelete(comment.id, comment.parentId)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-faint)',
+                }}
+              >
+                <Trash2 size={11} /> Delete
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Replies */}
+      {comment.replies?.map(reply => (
+        <CommentCard
+          key={reply.id}
+          comment={reply}
+          myId={myId}
+          isAdmin={isAdmin}
+          onDelete={onDelete}
+          onLike={onLike}
+          onReply={onReply}
+          depth={1}
+        />
+      ))}
+    </div>
+  );
+};
+
+/* ── Comments section ────────────────────────────────────────── */
+const CommentsSection = ({ problemId, myId, isAdmin }) => {
+  const [comments,    setComments]    = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [newBody,     setNewBody]     = useState('');
+  const [submitting,  setSubmitting]  = useState(false);
+  const [replyingTo,  setReplyingTo]  = useState(null); // commentId
+  const [replyBody,   setReplyBody]   = useState('');
+  const replyRef = useRef(null);
+
+  const fetch = async () => {
+    try {
+      const res = await api.get(`/problems/${problemId}/comments`);
+      setComments(res.data);
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetch(); }, [problemId]);
+
+  useEffect(() => {
+    if (replyingTo && replyRef.current) replyRef.current.focus();
+  }, [replyingTo]);
+
+  const handlePost = async (e) => {
+    e.preventDefault();
+    if (!newBody.trim()) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/problems/${problemId}/comments`, { body: newBody.trim() });
+      setNewBody('');
+      fetch();
+    } catch { /* silent */ }
+    finally { setSubmitting(false); }
+  };
+
+  const handleReply = async (e) => {
+    e.preventDefault();
+    if (!replyBody.trim()) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/problems/${problemId}/comments`, { body: replyBody.trim(), parentId: replyingTo });
+      setReplyBody('');
+      setReplyingTo(null);
+      fetch();
+    } catch { /* silent */ }
+    finally { setSubmitting(false); }
+  };
+
+  const handleDelete = async (commentId) => {
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      await api.delete(`/problems/${problemId}/comments/${commentId}`);
+      fetch();
+    } catch { /* silent */ }
+  };
+
+  const handleLike = async (commentId) => {
+    try {
+      const res = await api.post(`/problems/${problemId}/comments/${commentId}/like`);
+      setComments(prev => prev.map(c => {
+        if (c.id === commentId) return res.data;
+        return {
+          ...c,
+          replies: c.replies?.map(r => r.id === commentId ? res.data : r),
+        };
+      }));
+    } catch { /* silent */ }
+  };
+
+  const totalCount = comments.reduce((n, c) => n + 1 + (c.replies?.length || 0), 0);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--color-text)' }}>
+        Comments
+        <span style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', fontWeight: 600, padding: '0.15em 0.55em', border: '1px solid var(--color-border)' }}>
+          {totalCount}
+        </span>
+      </h2>
+
+      {/* New comment composer */}
+      <div className={card} style={{ padding: '1rem 1.25rem' }}>
+        <form onSubmit={handlePost} style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          <textarea
+            value={newBody}
+            onChange={e => setNewBody(e.target.value)}
+            placeholder="Write a comment…"
+            rows={3}
+            className={inp + ' resize-y'}
+            style={{ fontSize: 'var(--text-sm)' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="submit"
+              disabled={submitting || !newBody.trim()}
+              className="btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', opacity: submitting || !newBody.trim() ? 0.5 : 1 }}
+            >
+              <Send size={13} /> {submitting ? 'Posting…' : 'Post'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Comments list */}
+      <div className={card} style={{ padding: '0 1.25rem' }}>
+        {loading ? (
+          <p style={{ padding: '2rem 0', textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)' }}>Loading…</p>
+        ) : comments.length === 0 ? (
+          <p style={{ padding: '2.5rem 0', textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>No comments yet. Be the first!</p>
+        ) : (
+          comments.map(comment => (
+            <div key={comment.id}>
+              <CommentCard
+                comment={comment}
+                myId={myId}
+                isAdmin={isAdmin}
+                onDelete={handleDelete}
+                onLike={handleLike}
+                onReply={(id) => { setReplyingTo(id === replyingTo ? null : id); setReplyBody(''); }}
+                depth={0}
+              />
+              {/* Reply composer */}
+              {replyingTo === comment.id && (
+                <div style={{ marginLeft: '2rem', paddingBottom: '0.75rem' }}>
+                  <form onSubmit={handleReply} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                    <textarea
+                      ref={replyRef}
+                      value={replyBody}
+                      onChange={e => setReplyBody(e.target.value)}
+                      placeholder={`Reply to ${comment.user.firstName}…`}
+                      rows={2}
+                      className={inp + ' resize-none'}
+                      style={{ flex: 1, fontSize: 'var(--text-sm)' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                      <button
+                        type="submit"
+                        disabled={submitting || !replyBody.trim()}
+                        className="btn-primary btn-sm"
+                        style={{ opacity: submitting || !replyBody.trim() ? 0.5 : 1 }}
+                      >
+                        <Send size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReplyingTo(null)}
+                        className="btn-ghost btn-sm"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
 
 const ProblemDetail = () => {
   const { id } = useParams();
@@ -772,6 +1035,14 @@ const ProblemDetail = () => {
                 </div>
               )}
             </div>
+
+            {/* ── Comments section ─────────────────────────── */}
+            <CommentsSection
+              problemId={id}
+              myId={myId}
+              isAdmin={!!isAdmin}
+            />
+
           </div>
         </div>
       </Layout>

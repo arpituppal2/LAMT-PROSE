@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, X, AlertCircle, Loader2, FileText, Edit2 } from 'lucide-react';
+import { Plus, Trash2, X, AlertCircle, Loader2, FileText } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
@@ -449,7 +449,7 @@ const ExamCard = ({ exam, canEdit, onDelete, onClick, onPreview }) => {
             title="Edit exam"
             aria-label="Edit exam"
           >
-            <Edit2 size={12} /> Edit
+            View
           </button>
         </div>
       </div>

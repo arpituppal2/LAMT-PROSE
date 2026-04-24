@@ -71,8 +71,8 @@ router.post('/start', authenticate, async (req, res) => {
     // Build ordered problem list from slots
     const slots = Array.isArray(test.slots) ? test.slots : [];
     const problemMap = {};
-        const problemIds = slots.map(s => s?.problemId).filter(Boolean);
-        const problems = problemIds.length > 0 ? await prisma.problem.findMany({ where: { id: { in: problemIds } }, select: { id: true, latex: true } }) : [];
+    const problemIds = slots.map(s => s?.problemId).filter(Boolean);
+    const problems = problemIds.length > 0 ? await prisma.problem.findMany({ where: { id: { in: problemIds } }, select: { id: true, latex: true } }) : [];
     problems.forEach(p => { problemMap[p.id] = p; });
     const orderedProblems = slots
       .map((s, i) => {
@@ -154,6 +154,81 @@ router.post('/session/:sessionId/submit', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Submit testsolve error:', error);
     res.status(500).json({ error: 'Failed to submit testsolve' });
+  }
+});
+
+// GET /api/testsolve/results/:testId
+// Any authenticated user can view results for a test
+router.get('/results/:testId', authenticate, async (req, res) => {
+  try {
+    const { testId } = req.params;
+
+    const test = await prisma.test.findUnique({
+      where: { id: testId },
+      select: {
+        id: true,
+        name: true,
+        competition: true,
+        roundType: true,
+        roundName: true,
+        slots: true,
+      },
+    });
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+
+    const sessions = await prisma.testsolveSession.findMany({
+      where: { testId },
+      orderBy: { submittedAt: 'desc' },
+      include: {
+        responses: {
+          orderBy: { slotIndex: 'asc' },
+        },
+        overall: true,
+      },
+    });
+
+    // Build slot → problem latex map so the frontend can render problems
+    const slots = Array.isArray(test.slots) ? test.slots : [];
+    const problemIds = slots.map(s => s?.problemId).filter(Boolean);
+    const problems = problemIds.length > 0
+      ? await prisma.problem.findMany({
+          where: { id: { in: problemIds } },
+          select: { id: true, latex: true, subject: true },
+        })
+      : [];
+    const problemMap = {};
+    problems.forEach(p => { problemMap[p.id] = p; });
+
+    const orderedSlots = slots.map((s, i) => {
+      const p = s?.problemId ? problemMap[s.problemId] : null;
+      return { slotIndex: i, problemId: s?.problemId || null, latex: p?.latex || null, subject: p?.subject || null };
+    });
+
+    res.json({ test, sessions, slots: orderedSlots });
+  } catch (error) {
+    console.error('Fetch testsolve results error:', error);
+    res.status(500).json({ error: 'Failed to fetch results' });
+  }
+});
+
+// DELETE /api/testsolve/session/:sessionId
+// Admin only
+router.delete('/session/:sessionId', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { isAdmin: true } });
+    if (!user?.isAdmin) return res.status(403).json({ error: 'Admin only.' });
+
+    const session = await prisma.testsolveSession.findUnique({ where: { id: req.params.sessionId } });
+    if (!session) return res.status(404).json({ error: 'Session not found.' });
+
+    await prisma.testsolveProblemResponse.deleteMany({ where: { sessionId: req.params.sessionId } });
+    await prisma.testsolveOverall.deleteMany({ where: { sessionId: req.params.sessionId } });
+    await prisma.testsolveSession.delete({ where: { id: req.params.sessionId } });
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete testsolve session error:', error);
+    res.status(500).json({ error: 'Failed to delete session' });
   }
 });
 

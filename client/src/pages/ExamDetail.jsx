@@ -22,6 +22,13 @@ const TOPIC_ABBR = {
   'Number Theory': 'NT',
 };
 
+const TOPIC_CFG = {
+  Algebra:        { dot: 'bg-blue-500',   active: 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400',   idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-blue-400/50' },
+  Geometry:       { dot: 'bg-green-500',  active: 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-green-400/50' },
+  Combinatorics:  { dot: 'bg-amber-500',  active: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-amber-400/50' },
+  'Number Theory':{ dot: 'bg-purple-500', active: 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-purple-400/50' },
+};
+
 const STAGE_CFG = {
   Idea:           { dot: 'bg-amber-400',  rail: 'bg-amber-100 dark:bg-amber-900/30' },
   'Needs Review': { dot: 'bg-rose-500',   rail: 'bg-rose-100 dark:bg-rose-900/30' },
@@ -411,7 +418,7 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
-  const [warning, setWarning] = useState(null); // { removedCount, removedIds, payload }
+  const [warning, setWarning] = useState(null);
 
   useEffect(() => {
     api.get('/admin/tournaments').then(r => setTournaments(r.data || [])).catch(() => {});
@@ -428,7 +435,6 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
   const newTotalSlots = form.numSets * form.questionsPerSet + form.estimationSets;
   const oldTotalSlots = (exam.numSets ?? 1) * (exam.questionsPerSet ?? 10) + (exam.estimationSets ?? 0);
 
-  // Slots that would be truncated
   const truncatedSlots = useMemo(() => {
     if (newTotalSlots >= oldTotalSlots) return [];
     return Object.entries(slotMap)
@@ -455,7 +461,6 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
     if (form.numSets < 1)  { setError('Must have at least 1 set.'); return; }
     if (form.questionsPerSet < 1) { setError('Must have at least 1 question per set.'); return; }
 
-    // Warn if truncation will happen
     if (truncatedSlots.length > 0) {
       setWarning({ removedCount: truncatedSlots.length, removedIds: truncatedSlots, payload: buildPayload() });
       return;
@@ -468,14 +473,11 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
     setSaving(true);
     setError('');
     try {
-      // Trim slotMap to new total
       const newTotal = payload.numSets * payload.questionsPerSet + payload.estimationSets;
       const trimmedSlotMap = Object.fromEntries(
         Object.entries(currentSlotMap).filter(([idx]) => parseInt(idx) < newTotal)
       );
-      // Save metadata
       await api.put(`/tests/${exam.id}`, payload);
-      // Save trimmed slots
       const slotsPayload = [];
       for (let i = 0; i < newTotal; i++) {
         const entry = trimmedSlotMap[i];
@@ -544,115 +546,125 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
         </div>
       )}
 
-      <form id="configure-exam-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
+      {/* Form — centered, ~2× wider */}
+      <div className="overflow-y-auto flex-1">
+        <form
+          id="configure-exam-form"
+          onSubmit={handleSubmit}
+          className="mx-auto p-8 space-y-5"
+          style={{ maxWidth: '720px' }}
+        >
 
-        {/* Tournament */}
-        <div>
-          <label className="section-label">Tournament</label>
-          <div className="relative mt-1.5">
-            <select className="input-base w-full pr-8 appearance-none" value={form.tournamentId} onChange={set('tournamentId')}>
-              <option value="">— None / standalone —</option>
-              {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-            <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
+          {/* Tournament */}
+          <div>
+            <label className="section-label">Tournament</label>
+            <div className="relative mt-1.5">
+              <select className="input-base w-full pr-8 appearance-none" value={form.tournamentId} onChange={set('tournamentId')}>
+                <option value="">— None / standalone —</option>
+                {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+              <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
+            </div>
           </div>
-        </div>
 
-        {/* Round type */}
-        <div>
-          <label className="section-label">Round Type</label>
-          <div className="flex gap-2 mt-1.5">
-            {['Individual', 'Team'].map(rt => (
-              <button
-                key={rt} type="button"
-                onClick={() => setForm(f => ({ ...f, roundType: rt }))}
-                className={[
-                  'flex-1 py-2 text-xs font-semibold rounded-sm border transition',
-                  form.roundType === rt
-                    ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
-                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40',
-                ].join(' ')}
+          {/* Round type — dropdown */}
+          <div>
+            <label className="section-label">Round Type</label>
+            <div className="relative mt-1.5">
+              <select
+                className="input-base w-full pr-8 appearance-none"
+                value={form.roundType}
+                onChange={set('roundType')}
               >
-                {rt}
-              </button>
-            ))}
+                <option value="Individual">Individual</option>
+                <option value="Team">Team</option>
+                <option value="Other">Other</option>
+              </select>
+              <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
+            </div>
           </div>
-        </div>
 
-        {/* Round name */}
-        <div>
-          <label className="section-label">Round Name</label>
-          <input className="input-base w-full mt-1.5" value={form.roundName} onChange={set('roundName')} placeholder="e.g. Individual: Algebra & NT" />
-        </div>
-
-        {/* Exam name */}
-        <div>
-          <label className="section-label">Exam Name *</label>
-          <input className="input-base w-full mt-1.5" value={form.name} onChange={set('name')} />
-        </div>
-
-        {/* Competition label */}
-        <div>
-          <label className="section-label">Competition Label</label>
-          <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-1">Shown on the exam header. Defaults to the tournament name if blank.</p>
-          <input className="input-base w-full" value={form.competition} onChange={set('competition')} placeholder={selectedTournament?.name || 'e.g. LAMT 2026'} />
-        </div>
-
-        {/* Structure */}
-        <div className="grid grid-cols-3 gap-3">
+          {/* Round name */}
           <div>
-            <label className="section-label">Sets</label>
-            <input type="number" min={1} className="input-base w-full mt-1.5" value={form.numSets} onChange={setNum('numSets')} />
+            <label className="section-label">Round Name</label>
+            <input className="input-base w-full mt-1.5" value={form.roundName} onChange={set('roundName')} placeholder="e.g. Individual: Algebra & NT" />
           </div>
-          <div>
-            <label className="section-label">Questions / Set</label>
-            <input type="number" min={1} className="input-base w-full mt-1.5" value={form.questionsPerSet} onChange={setNum('questionsPerSet')} />
-          </div>
-          <div>
-            <label className="section-label">Estimation Slots</label>
-            <input type="number" min={0} className="input-base w-full mt-1.5" value={form.estimationSets} onChange={setNum('estimationSets')} />
-          </div>
-        </div>
 
-        {/* Total count */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-sm bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-xs">
-          <span className="text-[var(--color-text-muted)]">Total slots:</span>
-          <span className="font-bold tabular-nums text-[var(--color-accent)]">{newTotalSlots}</span>
-          {newTotalSlots < oldTotalSlots && truncatedSlots.length > 0 && (
-            <span className="ml-1 text-amber-500 font-semibold">
-              ⚠ {truncatedSlots.length} filled slot{truncatedSlots.length !== 1 ? 's' : ''} will be removed
-            </span>
+          {/* Exam name */}
+          <div>
+            <label className="section-label">Exam Name *</label>
+            <input className="input-base w-full mt-1.5" value={form.name} onChange={set('name')} />
+          </div>
+
+          {/* Competition label */}
+          <div>
+            <label className="section-label">Competition Label</label>
+            <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-1">Shown on the exam header. Defaults to the tournament name if blank.</p>
+            <input className="input-base w-full" value={form.competition} onChange={set('competition')} placeholder={selectedTournament?.name || 'e.g. LAMT 2026'} />
+          </div>
+
+          {/* Structure */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="section-label">Sets</label>
+              <input type="number" min={1} className="input-base w-full mt-1.5" value={form.numSets} onChange={setNum('numSets')} />
+            </div>
+            <div>
+              <label className="section-label">Questions / Set</label>
+              <input type="number" min={1} className="input-base w-full mt-1.5" value={form.questionsPerSet} onChange={setNum('questionsPerSet')} />
+            </div>
+            <div>
+              <label className="section-label">Estimation Slots</label>
+              <input type="number" min={0} className="input-base w-full mt-1.5" value={form.estimationSets} onChange={setNum('estimationSets')} />
+            </div>
+          </div>
+
+          {/* Total count */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-sm bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-xs">
+            <span className="text-[var(--color-text-muted)]">Total slots:</span>
+            <span className="font-bold tabular-nums text-[var(--color-accent)]">{newTotalSlots}</span>
+            {newTotalSlots < oldTotalSlots && truncatedSlots.length > 0 && (
+              <span className="ml-1 text-amber-500 font-semibold">
+                ⚠ {truncatedSlots.length} filled slot{truncatedSlots.length !== 1 ? 's' : ''} will be removed
+              </span>
+            )}
+          </div>
+
+          {/* Exam topics — LAMT styled chips */}
+          <div>
+            <label className="section-label">Exam Topics</label>
+            <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-2.5">
+              Which topics should appear in the problem bank for this exam? Leave blank to show all.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {TOPICS.map(t => {
+                const cfg = TOPIC_CFG[t];
+                const active = form.examTopics.includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleTopic(t)}
+                    className={[
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-xs font-semibold transition-all',
+                      active ? cfg.active : cfg.idle,
+                    ].join(' ')}
+                  >
+                    <span className={`h-2 w-2 rounded-full flex-shrink-0 ${cfg.dot} ${active ? 'opacity-100' : 'opacity-40'}`} />
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-xs text-[var(--badge-needs-review-text)] flex items-center gap-1.5">
+              <AlertTriangle size={12} /> {error}
+            </p>
           )}
-        </div>
-
-        {/* Exam topics */}
-        <div>
-          <label className="section-label">Exam Topics</label>
-          <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-1.5">Used to pre-filter the problem bank. Leave blank to show all.</p>
-          <div className="flex flex-wrap gap-1.5">
-            {TOPICS.map(t => (
-              <button
-                key={t} type="button"
-                onClick={() => toggleTopic(t)}
-                className={[
-                  'px-2.5 py-1 text-xs font-medium rounded-sm border transition',
-                  form.examTopics.includes(t)
-                    ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
-                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40',
-                ].join(' ')}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {error && (
-          <p className="text-xs text-[var(--badge-needs-review-text)] flex items-center gap-1.5">
-            <AlertTriangle size={12} /> {error}
-          </p>
-        )}
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

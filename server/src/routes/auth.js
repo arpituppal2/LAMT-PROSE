@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
-import { ALLOWED_EMAIL_DOMAIN } from '../config/env.js';
+import { ALLOWED_EMAIL_DOMAIN, ADMIN_EMAILS } from '../config/env.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -43,8 +43,9 @@ router.post('/register', async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
+    const isAdmin = ADMIN_EMAILS.length > 0 && ADMIN_EMAILS.includes(email);
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword, firstName, lastName, initials, mathExp },
+      data: { email, password: hashedPassword, firstName, lastName, initials, mathExp, isAdmin },
       select: USER_SELECT,
     });
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -60,13 +61,23 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
+    let user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
     if (user.disabled) {
       return res.status(403).json({ error: 'ACCOUNT_DISABLED' });
     }
+
+    // Sync isAdmin from ADMIN_EMAILS env var — fixes any user whose DB flag is out of sync
+    const shouldBeAdmin = ADMIN_EMAILS.length > 0 && ADMIN_EMAILS.includes(email);
+    if (shouldBeAdmin !== user.isAdmin) {
+      user = await prisma.user.update({
+        where: { email },
+        data: { isAdmin: shouldBeAdmin },
+      });
+    }
+
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, COOKIE_OPTS);
     const { password: _pw, ...safeUser } = user;

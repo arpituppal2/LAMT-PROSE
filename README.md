@@ -1,4 +1,4 @@
-# P.R.O.S.E. — Problem Repository & Organization System for Events
+# P.R.O.S.E. — Problem Review & Online Submission Engine
 
 A full-stack web platform for math competition organizers to write, review, organize, and finalize competition problems. Built with React, Node.js, Prisma, and PostgreSQL.
 

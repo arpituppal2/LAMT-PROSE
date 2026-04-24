@@ -16,11 +16,12 @@ model User {
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  problems      Problem[]
-  feedbacks     Feedback[]
-  testsAuthored Test[]        @relation("TestAuthor")
-  testComments  TestComment[]
-  notifications Notification[]
+  problems        Problem[]
+  feedbacks       Feedback[]
+  testsAuthored   Test[]           @relation("TestAuthor")
+  testComments    TestComment[]
+  problemComments ProblemComment[]
+  notifications   Notification[]
 }
 model Problem {
   id           String   @id
@@ -38,10 +39,11 @@ model Problem {
   endorsements Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  feedbacks Feedback[]
-  tests     Test[]     @relation("ProblemToTest")
-  notifications Notification[]
+  author          User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  feedbacks       Feedback[]
+  tests           Test[]           @relation("ProblemToTest")
+  notifications   Notification[]
+  comments        ProblemComment[]
   @@index([authorId])
   @@index([stage])
   @@index([solveCount])
@@ -103,4 +105,20 @@ model TestComment {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([testId])
   @@index([userId])
+}
+model ProblemComment {
+  id        String   @id @default(uuid())
+  problemId String
+  userId    String
+  parentId  String?
+  body      String   @db.Text
+  likes     String[] @default([])
+  createdAt DateTime @default(now())
+  problem  Problem          @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   ProblemComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  ProblemComment[] @relation("CommentReplies")
+  @@index([problemId])
+  @@index([userId])
+  @@index([parentId])
 }

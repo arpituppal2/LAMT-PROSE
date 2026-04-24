@@ -129,7 +129,9 @@ const Sidebar = ({ dark, toggleDark }) => {
 };
 
 /* ── Layout wrapper ─────────────────────────────────────────── */
-const Layout = ({ children }) => {
+// noPadding: removes the default paddingTop so hero-style pages can
+//            bleed flush to the top of the content area.
+const Layout = ({ children, noPadding = false }) => {
   const [dark, toggleDark] = useDarkMode();
   return (
     <ThemeContext.Provider value={{ dark }}>
@@ -137,7 +139,11 @@ const Layout = ({ children }) => {
         <Sidebar dark={dark} toggleDark={toggleDark} />
         <main
           className="flex-1 overflow-y-auto"
-          style={{ background: 'var(--color-bg)', color: 'var(--color-text)', paddingTop: '3vh' }}
+          style={{
+            background: 'var(--color-bg)',
+            color: 'var(--color-text)',
+            paddingTop: noPadding ? 0 : '3vh',
+          }}
         >
           {children}
         </main>

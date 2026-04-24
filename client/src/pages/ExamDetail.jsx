@@ -191,7 +191,7 @@ const Grip = () => (
   </div>
 );
 
-/* ── SlotCard — natural height, BankRow-style, whole card clicks ── */
+/* ── SlotCard ── */
 const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) => {
   const [over, setOver] = useState(false);
   const topics = problem ? (problem.topics || []).map(t => TOPIC_ABBR[t] || t) : [];
@@ -204,6 +204,7 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
         slot.slotType === 'estimation' ? 'border-l-2 border-l-[var(--ucla-gold)]' : '',
         problem ? 'bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] cursor-pointer' : 'bg-[var(--color-bg)] cursor-default',
       ].join(' ')}
+      style={{ minHeight: '52px' }}
       onClick={() => problem && onPreview(problem)}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
@@ -246,7 +247,7 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
   );
 };
 
-/* ── ShortlistRow — whole row clickable ─────────────────────── */
+/* ── ShortlistRow ── */
 const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
   const status = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
   const topics = (problem.topics || []).map(t => TOPIC_ABBR[t] || t);
@@ -259,7 +260,7 @@ const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
         'flex items-center gap-2 px-3 border-b border-[var(--color-border)] cursor-grab active:cursor-grabbing transition-colors',
         isUsed ? 'opacity-40' : 'hover:bg-[var(--color-surface)]',
       ].join(' ')}
-      style={{ height: '28px' }}
+      style={{ height: '42px' }}
       onClick={() => onPreview(problem)}
     >
       <Grip />
@@ -282,7 +283,7 @@ const ShortlistRow = ({ problem, isUsed, onPreview, onRemove }) => {
   );
 };
 
-/* ── BankRow — natural height, whole row clickable ──────────── */
+/* ── BankRow ── */
 const BankRow = ({ problem, isUsed, onPreview }) => {
   const status = problem._displayStatus || getProblemStatus(problem, problem.feedbacks);
   const topics = (problem.topics || []).map(t => TOPIC_ABBR[t] || t);
@@ -309,7 +310,7 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
         <span className="flex-shrink-0 text-[10px] tabular-nums font-semibold text-[var(--color-text-faint)] ml-auto">{problem.quality || '?'}/10</span>
         {isUsed && <span className="text-[9px] font-semibold text-[var(--color-accent)] flex-shrink-0">✓</span>}
       </div>
-      <div className="mt-0.5 pl-5 text-[11px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+      <div className="mt-0.5 pl-5 text-[13px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
         <KatexRenderer latex={(problem.latex || '').slice(0, 300)} />
       </div>
     </div>
@@ -613,7 +614,6 @@ const ExamDetail = () => {
           >
             {/* EXAM SLOTS */}
             <div className="p-3">
-              {/* Header row with per-row slider */}
               <div className="flex items-center gap-2 px-1 mb-2">
                 <p className="section-label uppercase tracking-widest text-[10px] flex-1">
                   Exam Slots ({Object.keys(slotMap).length}/{slotDefs.length})

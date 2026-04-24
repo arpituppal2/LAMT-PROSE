@@ -99,6 +99,8 @@ router.put('/:id', authenticate, async (req, res) => {
       competition, name, description,
       roundType, roundName, numSets, questionsPerSet, estimationSets,
       examTopics, tournamentId,
+      // lock fields
+      isLocked, testsolvePassword, testsolveVersion, testsolveStatus,
     } = req.body;
     const updateData = {
       competition, name,
@@ -110,6 +112,14 @@ router.put('/:id', authenticate, async (req, res) => {
       estimationSets:  estimationSets  != null ? parseInt(estimationSets)  : undefined,
       examTopics:      Array.isArray(examTopics) ? examTopics : undefined,
       tournamentId:    tournamentId    !== undefined ? (tournamentId || null)    : undefined,
+      // lock fields — only write if explicitly provided
+      isLocked:           isLocked           !== undefined ? Boolean(isLocked)                   : undefined,
+      testsolvePassword:  testsolvePassword  !== undefined ? (testsolvePassword || null)          : undefined,
+      testsolveVersion:   testsolveVersion   != null       ? parseInt(testsolveVersion)            : undefined,
+      testsolveStatus:    testsolveStatus    !== undefined ? (testsolveStatus || null)             : undefined,
+      // stamp lockedAt when locking
+      ...(isLocked === true  ? { lockedAt: new Date() } : {}),
+      ...(isLocked === false ? { lockedAt: null }       : {}),
     };
     Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
     const test = await prisma.test.update({

@@ -6,7 +6,6 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // GET /api/testsolve/available
-// Returns all exams that are locked and have testsolveStatus === 'active'
 router.get('/available', authenticate, async (req, res) => {
   try {
     const tests = await prisma.test.findMany({
@@ -33,7 +32,6 @@ router.get('/available', authenticate, async (req, res) => {
 });
 
 // POST /api/testsolve/start
-// Verifies the password, creates a new session, and returns ordered problems (no solutions/answers).
 router.post('/start', authenticate, async (req, res) => {
   try {
     const { testId, password } = req.body;
@@ -41,7 +39,18 @@ router.post('/start', authenticate, async (req, res) => {
 
     const test = await prisma.test.findUnique({
       where: { id: testId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        isLocked: true,
+        testsolveStatus: true,
+        testsolvePassword: true,
+        testsolveVersion: true,
+        timeLimit: true,
+        slots: true,
+        numSets: true,
+        questionsPerSet: true,
+        estimationSets: true,
         problems: { select: { id: true, latex: true } },
       },
     });
@@ -58,7 +67,7 @@ router.post('/start', authenticate, async (req, res) => {
       },
     });
 
-    // Build ordered problem list from slots — no solutions, no answers, no IDs in display
+    // Build ordered problem list from slots
     const slots = Array.isArray(test.slots) ? test.slots : [];
     const problemMap = {};
     test.problems.forEach(p => { problemMap[p.id] = p; });
@@ -76,6 +85,12 @@ router.post('/start', authenticate, async (req, res) => {
       problems: orderedProblems,
       timeLimit: test.timeLimit,
       testName: test.name,
+      examMeta: {
+        numSets: test.numSets,
+        questionsPerSet: test.questionsPerSet,
+        estimationSets: test.estimationSets,
+        timeLimit: test.timeLimit,
+      },
     });
   } catch (error) {
     console.error('Start testsolve error:', error);
@@ -84,7 +99,6 @@ router.post('/start', authenticate, async (req, res) => {
 });
 
 // POST /api/testsolve/session/:sessionId/submit
-// Final submission: saves all responses + overall, marks session as submitted.
 router.post('/session/:sessionId/submit', authenticate, async (req, res) => {
   try {
     const { responses, overall } = req.body;
@@ -92,7 +106,6 @@ router.post('/session/:sessionId/submit', authenticate, async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Session not found.' });
     if (session.userId !== req.userId) return res.status(403).json({ error: 'Not your session.' });
 
-    // Replace all problem responses
     await prisma.testsolveProblemResponse.deleteMany({ where: { sessionId: req.params.sessionId } });
     if (responses?.length) {
       await prisma.testsolveProblemResponse.createMany({
@@ -108,7 +121,6 @@ router.post('/session/:sessionId/submit', authenticate, async (req, res) => {
       });
     }
 
-    // Upsert overall
     if (overall) {
       await prisma.testsolveOverall.upsert({
         where: { sessionId: req.params.sessionId },

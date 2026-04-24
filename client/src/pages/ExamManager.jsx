@@ -7,10 +7,10 @@ import Layout from '../components/Layout';
 const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
 const TOPIC_CFG = {
-  Algebra:        { dot: 'bg-blue-500',   active: 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400',   idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-blue-400/50' },
-  Geometry:       { dot: 'bg-green-500',  active: 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-green-400/50' },
-  Combinatorics:  { dot: 'bg-amber-500',  active: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-amber-400/50' },
-  'Number Theory':{ dot: 'bg-purple-500', active: 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400', idle: 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-purple-400/50' },
+  Algebra:        { dot: 'bg-blue-500',   active: 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400',   idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-blue-400/50' },
+  Geometry:       { dot: 'bg-green-500',  active: 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-green-400/50' },
+  Combinatorics:  { dot: 'bg-amber-500',  active: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-amber-400/50' },
+  'Number Theory':{ dot: 'bg-purple-500', active: 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-purple-400/50' },
 };
 
 const Spinner = ({ size = 16 }) => <Loader2 size={size} className="animate-spin" />;

@@ -58,8 +58,7 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-/* ── Preview modal — rendered via portal so position:fixed is always
-      relative to the viewport, not the scrollable <main> container. ── */
+/* ── Preview modal ── */
 const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, onDelete }) => {
   const [showSol, setShowSol] = useState(false);
   const data = fullProblem || problem;
@@ -98,7 +97,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Header ── */}
+        {/* Header */}
         <div
           style={{
             display: 'flex',
@@ -160,10 +159,8 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
           </button>
         </div>
 
-        {/* ── Scrollable body ── */}
+        {/* Scrollable body */}
         <div style={{ overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-          {/* Problem statement */}
           <section>
             <p className="section-label" style={{ marginBottom: '0.625rem' }}>Problem</p>
             <div style={{ fontSize: '15px', lineHeight: '1.75', fontFamily: 'var(--font-body)', color: 'var(--color-text)' }}>
@@ -174,7 +171,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
             </div>
           </section>
 
-          {/* Topics + difficulty */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <section>
               <p className="section-label" style={{ marginBottom: '0.5rem' }}>Topics</p>
@@ -209,7 +205,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
             </section>
           </div>
 
-          {/* Answer */}
           {data.answer && (
             <section>
               <p className="section-label" style={{ marginBottom: '0.5rem' }}>Answer</p>
@@ -229,7 +224,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
             </section>
           )}
 
-          {/* Solution toggle */}
           {data.solution && (
             <section style={{ border: '1px solid var(--color-border)', overflow: 'hidden' }}>
               <button
@@ -266,7 +260,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
             </section>
           )}
 
-          {/* Author notes */}
           {data.notes && (
             <section
               style={{
@@ -282,7 +275,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
             </section>
           )}
 
-          {/* Review thread */}
           {comments.length > 0 && (
             <section>
               <p className="section-label" style={{ marginBottom: '0.625rem' }}>
@@ -327,7 +319,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
             </section>
           )}
 
-          {/* Actions */}
           <div
             style={{
               display: 'flex',
@@ -338,10 +329,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
               borderTop: '1px solid var(--color-border)',
             }}
           >
-            <button
-              onClick={() => { onClose(); onNavigate(data.id); }}
-              className="btn-primary btn-sm"
-            >
+            <button onClick={() => { onClose(); onNavigate(data.id); }} className="btn-primary btn-sm">
               Edit
             </button>
             <button
@@ -363,7 +351,6 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
                 }
               }}
               className="btn-outline btn-sm"
-              style={{ '--hover-bg': 'rgb(220 38 38)', '--hover-border': 'rgb(220 38 38)', '--hover-color': '#fff' }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#dc2626';
                 e.currentTarget.style.borderColor = '#dc2626';
@@ -395,7 +382,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate, onArchive, on
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, checkAuth } = useAuth();
 
   const activeTab    = searchParams.get('view')   || 'overview';
   const statusFilter = searchParams.get('status') || 'all';
@@ -409,6 +396,17 @@ const Dashboard = () => {
   const [reviewLoading,    setReviewLoading]     = useState(false);
   const [previewProblem,   setPreviewProblem]    = useState(null);
   const [previewFull,      setPreviewFull]       = useState(null);
+
+  // Account tab state
+  const [mathExp,       setMathExp]       = useState('');
+  const [mathExpSaving, setMathExpSaving] = useState(false);
+  const [mathExpSaved,  setMathExpSaved]  = useState(false);
+  const [mathExpError,  setMathExpError]  = useState('');
+
+  // Sync mathExp field when user loads / changes
+  useEffect(() => {
+    if (user) setMathExp(user.mathExp || '');
+  }, [user]);
 
   const setParam = (key, value, defaultValue = '') => {
     setSearchParams((prev) => {
@@ -495,6 +493,26 @@ const Dashboard = () => {
     }
   };
 
+  const handleSaveMathExp = async () => {
+    setMathExpSaving(true);
+    setMathExpError('');
+    setMathExpSaved(false);
+    try {
+      await api.put('/user/profile', {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        mathExp: mathExp.trim(),
+      });
+      await checkAuth();
+      setMathExpSaved(true);
+      setTimeout(() => setMathExpSaved(false), 3000);
+    } catch {
+      setMathExpError('Failed to save. Please try again.');
+    } finally {
+      setMathExpSaving(false);
+    }
+  };
+
   const counts = useMemo(() => ({
     all:           problems.length,
     'Needs Review': problems.filter((p) => normStatus(p) === 'Needs Review').length,
@@ -525,7 +543,7 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-[1500px] space-y-5">
-        {/* ── Page header ── */}
+        {/* Page header */}
         <header className="flex items-center justify-between">
           <div>
             <span className="gold-rule mb-3" />
@@ -538,7 +556,7 @@ const Dashboard = () => {
           </button>
         </header>
 
-        {/* ── Tabs ── */}
+        {/* Tabs */}
         <section className="surface-card">
           <div className="border-b border-[var(--color-border)] px-4 py-3">
             <div className="flex flex-wrap gap-2">
@@ -569,7 +587,6 @@ const Dashboard = () => {
           {/* ════ OVERVIEW TAB ════ */}
           {activeTab === 'overview' && (
             <div className="space-y-4 p-4">
-              {/* Filters + search row */}
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex flex-wrap gap-2">
                   {STATUS_FILTERS.map((item) => (
@@ -609,7 +626,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Problem table */}
               <div className="overflow-hidden rounded-sm border border-[var(--color-border)]">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left">
@@ -779,6 +795,8 @@ const Dashboard = () => {
                 <span className="gold-rule mb-3" />
                 <h2 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Account</h2>
               </div>
+
+              {/* Read-only info grid */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="surface-card p-4">
                   <p className="section-label">Name</p>
@@ -798,13 +816,52 @@ const Dashboard = () => {
                   <p className="text-xs text-[var(--color-text-muted)]">{counts.Endorsed} endorsed</p>
                 </div>
               </div>
+
+              {/* Editable math experience */}
+              <div className="surface-card p-4 space-y-3">
+                <div>
+                  <p className="section-label">Math Background</p>
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                    Describe your competition math experience. Shown publicly on your profile.
+                  </p>
+                </div>
+                <textarea
+                  value={mathExp}
+                  onChange={(e) => { setMathExp(e.target.value); setMathExpSaved(false); }}
+                  placeholder="e.g. AIME qualifier, AMC 10/12 participant, interested in combinatorics…"
+                  rows={4}
+                  maxLength={500}
+                  className="input-base w-full px-3 py-2 text-sm resize-y"
+                  style={{ minHeight: '6rem', lineHeight: '1.6' }}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs tabular-nums" style={{ color: 'var(--color-text-faint)' }}>
+                    {mathExp.length}/500
+                  </span>
+                  <div className="flex items-center gap-3">
+                    {mathExpError && (
+                      <span className="text-xs" style={{ color: '#dc2626' }}>{mathExpError}</span>
+                    )}
+                    {mathExpSaved && (
+                      <span className="text-xs" style={{ color: 'var(--color-accent)' }}>Saved ✓</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSaveMathExp}
+                      disabled={mathExpSaving}
+                      className="btn-primary btn-sm"
+                      style={{ opacity: mathExpSaving ? 0.6 : 1 }}
+                    >
+                      {mathExpSaving ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </section>
       </div>
 
-      {/* Preview modal — portalled to document.body so position:fixed
-          is always relative to the viewport, not the scrollable <main>. */}
       {previewProblem && (
         <PreviewPanel
           problem={previewProblem}

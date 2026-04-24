@@ -26,24 +26,54 @@ export const useDarkMode = () => {
 
 /* Pages that can have access revoked (Dashboard is always allowed) */
 export const MANAGEABLE_PAGES = [
-  { key: 'write',       label: 'Write',       to: '/write' },
-  { key: 'inventory',   label: 'Inventory',   to: '/inventory' },
-  { key: 'exams',       label: 'Exams',       to: '/exams' },
-  { key: 'leaderboard', label: 'Leaderboard', to: '/leaderboard' },
-  { key: 'feedback',    label: 'Feedback',    to: '/feedback' },
-  { key: 'archive',     label: 'Archive',     to: '/archive' },
-  { key: 'testsolving', label: 'Testsolving', to: '/testsolving' },
+  { key: 'write',       label: 'Write Problem', to: '/write' },
+  { key: 'inventory',   label: 'Problems',      to: '/inventory' },
+  { key: 'exams',       label: 'Exam Manager',  to: '/exams' },
+  { key: 'leaderboard', label: 'Leaderboard',   to: '/leaderboard' },
+  { key: 'feedback',    label: 'Give Feedback',  to: '/feedback' },
+  { key: 'archive',     label: 'Archive',        to: '/archive' },
+  { key: 'testsolving', label: 'Testsolving',    to: '/testsolving' },
 ];
 
-const NAV_LINKS = [
-  { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard',   key: null },
-  { to: '/write',       icon: PenTool,          label: 'Write',       key: 'write' },
-  { to: '/inventory',   icon: List,             label: 'Inventory',   key: 'inventory' },
-  { to: '/exams',       icon: ClipboardList,    label: 'Exams',       key: 'exams' },
-  { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard', key: 'leaderboard' },
-  { to: '/feedback',    icon: MessageSquare,    label: 'Feedback',    key: 'feedback' },
-  { to: '/archive',     icon: Archive,          label: 'Archive',     key: 'archive' },
-  { to: '/testsolving', icon: FlaskConical,     label: 'Testsolving', key: 'testsolving' },
+/*
+  NAV_SECTIONS defines the sidebar nav in grouped order.
+  Each section has an optional label (shown when expanded) and a list of links.
+  A null label means no divider/header is rendered above that group.
+*/
+const NAV_SECTIONS = [
+  {
+    label: null,
+    links: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', key: null },
+    ],
+  },
+  {
+    label: 'Problems',
+    links: [
+      { to: '/write',     icon: PenTool, label: 'Write Problem', key: 'write' },
+      { to: '/inventory', icon: List,    label: 'Problems',       key: 'inventory' },
+    ],
+  },
+  {
+    label: 'Review',
+    links: [
+      { to: '/feedback', icon: MessageSquare, label: 'Give Feedback', key: 'feedback' },
+    ],
+  },
+  {
+    label: 'Exams',
+    links: [
+      { to: '/exams',       icon: ClipboardList, label: 'Exam Manager', key: 'exams' },
+      { to: '/testsolving', icon: FlaskConical,  label: 'Testsolving',  key: 'testsolving' },
+    ],
+  },
+  {
+    label: 'Community',
+    links: [
+      { to: '/leaderboard', icon: Trophy,  label: 'Leaderboard', key: 'leaderboard' },
+      { to: '/archive',     icon: Archive, label: 'Archive',      key: 'archive' },
+    ],
+  },
 ];
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -93,29 +123,54 @@ const Sidebar = ({ dark, toggleDark }) => {
 
       {/* Nav */}
       <nav className="sidebar__nav" aria-label="Main navigation">
-        {NAV_LINKS.map(({ to, icon: Icon, label, key }) => {
-          const accessible = hasAccess(user, key);
-          const isActive =
-            location.pathname === to ||
-            (to === '/dashboard' && location.pathname === '/');
-          return (
-            <Link
-              key={to}
-              to={accessible ? to : '#'}
-              onClick={accessible ? undefined : (e) => e.preventDefault()}
-              className={[
-                'sidebar__link',
-                isActive ? 'sidebar__link--active' : '',
-                !accessible ? 'sidebar__link--locked' : '',
-              ].join(' ')}
-              title={collapsed ? label : undefined}
-              style={!accessible ? { opacity: 0.38, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
-            >
-              <Icon size={14} className="sidebar__link-icon" />
-              {!collapsed && <span className="sidebar__link-label">{label}</span>}
-            </Link>
-          );
-        })}
+        {NAV_SECTIONS.map((section, si) => (
+          <div key={si}>
+            {/* Section divider label — only when expanded and label exists */}
+            {section.label && !collapsed && (
+              <div
+                style={{
+                  padding: '0.6rem 0.875rem 0.25rem',
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-text-faint)',
+                  userSelect: 'none',
+                  marginTop: si === 0 ? 0 : '0.25rem',
+                }}
+              >
+                {section.label}
+              </div>
+            )}
+            {/* Collapsed: thin divider between sections (skip first) */}
+            {section.label && collapsed && si > 0 && (
+              <div style={{ height: '1px', background: 'var(--color-divider)', margin: '0.35rem 0.5rem' }} />
+            )}
+            {section.links.map(({ to, icon: Icon, label, key }) => {
+              const accessible = hasAccess(user, key);
+              const isActive =
+                location.pathname === to ||
+                (to === '/dashboard' && location.pathname === '/');
+              return (
+                <Link
+                  key={to}
+                  to={accessible ? to : '#'}
+                  onClick={accessible ? undefined : (e) => e.preventDefault()}
+                  className={[
+                    'sidebar__link',
+                    isActive ? 'sidebar__link--active' : '',
+                    !accessible ? 'sidebar__link--locked' : '',
+                  ].join(' ')}
+                  title={collapsed ? label : undefined}
+                  style={!accessible ? { opacity: 0.38, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
+                >
+                  <Icon size={14} className="sidebar__link-icon" />
+                  {!collapsed && <span className="sidebar__link-label">{label}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
 
         {/* Admin link — only shown to admins */}
         {user?.isAdmin && (

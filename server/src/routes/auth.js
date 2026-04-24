@@ -15,6 +15,18 @@ const COOKIE_OPTS = {
   maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
+const USER_SELECT = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  initials: true,
+  mathExp: true,
+  isAdmin: true,
+  disabled: true,
+  pageAccess: true,
+};
+
 // Register
 router.post('/register', async (req, res) => {
   try {
@@ -32,28 +44,12 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
     const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        initials,
-        mathExp
-      }
+      data: { email, password: hashedPassword, firstName, lastName, initials, mathExp },
+      select: USER_SELECT,
     });
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, COOKIE_OPTS);
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        initials: user.initials,
-        mathExp: user.mathExp
-      }
-    });
+    res.json({ token, user });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ error: error.message || 'Registration failed' });
@@ -65,26 +61,16 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
+    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+    if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
+    if (user.disabled) {
+      return res.status(403).json({ error: 'ACCOUNT_DISABLED' });
     }
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, COOKIE_OPTS);
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        initials: user.initials,
-        mathExp: user.mathExp
-      }
-    });
+    const { password: _pw, ...safeUser } = user;
+    res.json({ token, user: safeUser });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Login failed' });
   }
@@ -101,14 +87,7 @@ router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        initials: true,
-        mathExp: true
-      }
+      select: USER_SELECT,
     });
     res.json({ user });
   } catch (error) {
@@ -123,14 +102,7 @@ router.patch('/me', authenticate, async (req, res) => {
     const updated = await prisma.user.update({
       where: { id: req.userId },
       data: { mathExp },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        initials: true,
-        mathExp: true
-      }
+      select: USER_SELECT,
     });
     res.json({ user: updated });
   } catch (error) {
@@ -139,7 +111,7 @@ router.patch('/me', authenticate, async (req, res) => {
   }
 });
 
-// Reset Password - requires admin-provided reset code
+// Reset Password
 router.post('/reset-password', async (req, res) => {
   try {
     const { email, resetCode, newPassword } = req.body;
@@ -150,17 +122,12 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Invalid reset code' });
     }
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(400).json({ error: 'No account found with that email' });
-    }
+    if (!user) return res.status(400).json({ error: 'No account found with that email' });
     if (newPassword.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { email },
-      data: { password: hashedPassword }
-    });
+    await prisma.user.update({ where: { email }, data: { password: hashedPassword } });
     res.json({ message: 'Password reset successfully. You can now log in.' });
   } catch (error) {
     console.error('Reset password error:', error);

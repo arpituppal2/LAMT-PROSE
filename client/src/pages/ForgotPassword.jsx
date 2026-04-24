@@ -42,7 +42,7 @@ const ForgotPassword = () => {
         {/* Wordmark */}
         <div className="mb-8">
           <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-[0.18em] mb-2">
-            LAMT · PROSE
+            Problem Review & Online Submission Engine
           </p>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
             Reset password

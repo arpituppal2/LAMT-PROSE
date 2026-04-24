@@ -5,7 +5,7 @@ import {
   LayoutDashboard, PenTool, List, Trophy,
   MessageSquare, LogOut, Menu, X, Moon, Sun,
   ClipboardList, Archive, ShieldAlert,
-  AlertTriangle, ArrowLeft,
+  AlertTriangle, ArrowLeft, FlaskConical,
 } from 'lucide-react';
 
 /* ── Theme context ──────────────────────────────────────────── */
@@ -32,6 +32,7 @@ export const MANAGEABLE_PAGES = [
   { key: 'leaderboard', label: 'Leaderboard', to: '/leaderboard' },
   { key: 'feedback',    label: 'Feedback',    to: '/feedback' },
   { key: 'archive',     label: 'Archive',     to: '/archive' },
+  { key: 'testsolving', label: 'Testsolving', to: '/testsolving' },
 ];
 
 const NAV_LINKS = [
@@ -42,6 +43,7 @@ const NAV_LINKS = [
   { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard', key: 'leaderboard' },
   { to: '/feedback',    icon: MessageSquare,    label: 'Feedback',    key: 'feedback' },
   { to: '/archive',     icon: Archive,          label: 'Archive',     key: 'archive' },
+  { to: '/testsolving', icon: FlaskConical,     label: 'Testsolving', key: 'testsolving' },
 ];
 
 /* ── Helpers ─────────────────────────────────────────────────── */

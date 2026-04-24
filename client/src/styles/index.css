@@ -866,5 +866,52 @@ a, button, [role="button"] {
   color: var(--color-text) !important;
 }
 
+/*  Toggle button (LAMT treatment)  */
+.btn-toggle {
+     display: inline-flex;
+     align-items: center;
+     justify-content: center;
+     gap: 0.5rem;
+     background: transparent;
+     color: var(--ucla-blue);
+     font-family: var(--font-body);
+     font-size: var(--text-sm);
+     font-weight: 600;
+     letter-spacing: 0.08em;
+     text-transform: uppercase;
+     padding: 0.5rem 1rem;
+     border: 2px solid var(--ucla-blue);
+     border-radius: 0;
+     cursor: pointer;
+     white-space: nowrap;
+     transition: background-color 180ms var(--ease-out-expo), color 180ms var(--ease-out-expo), border-color 180ms var(--ease-out-expo);
+}
+.btn-toggle:hover {
+     background: var(--ucla-gold);
+     color: #000;
+     border-color: var(--ucla-gold);
+}
+.btn-toggle.active,
+.btn-toggle[aria-pressed="true"] {
+     background: var(--ucla-blue);
+     color: #fff;
+     border-color: var(--ucla-blue);
+}
+/* Dark mode toggle */
+.dark .btn-toggle {
+     color: var(--ucla-gold);
+     border-color: var(--ucla-gold);
+}
+.dark .btn-toggle:hover {
+     background: var(--ucla-blue);
+     color: #fff;
+     border-color: var(--ucla-blue);
+}
+.dark .btn-toggle.active,
+.dark .btn-toggle[aria-pressed="true"] {
+     background: var(--ucla-gold);
+     color: #000;
+     border-color: var(--ucla-gold);
+}
 /* ── Dark map ───────────────────────────────────────────────── */
 .dark .map-iframe { filter: invert(1) hue-rotate(180deg); }

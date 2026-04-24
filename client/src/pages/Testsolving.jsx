@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Clock, ChevronRight, Lock, ArrowLeft, CheckCircle2,
   Circle, Loader2, AlertTriangle, X, Send, Eye,
-  ClipboardList, Trophy, Timer, MessageSquare, ChevronDown, ChevronUp, User,
+  ClipboardList, Trophy, Timer, MessageSquare, ChevronDown, ChevronUp, User, Trash2,
 } from 'lucide-react';
 import api from '../utils/api';
+import { useAuth } from '../utils/AuthContext';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
@@ -16,6 +17,12 @@ const FINAL_RATINGS = [
   { value: 'mostly_good', label: 'Mostly Good', color: 'var(--badge-resolved-text)',      bg: 'var(--badge-resolved-bg)',       border: 'var(--badge-resolved-border)' },
   { value: 'approved',    label: 'Approved',    color: 'var(--badge-endorsed-text)',      bg: 'var(--badge-endorsed-bg)',       border: 'var(--badge-endorsed-border)' },
 ];
+
+const RATING_META = {
+  needs_work:  { label: 'Needs Work',  color: 'var(--badge-needs-review-text)', bg: 'var(--badge-needs-review-bg)',  border: 'var(--badge-needs-review-border)' },
+  mostly_good: { label: 'Mostly Good', color: 'var(--badge-resolved-text)',      bg: 'var(--badge-resolved-bg)',       border: 'var(--badge-resolved-border)' },
+  approved:    { label: 'Approved',    color: 'var(--badge-endorsed-text)',      bg: 'var(--badge-endorsed-bg)',       border: 'var(--badge-endorsed-border)' },
+};
 
 /* ══════════════════════════════════════════════════════════════
    HELPERS
@@ -41,16 +48,19 @@ const buildSlotLabel = (exam, index) => {
   return `S${set}.${q}`;
 };
 
+const fmtDate = (d) => {
+  if (!d) return '—';
+  return new Date(d).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
 /* ══════════════════════════════════════════════════════════════
    SUB-COMPONENTS
 ══════════════════════════════════════════════════════════════ */
 
 /* ── ExamCard ─────────────────────────────────────────────── */
-const ExamCard = ({ exam, onStart }) => (
-  <button
-    type="button"
-    onClick={() => onStart(exam)}
-    className="surface-card group w-full text-left px-5 py-4 hover:border-[var(--color-accent)] transition-colors"
+const ExamCard = ({ exam, onStart, onViewResults }) => (
+  <div
+    className="surface-card w-full text-left px-5 py-4"
     style={{ border: '1px solid var(--color-border)' }}
   >
     <div className="flex items-start justify-between gap-4">
@@ -63,12 +73,12 @@ const ExamCard = ({ exam, onStart }) => (
             {exam.name}
           </span>
           {exam.competition && (
-            <span className="text-xs text-[var(--color-text-muted)] truncate">{exam.competition}</span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }} className="truncate">{exam.competition}</span>
           )}
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-faint)]">
+        <div className="flex flex-wrap gap-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
           {exam.roundType && (
-            <span className="border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+            <span className="border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 font-semibold uppercase tracking-wide" style={{ fontSize: 'var(--text-xs)' }}>
               {exam.roundType}
             </span>
           )}
@@ -87,13 +97,29 @@ const ExamCard = ({ exam, onStart }) => (
           )}
         </div>
       </div>
-      <div className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[var(--color-accent)] group-hover:gap-2.5 transition-all">
-        <Lock size={12} />
-        Enter
-        <ChevronRight size={13} />
+      <div className="flex-shrink-0 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onViewResults(exam)}
+          className="btn-outline px-3 py-1.5 flex items-center gap-1.5"
+          style={{ fontSize: 'var(--text-xs)' }}
+        >
+          <Eye size={12} />
+          Results
+        </button>
+        <button
+          type="button"
+          onClick={() => onStart(exam)}
+          className="flex items-center gap-1.5 font-semibold transition-all"
+          style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent)' }}
+        >
+          <Lock size={12} />
+          Enter
+          <ChevronRight size={13} />
+        </button>
       </div>
     </div>
-  </button>
+  </div>
 );
 
 /* ── ProblemNav ───────────────────────────────────────────── */
@@ -103,8 +129,7 @@ const ProblemNav = ({ problems, currentIndex, answers, onSelect, examMeta }) => 
     style={{ width: '160px', minWidth: '160px', background: 'var(--color-surface)', height: '100%', overflow: 'auto' }}
   >
     <div
-      className="px-3 py-3 border-b border-[var(--color-border)]"
-      style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--color-text-faint)' }}
+      className="px-3 py-3 border-b border-[var(--color-border)] section-label"
     >
       Problems
     </div>
@@ -128,7 +153,7 @@ const ProblemNav = ({ problems, currentIndex, answers, onSelect, examMeta }) => 
             ? <CheckCircle2 size={13} style={{ color: 'var(--badge-endorsed-text)', flexShrink: 0 }} />
             : <Circle size={13} style={{ color: 'var(--color-text-faint)', flexShrink: 0 }} />
           }
-          <span style={{ fontSize: '0.75rem', fontWeight: isCurrent ? 700 : 500, fontFamily: 'var(--font-body)' }}>
+          <span style={{ fontSize: 'var(--text-sm)', fontWeight: isCurrent ? 700 : 500, fontFamily: 'var(--font-body)' }}>
             {label}
           </span>
         </button>
@@ -147,7 +172,7 @@ const ProblemNav = ({ problems, currentIndex, answers, onSelect, examMeta }) => 
         }}
       >
         <MessageSquare size={13} style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: '0.75rem', fontWeight: currentIndex === 'overall' ? 700 : 500 }}>Overall</span>
+        <span style={{ fontSize: 'var(--text-sm)', fontWeight: currentIndex === 'overall' ? 700 : 500 }}>Overall</span>
       </button>
     </div>
   </div>
@@ -165,7 +190,7 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
           <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>
             {exam.name} — Testsolve Instructions
           </p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Please read before beginning</p>
+          <p className="mt-0.5 text-[var(--color-text-muted)]" style={{ fontSize: 'var(--text-xs)' }}>Please read before beginning</p>
         </div>
         <button type="button" onClick={onCancel} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
           <X size={16} />
@@ -174,16 +199,16 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
       <div className="px-5 py-5 space-y-4">
         {/* Exam info */}
         <div
-          className="rounded-sm border px-4 py-3 text-sm space-y-1"
+          className="border px-4 py-3 text-sm space-y-1"
           style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
         >
-          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+          <div className="flex items-center gap-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
             <Clock size={12} />
             <span className="font-semibold">
               {exam.timeLimit ? `${exam.timeLimit} minutes suggested` : 'No hard time limit'}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+          <div className="flex items-center gap-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
             <ClipboardList size={12} />
             <span>
               {exam.numSets > 1 ? `${exam.numSets} × ${exam.questionsPerSet}` : exam.questionsPerSet || '?'} problems
@@ -200,7 +225,7 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
           <ul className="space-y-2 text-[var(--color-text-muted)]" style={{ listStyle: 'none', padding: 0 }}>
             {[
               'Attempt every problem — even a partial attempt or a comment is valuable.',
-              'Don\'t spend too long on any single problem. If you\'re stuck, move on and come back. We need feedback on all problems, not a perfect score.',
+              "Don't spend too long on any single problem. If you're stuck, move on and come back.",
               'There is no strict time limit — but try to simulate real exam conditions.',
               'For each problem, record your answer, your work, and any comments about clarity, difficulty, or issues.',
               'At the end, fill out the Overall Comments section — this is critical for helping us improve the exam.',
@@ -208,8 +233,8 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
             ].map((item, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span
-                  className="flex-shrink-0 mt-0.5 h-4 w-4 flex items-center justify-center rounded-full text-[9px] font-bold"
-                  style={{ background: 'var(--color-accent)', color: 'white' }}
+                  className="flex-shrink-0 mt-0.5 h-4 w-4 flex items-center justify-center font-bold"
+                  style={{ background: 'var(--color-accent)', color: 'white', fontSize: 'var(--text-xs)', borderRadius: '2px' }}
                 >
                   {i + 1}
                 </span>
@@ -220,8 +245,8 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
         </div>
 
         <div
-          className="rounded-sm border px-3 py-2.5 text-xs flex items-start gap-2"
-          style={{ background: 'var(--badge-idea-bg)', borderColor: 'var(--badge-idea-border)', color: 'var(--badge-idea-text)' }}
+          className="border px-3 py-2.5 flex items-start gap-2"
+          style={{ background: 'var(--badge-idea-bg)', borderColor: 'var(--badge-idea-border)', color: 'var(--badge-idea-text)', fontSize: 'var(--text-xs)' }}
         >
           <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
           <span>No solutions are shown during testsolving. Focus on your own approach.</span>
@@ -258,22 +283,20 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
         <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
           <div>
             <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>{exam.name}</p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Enter your name and password to continue</p>
+            <p className="mt-0.5 text-[var(--color-text-muted)]" style={{ fontSize: 'var(--text-xs)' }}>Enter your name and password to continue</p>
           </div>
           <button type="button" onClick={onCancel} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
             <X size={16} />
           </button>
         </div>
         <div className="px-5 py-5 space-y-4">
-          {/* Exam info row */}
           {exam.timeLimit && (
-            <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+            <div className="flex items-center gap-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
               <Clock size={12} />
-              Suggested time: <strong className="text-[var(--color-text)]">{exam.timeLimit} minutes</strong>
+              Suggested time: <strong style={{ color: 'var(--color-text)' }}>{exam.timeLimit} minutes</strong>
             </div>
           )}
 
-          {/* Solver name */}
           <div>
             <label className="section-label">Your Name</label>
             <input
@@ -286,12 +309,11 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
               className="input-base w-full mt-2"
               autoComplete="name"
             />
-            <p className="text-[11px] text-[var(--color-text-faint)] mt-1">
+            <p className="mt-1" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
               Used to identify your submission — multiple people may share this account.
             </p>
           </div>
 
-          {/* Password */}
           <div>
             <label className="section-label">Testsolve Password</label>
             <input
@@ -306,7 +328,7 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-sm rounded-sm px-3 py-2.5" style={{ background: 'var(--badge-needs-review-bg)', color: 'var(--badge-needs-review-text)', border: '1px solid var(--badge-needs-review-border)' }}>
+            <div className="flex items-center gap-2 text-sm px-3 py-2.5" style={{ background: 'var(--badge-needs-review-bg)', color: 'var(--badge-needs-review-text)', border: '1px solid var(--badge-needs-review-border)' }}>
               <AlertTriangle size={13} />
               {error}
             </div>
@@ -346,7 +368,7 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
 
       {unanswered > 0 && (
         <div
-          className="flex items-start gap-2 rounded-sm border px-4 py-3 text-sm"
+          className="flex items-start gap-2 border px-4 py-3 text-sm"
           style={{ background: 'var(--badge-idea-bg)', borderColor: 'var(--badge-idea-border)', color: 'var(--badge-idea-text)' }}
         >
           <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
@@ -358,12 +380,9 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
       )}
 
       <div className="surface-card px-5 py-5 space-y-5">
-        {/* 1. General Comments */}
         <div>
-          <label className="section-label">
-            1. General Comments
-          </label>
-          <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
+          <label className="section-label">1. General Comments</label>
+          <p className="mt-0.5 mb-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
             Overall impressions, flow, balance across topics, pacing of the exam.
           </p>
           <textarea
@@ -375,13 +394,10 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
           />
         </div>
 
-        {/* 2. Difficulty / Ordering */}
         <div>
-          <label className="section-label">
-            2. Difficulty &amp; Ordering of Problems
-          </label>
-          <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
-            Was the difficulty curve appropriate? Were any problems out of order? Too easy/hard for their position?
+          <label className="section-label">2. Difficulty &amp; Ordering of Problems</label>
+          <p className="mt-0.5 mb-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+            Was the difficulty curve appropriate? Were any problems out of order?
           </p>
           <textarea
             value={overall.difficultyNotes}
@@ -392,13 +408,10 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
           />
         </div>
 
-        {/* 3. Technique Repetition */}
         <div>
-          <label className="section-label">
-            3. Repeated or Missing Techniques
-          </label>
-          <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
-            Are there techniques, formulas, or problem types that appear too often? Anything you felt was missing entirely?
+          <label className="section-label">3. Repeated or Missing Techniques</label>
+          <p className="mt-0.5 mb-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+            Techniques that appear too often, or topics you felt were missing.
           </p>
           <textarea
             value={overall.techniqueNotes}
@@ -409,13 +422,10 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
           />
         </div>
 
-        {/* 4. Rework / Replace */}
         <div>
-          <label className="section-label">
-            4. Problems That Need Rework or Replacement
-          </label>
-          <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
-            List specific problems you think need to be revised or swapped out entirely, and why.
+          <label className="section-label">4. Problems That Need Rework or Replacement</label>
+          <p className="mt-0.5 mb-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+            List specific problems you think need to be revised or swapped out, and why.
           </p>
           <textarea
             value={overall.reworkNotes}
@@ -426,7 +436,6 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
           />
         </div>
 
-        {/* 5. Final Rating */}
         <div>
           <label className="section-label mb-3 block">5. Final Rating</label>
           <div className="flex gap-3">
@@ -435,7 +444,7 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
                 key={r.value}
                 type="button"
                 onClick={() => setOverall(o => ({ ...o, finalRating: r.value }))}
-                className="flex-1 rounded-sm border-2 px-3 py-3 text-sm font-semibold transition-colors"
+                className="flex-1 border-2 px-3 py-3 text-sm font-semibold transition-colors"
                 style={
                   overall.finalRating === r.value
                     ? { borderColor: r.border, background: r.bg, color: r.color }
@@ -451,28 +460,240 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
 
       {submitError && (
         <div
-          className="flex items-center gap-2 rounded-sm border px-4 py-3 text-sm"
-          style={{ background: 'var(--badge-needs-review-bg)', border: '1px solid var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}
+          className="flex items-center gap-2 border px-4 py-3 text-sm"
+          style={{ background: 'var(--badge-needs-review-bg)', borderColor: 'var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}
         >
           <AlertTriangle size={14} />
           {submitError}
         </div>
       )}
 
-      <div className="flex gap-3">
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={loading}
+        className="btn-filled w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loading
+          ? <><Loader2 size={15} className="animate-spin" /> Submitting…</>
+          : <><Send size={14} /> Submit Testsolve</>
+        }
+      </button>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════
+   RESULTS VIEW
+══════════════════════════════════════════════════════════════ */
+const ResultsView = ({ exam, onBack }) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
+  const [data, setData]       = useState(null);
+  const [expanded, setExpanded] = useState({});
+  const [deleting, setDeleting] = useState(null);
+
+  const fetchResults = useCallback(() => {
+    setLoading(true);
+    setError('');
+    api.get(`/testsolve/results/${exam.id}`)
+      .then(r => setData(r.data))
+      .catch(() => setError('Failed to load results.'))
+      .finally(() => setLoading(false));
+  }, [exam.id]);
+
+  useEffect(() => { fetchResults(); }, [fetchResults]);
+
+  const handleDelete = async (sessionId) => {
+    if (!window.confirm('Delete this testsolve submission? This cannot be undone.')) return;
+    setDeleting(sessionId);
+    try {
+      await api.delete(`/testsolve/session/${sessionId}`);
+      setData(prev => ({ ...prev, sessions: prev.sessions.filter(s => s.id !== sessionId) }));
+    } catch {
+      alert('Failed to delete session.');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-5">
+      <header>
         <button
           type="button"
-          onClick={onSubmit}
-          disabled={loading}
-          className="btn-filled flex-1 py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: 'var(--color-accent)' }}
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 mb-4 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+          style={{ fontSize: 'var(--text-sm)' }}
         >
-          {loading
-            ? <><Loader2 size={15} className="animate-spin" /> Submitting…</>
-            : <><Send size={14} /> Submit Testsolve</>
-          }
+          <ArrowLeft size={14} />
+          Back to testsolves
         </button>
-      </div>
+        <span className="gold-rule mb-3" />
+        <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+          {exam.name}
+        </h1>
+        <p className="mt-1" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+          Testsolve submissions
+        </p>
+      </header>
+
+      {loading && (
+        <div className="flex h-40 items-center justify-center">
+          <Loader2 size={20} className="animate-spin text-[var(--color-accent)]" />
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-2 border px-4 py-3 text-sm"
+          style={{ background: 'var(--badge-needs-review-bg)', borderColor: 'var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}>
+          <AlertTriangle size={14} /> {error}
+        </div>
+      )}
+
+      {!loading && !error && data && (
+        <>
+          {data.sessions.length === 0 ? (
+            <div className="surface-card px-6 py-16 text-center">
+              <ClipboardList size={28} className="mx-auto mb-4" style={{ color: 'var(--color-text-faint)' }} />
+              <h2 className="text-base font-semibold" style={{ fontFamily: 'var(--font-display)' }}>No submissions yet</h2>
+              <p className="mt-2" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+                No one has submitted a testsolve for this exam yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {data.sessions.map(session => {
+                const isOpen = !!expanded[session.id];
+                const rating = RATING_META[session.overall?.finalRating];
+                return (
+                  <div key={session.id} className="surface-card overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+                    {/* Session header */}
+                    <div
+                      className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-[var(--color-surface)] transition-colors"
+                      onClick={() => toggleExpand(session.id)}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <User size={14} style={{ color: 'var(--color-text-faint)', flexShrink: 0 }} />
+                        <span className="font-semibold text-sm truncate">{session.solverName}</span>
+                        {session.submittedAt ? (
+                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{fmtDate(session.submittedAt)}</span>
+                        ) : (
+                          <span className="px-2 py-0.5 border font-semibold uppercase tracking-wide"
+                            style={{ fontSize: 'var(--text-xs)', background: 'var(--badge-idea-bg)', borderColor: 'var(--badge-idea-border)', color: 'var(--badge-idea-text)' }}>
+                            In progress
+                          </span>
+                        )}
+                        {rating && (
+                          <span className="px-2 py-0.5 border font-semibold uppercase tracking-wide"
+                            style={{ fontSize: 'var(--text-xs)', background: rating.bg, borderColor: rating.border, color: rating.color }}>
+                            {rating.label}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {user?.isAdmin && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(session.id); }}
+                            disabled={deleting === session.id}
+                            className="p-1.5 text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)] transition-colors disabled:opacity-40"
+                            title="Delete submission"
+                          >
+                            {deleting === session.id
+                              ? <Loader2 size={13} className="animate-spin" />
+                              : <Trash2 size={13} />
+                            }
+                          </button>
+                        )}
+                        {isOpen ? <ChevronUp size={15} style={{ color: 'var(--color-text-faint)' }} /> : <ChevronDown size={15} style={{ color: 'var(--color-text-faint)' }} />}
+                      </div>
+                    </div>
+
+                    {/* Expanded content */}
+                    {isOpen && (
+                      <div className="border-t border-[var(--color-border)] divide-y divide-[var(--color-border)]">
+                        {/* Per-problem responses */}
+                        {session.responses.length > 0 && (
+                          <div className="px-5 py-4 space-y-4">
+                            <p className="section-label">Problem Responses</p>
+                            {session.responses.map((resp) => {
+                              const slot = data.slots.find(s => s.slotIndex === resp.slotIndex);
+                              const label = buildSlotLabel(null, resp.slotIndex);
+                              return (
+                                <div key={resp.id} className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold" style={{ fontSize: 'var(--text-sm)' }}>{label}</span>
+                                    {resp.answer && (
+                                      <span className="px-2 py-0.5 border font-mono"
+                                        style={{ fontSize: 'var(--text-xs)', background: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+                                        {resp.answer}
+                                      </span>
+                                    )}
+                                    {resp.timeMinutes != null && (
+                                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                                        <Clock size={11} className="inline mr-0.5" />{resp.timeMinutes} min
+                                      </span>
+                                    )}
+                                  </div>
+                                  {slot?.latex && (
+                                    <div className="px-3 py-2 text-sm" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                                      <KatexRenderer latex={slot.latex} />
+                                    </div>
+                                  )}
+                                  {resp.workArea && (
+                                    <div>
+                                      <span className="section-label">Work</span>
+                                      <pre className="mt-1 whitespace-pre-wrap font-mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{resp.workArea}</pre>
+                                    </div>
+                                  )}
+                                  {resp.comment && (
+                                    <div>
+                                      <span className="section-label">Comment</span>
+                                      <p className="mt-1" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{resp.comment}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Overall feedback */}
+                        {session.overall && (
+                          <div className="px-5 py-4 space-y-3">
+                            <p className="section-label">Overall Feedback</p>
+                            {[
+                              ['General Comments', session.overall.generalComments],
+                              ['Difficulty & Ordering', session.overall.difficultyNotes],
+                              ['Repeated/Missing Techniques', session.overall.techniqueNotes],
+                              ['Problems Needing Rework', session.overall.reworkNotes],
+                            ].map(([label, value]) => value ? (
+                              <div key={label}>
+                                <span className="section-label">{label}</span>
+                                <p className="mt-1" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{value}</p>
+                              </div>
+                            ) : null)}
+                          </div>
+                        )}
+
+                        {session.responses.length === 0 && !session.overall && (
+                          <div className="px-5 py-6 text-center" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)' }}>
+                            No responses recorded yet.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
@@ -481,8 +702,9 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════════ */
 const Testsolving = () => {
-  /* ── Phase: 'list' | 'active' | 'done' ── */
+  /* ── Phase: 'list' | 'results' | 'active' | 'done' ── */
   const [phase, setPhase] = useState('list');
+  const [resultsExam, setResultsExam] = useState(null);
 
   /* ── List phase ── */
   const [exams, setExams]             = useState([]);
@@ -490,9 +712,9 @@ const Testsolving = () => {
   const [listError, setListError]     = useState('');
 
   /* ── Password + instructions modal state ── */
-  const [pendingExam, setPendingExam]         = useState(null);
-  const [pwdLoading, setPwdLoading]           = useState(false);
-  const [pwdError, setPwdError]               = useState('');
+  const [pendingExam, setPendingExam]           = useState(null);
+  const [pwdLoading, setPwdLoading]             = useState(false);
+  const [pwdError, setPwdError]                 = useState('');
   const [showInstructions, setShowInstructions] = useState(false);
   const [verifiedSession, setVerifiedSession]   = useState(null);
 
@@ -538,7 +760,6 @@ const Testsolving = () => {
   const remaining = timeLimitSeconds != null ? timeLimitSeconds - elapsed : null;
   const timerOverrun = remaining != null && remaining < 0;
 
-  /* ── Step 1: User clicks exam card → show password modal ── */
   const handleStartExam = (exam) => {
     setPendingExam(exam);
     setPwdError('');
@@ -546,7 +767,11 @@ const Testsolving = () => {
     setVerifiedSession(null);
   };
 
-  /* ── Step 2: User enters name + password → verify, then show instructions ── */
+  const handleViewResults = (exam) => {
+    setResultsExam(exam);
+    setPhase('results');
+  };
+
   const handleConfirmPassword = useCallback(async (password, solverName) => {
     if (!pendingExam) return;
     setPwdLoading(true);
@@ -563,7 +788,6 @@ const Testsolving = () => {
     }
   }, [pendingExam]);
 
-  /* ── Step 3: User clicks "Begin" in instructions → activate session ── */
   const handleBeginAfterInstructions = useCallback(() => {
     if (!verifiedSession) return;
     const { sessionId, problems, timeLimit: tl, testName, examMeta, solverName } = verifiedSession;
@@ -577,12 +801,10 @@ const Testsolving = () => {
     setPhase('active');
   }, [verifiedSession]);
 
-  /* ── Update answer field ── */
   const setField = useCallback((problemId, field, value) => {
     setAnswers(prev => ({ ...prev, [problemId]: { ...prev[problemId], [field]: value } }));
   }, []);
 
-  /* ── Final submit ── */
   const handleSubmit = useCallback(async () => {
     if (!session) return;
     setSubmitLoading(true);
@@ -607,15 +829,26 @@ const Testsolving = () => {
   }, [session, answers, overall]);
 
   /* ════════════════════════════════════════════════════════════
+     RENDER — RESULTS
+  ════════════════════════════════════════════════════════════ */
+  if (phase === 'results' && resultsExam) {
+    return (
+      <Layout pageKey="testsolving">
+        <ResultsView exam={resultsExam} onBack={() => { setPhase('list'); setResultsExam(null); }} />
+      </Layout>
+    );
+  }
+
+  /* ════════════════════════════════════════════════════════════
      RENDER — DONE
   ════════════════════════════════════════════════════════════ */
   if (phase === 'done') {
     return (
-      <Layout>
+      <Layout pageKey="testsolving">
         <div className="mx-auto max-w-xl py-20 text-center space-y-6">
           <div className="flex justify-center">
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-full"
+              className="flex h-16 w-16 items-center justify-center"
               style={{ background: 'var(--badge-endorsed-bg)' }}
             >
               <Trophy size={28} style={{ color: 'var(--badge-endorsed-text)' }} />
@@ -652,7 +885,7 @@ const Testsolving = () => {
     const answeredCount = problems.filter(p => !!answers[p.problemId]?.answer?.trim()).length;
 
     return (
-      <Layout noPadding>
+      <Layout noPadding pageKey="testsolving">
         {/* ── Top bar ── */}
         <div
           className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-2 sticky top-0 z-20"
@@ -668,17 +901,18 @@ const Testsolving = () => {
                   setSession(null);
                 }
               }}
-              className="flex items-center gap-1 text-xs font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+              className="flex items-center gap-1 font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+              style={{ fontSize: 'var(--text-xs)' }}
             >
               <ArrowLeft size={13} />
               Exit
             </button>
-            <span className="text-[var(--color-border)]">|</span>
+            <span style={{ color: 'var(--color-border)' }}>|</span>
             <span className="text-sm font-bold truncate" style={{ fontFamily: 'var(--font-display)' }}>
               {session.testName}
             </span>
             {session.solverName && (
-              <span className="inline-flex items-center gap-1 text-xs text-[var(--color-text-muted)] truncate">
+              <span className="inline-flex items-center gap-1 truncate" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                 <User size={11} />
                 {session.solverName}
               </span>
@@ -695,14 +929,14 @@ const Testsolving = () => {
                 : formatTime(elapsed)
               }
             </span>
-            <span className="text-xs text-[var(--color-text-faint)] tabular-nums">
+            <span className="tabular-nums" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
               {answeredCount}/{problems.length}
             </span>
             <button
               type="button"
               onClick={() => setCurrentIdx('overall')}
-              className="btn-outline px-3 py-1.5 text-xs flex items-center gap-1.5"
-              style={isOverall ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' } : {}}
+              className="btn-outline px-3 py-1.5 flex items-center gap-1.5"
+              style={{ fontSize: 'var(--text-xs)', ...(isOverall ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' } : {}) }}
             >
               <MessageSquare size={13} />
               Overall
@@ -721,7 +955,6 @@ const Testsolving = () => {
           />
 
           <div className="flex-1 overflow-y-auto">
-            {/* ── OVERALL FEEDBACK PANEL ── */}
             {isOverall ? (
               <OverallFeedbackPanel
                 overall={overall}
@@ -735,18 +968,16 @@ const Testsolving = () => {
             ) : current ? (
               <div className="mx-auto max-w-3xl px-6 py-6 space-y-6">
 
-                {/* Problem header */}
                 <div className="flex items-center gap-3">
                   <span className="gold-rule" />
                   <h2 className="text-base font-bold" style={{ fontFamily: 'var(--font-display)' }}>
                     {buildSlotLabel(session.examMeta, current.slotIndex)}
                   </h2>
-                  <span className="text-xs text-[var(--color-text-faint)] tabular-nums">
+                  <span className="tabular-nums" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
                     {typeof currentIdx === 'number' ? currentIdx + 1 : '?'} / {problems.length}
                   </span>
                 </div>
 
-                {/* 1. Problem */}
                 <div className="surface-card px-5 py-5">
                   <p className="section-label">Problem</p>
                   <div className="mt-3 text-[15px] leading-7">
@@ -757,7 +988,6 @@ const Testsolving = () => {
                   </div>
                 </div>
 
-                {/* 2. Answer + Work Area */}
                 <div className="surface-card px-5 py-5 space-y-4">
                   <div>
                     <label className="section-label">Your Answer</label>
@@ -782,7 +1012,6 @@ const Testsolving = () => {
                   </div>
                 </div>
 
-                {/* 3. Per-problem comments */}
                 <div className="surface-card px-5 py-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <MessageSquare size={14} style={{ color: 'var(--color-accent)' }} />
@@ -790,24 +1019,24 @@ const Testsolving = () => {
                   </div>
 
                   <div>
-                    <label className="section-label text-xs">
+                    <label className="section-label" style={{ fontSize: 'var(--text-xs)' }}>
                       Comments on this problem{' '}
-                      <span className="font-normal text-[var(--color-text-faint)]">(required for each problem)</span>
+                      <span className="font-normal" style={{ color: 'var(--color-text-faint)' }}>(required for each problem)</span>
                     </label>
-                    <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 mb-2">
-                      Clarity issues, notation, difficulty impression, what you'd change, whether it felt appropriate for its position…
+                    <p className="mt-0.5 mb-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                      Clarity issues, notation, difficulty impression, what you'd change…
                     </p>
                     <textarea
                       value={resp.comment || ''}
                       onChange={e => setField(current.problemId, 'comment', e.target.value)}
                       rows={3}
-                      placeholder="e.g. The problem statement was unclear about whether x is an integer. Felt harder than its position suggests…"
+                      placeholder="e.g. The problem statement was unclear about whether x is an integer…"
                       className="input-base w-full resize-y"
                     />
                   </div>
 
                   <div>
-                    <label className="section-label text-xs flex items-center gap-1.5">
+                    <label className="section-label flex items-center gap-1.5" style={{ fontSize: 'var(--text-xs)' }}>
                       <Timer size={12} />
                       Estimated time spent on this problem
                     </label>
@@ -823,13 +1052,12 @@ const Testsolving = () => {
                       />
                       <span className="text-sm text-[var(--color-text-muted)]">minutes</span>
                     </div>
-                    <p className="text-[11px] text-[var(--color-text-faint)] mt-1">
+                    <p className="mt-1" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
                       Approximate is fine — helps us calibrate difficulty.
                     </p>
                   </div>
                 </div>
 
-                {/* Navigation */}
                 <div className="flex gap-3 pb-8">
                   <button
                     type="button"
@@ -875,7 +1103,7 @@ const Testsolving = () => {
      RENDER — EXAM LIST
   ════════════════════════════════════════════════════════════ */
   return (
-    <Layout>
+    <Layout pageKey="testsolving">
       <div className="mx-auto max-w-2xl space-y-5">
 
         <header>
@@ -896,8 +1124,8 @@ const Testsolving = () => {
 
         {listError && (
           <div
-            className="flex items-center gap-2 rounded-sm border px-4 py-3 text-sm"
-            style={{ background: 'var(--badge-needs-review-bg)', border: '1px solid var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}
+            className="flex items-center gap-2 border px-4 py-3 text-sm"
+            style={{ background: 'var(--badge-needs-review-bg)', borderColor: 'var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}
           >
             <AlertTriangle size={14} />
             {listError}
@@ -919,13 +1147,12 @@ const Testsolving = () => {
         {!listLoading && exams.length > 0 && (
           <div className="space-y-2">
             {exams.map(exam => (
-              <ExamCard key={exam.id} exam={exam} onStart={handleStartExam} />
+              <ExamCard key={exam.id} exam={exam} onStart={handleStartExam} onViewResults={handleViewResults} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Password modal */}
       {pendingExam && (
         <PasswordModal
           exam={pendingExam}
@@ -936,7 +1163,6 @@ const Testsolving = () => {
         />
       )}
 
-      {/* Instructions modal — shown after password verified */}
       {showInstructions && verifiedSession && (
         <InstructionsModal
           exam={verifiedSession.examMeta || exams.find(e => e.id === verifiedSession.testId) || { name: verifiedSession.testName }}

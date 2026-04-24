@@ -6,16 +6,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  initials  String
-  mathExp   String
-  isAdmin   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  firstName  String
+  lastName   String
+  initials   String
+  mathExp    String
+  isAdmin    Boolean  @default(false)
+  disabled   Boolean  @default(false)
+  pageAccess Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   problems        Problem[]
   feedbacks       Feedback[]
   testsAuthored   Test[]           @relation("TestAuthor")

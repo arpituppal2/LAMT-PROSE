@@ -52,7 +52,6 @@ router.post('/start', authenticate, async (req, res) => {
         numSets: true,
         questionsPerSet: true,
         estimationSets: true,
-        problems: { select: { id: true, latex: true } },
       },
     });
     if (!test) return res.status(404).json({ error: 'Exam not found.' });
@@ -72,8 +71,9 @@ router.post('/start', authenticate, async (req, res) => {
     // Build ordered problem list from slots
     const slots = Array.isArray(test.slots) ? test.slots : [];
     const problemMap = {};
-    test.problems.forEach(p => { problemMap[p.id] = p; });
-
+        const problemIds = slots.map(s => s?.problemId).filter(Boolean);
+        const problems = problemIds.length > 0 ? await prisma.problem.findMany({ where: { id: { in: problemIds } }, select: { id: true, latex: true } }) : [];
+    problems.forEach(p => { problemMap[p.id] = p; });
     const orderedProblems = slots
       .map((s, i) => {
         const pid = s?.problemId;

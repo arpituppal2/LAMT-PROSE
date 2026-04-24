@@ -14,6 +14,14 @@ const STAGE_CONFIG = {
   'Needs Review': { label: 'Needs Edits',  cls: 'status-badge status-needs-review' },
 };
 
+/* Stage values matched by each breakdown row */
+const BREAKDOWN_STAGE_MAP = {
+  endorsed:   ['Endorsed', 'Published'],
+  idea:       ['Idea'],
+  needsReview:['Needs Review'],
+  resolved:   ['Resolved', 'Review', 'On Test'],
+};
+
 /* ── Animated math background ─────────────────────────────── */
 const MATH_SYMBOLS = [
   '∑','∫','∂','√','∞','∈','∉','⊂','⊃','∪','∩','∀','∃','⟹','⟺',
@@ -68,6 +76,7 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
   const [tab,     setTab]     = useState('problems');
+  const [stageFilter, setStageFilter] = useState(null); // null = show all
 
   useEffect(() => { fetchAll(); }, [id]);
 
@@ -115,6 +124,20 @@ const UserProfile = () => {
 
   // STATUS_POINTS mirrors server for score breakdown display
   const STATUS_POINTS = { Endorsed: 5, Idea: 2, 'Needs Review': -2, Resolved: 3 };
+
+  const handleBreakdownClick = (key) => {
+    if (key === 'reviews') {
+      setStageFilter(null);
+      setTab('reviews');
+    } else {
+      setTab('problems');
+      setStageFilter(prev => prev === key ? null : key);
+    }
+  };
+
+  const filteredProblems = stageFilter
+    ? (profile.problems || []).filter(p => (BREAKDOWN_STAGE_MAP[stageFilter] || []).includes(p.stage))
+    : (profile.problems || []);
 
   return (
     <Layout noPadding>
@@ -174,7 +197,7 @@ const UserProfile = () => {
             { key: 'problems', label: 'Problems',     icon: BookOpen,     count: profile.problems.length },
             { key: 'reviews',  label: 'Reviews Given', icon: MessageSquare, count: reviews.length },
           ].map(({ key, label, icon: Icon, count }) => (
-            <button key={key} onClick={() => setTab(key)}
+            <button key={key} onClick={() => { setTab(key); if (key === 'problems' && tab !== 'problems') setStageFilter(null); }}
               className="relative flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] transition-colors"
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
@@ -220,12 +243,28 @@ const UserProfile = () => {
                   { label: 'Idea',        key: 'idea',         pts: STATUS_POINTS.Idea,            cls: 'status-badge status-idea' },
                   { label: 'Needs Edits', key: 'needsReview',  pts: STATUS_POINTS['Needs Review'], cls: 'status-badge status-needs-review' },
                   { label: 'Resolved',    key: 'resolved',     pts: STATUS_POINTS.Resolved,        cls: 'status-badge status-resolved' },
-                  { label: 'Reviews',     key: null,           pts: 0.5,                           cls: null },
+                  { label: 'Reviews',     key: 'reviews',      pts: 0.5,                           cls: null },
                 ].map(({ label, key, pts, cls }) => {
-                  const value = key ? (stats?.badges?.[key] ?? 0) : (stats?.reviewsGiven ?? 0);
+                  const value = key === 'reviews' ? (stats?.reviewsGiven ?? 0) : (stats?.badges?.[key] ?? 0);
+                  const isActive = key === 'reviews' ? tab === 'reviews' : stageFilter === key;
                   return (
-                    <div key={label} className="flex items-center justify-between px-5 py-2.5"
-                      style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => handleBreakdownClick(key)}
+                      className="flex items-center justify-between px-5 py-2.5 w-full text-left transition-colors"
+                      style={{
+                        borderBottom: '1px solid var(--color-border)',
+                        background: isActive ? 'var(--color-surface-offset)' : 'transparent',
+                        cursor: 'pointer',
+                        border: 'none',
+                        borderBottom: '1px solid var(--color-border)',
+                        outline: isActive ? '1px solid var(--color-accent)' : 'none',
+                        outlineOffset: '-1px',
+                      }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-surface-2)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = isActive ? 'var(--color-surface-offset)' : 'transparent'; }}
+                    >
                       <div className="flex items-center gap-2">
                         {cls
                           ? <span className={cls} style={{ fontSize: '0.65rem' }}>{label}</span>
@@ -236,9 +275,10 @@ const UserProfile = () => {
                         </span>
                       </div>
                       <span className="tabular-nums font-bold" style={{
-                        fontFamily: 'var(--font-display)', fontSize: 'var(--text-sm)', color: 'var(--color-text)',
+                        fontFamily: 'var(--font-display)', fontSize: 'var(--text-sm)',
+                        color: isActive ? 'var(--color-accent)' : 'var(--color-text)',
                       }}>{value}</span>
-                    </div>
+                    </button>
                   );
                 })}
                 {/* Total */}
@@ -270,15 +310,30 @@ const UserProfile = () => {
                 <div className="flex items-center gap-2">
                   <BookOpen size={13} style={{ color: 'var(--color-text-faint)' }} />
                   <span className="section-label">Submissions</span>
+                  {stageFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setStageFilter(null)}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.06em] px-2 py-0.5 transition-colors"
+                      style={{
+                        background: 'var(--color-surface-offset)',
+                        border: '1px solid var(--color-accent)',
+                        color: 'var(--color-accent)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {stageFilter} ×
+                    </button>
+                  )}
                 </div>
                 <span className="tabular-nums font-bold text-[10px]" style={{
                   fontFamily: 'monospace', color: 'var(--color-text-faint)',
                   background: 'var(--color-surface-offset)', border: '1px solid var(--color-border)',
                   padding: '0.1rem 0.45rem',
-                }}>{profile.problems.length}</span>
+                }}>{filteredProblems.length}</span>
               </div>
 
-              {profile.problems.length > 0 && (
+              {filteredProblems.length > 0 && (
                 <div className="grid px-5 py-2" style={{
                   gridTemplateColumns: '1fr auto',
                   borderBottom: '1px solid var(--color-border)',
@@ -290,11 +345,23 @@ const UserProfile = () => {
               )}
 
               <div className="flex flex-col">
-                {profile.problems.length === 0 ? (
+                {filteredProblems.length === 0 ? (
                   <div className="py-16 text-center">
-                    <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>No submissions yet.</p>
+                    <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>
+                      {stageFilter ? 'No problems match this filter.' : 'No submissions yet.'}
+                    </p>
+                    {stageFilter && (
+                      <button
+                        type="button"
+                        onClick={() => setStageFilter(null)}
+                        className="mt-3 text-xs"
+                        style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        Clear filter
+                      </button>
+                    )}
                   </div>
-                ) : profile.problems.map((p) => {
+                ) : filteredProblems.map((p) => {
                   const cfg = STAGE_CONFIG[p.stage] || { label: p.stage, cls: 'status-badge status-idea' };
                   return (
                     <Link key={p.id} to={`/problem/${p.id}`} style={{ textDecoration: 'none' }}>

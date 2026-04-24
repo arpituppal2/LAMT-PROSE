@@ -37,8 +37,7 @@ export const MANAGEABLE_PAGES = [
 
 /*
   NAV_SECTIONS defines the sidebar nav in grouped order.
-  Each section has an optional label (shown when expanded) and a list of links.
-  A null label means no divider/header is rendered above that group.
+  Archive is intentionally omitted — it is reachable from the Leaderboard/Inventory page instead.
 */
 const NAV_SECTIONS = [
   {
@@ -50,14 +49,8 @@ const NAV_SECTIONS = [
   {
     label: 'Problems',
     links: [
-      { to: '/write',     icon: PenTool, label: 'Write Problem', key: 'write' },
-      { to: '/inventory', icon: List,    label: 'Problems',       key: 'inventory' },
-    ],
-  },
-  {
-    label: 'Review',
-    links: [
-      { to: '/feedback', icon: MessageSquare, label: 'Give Feedback', key: 'feedback' },
+      { to: '/write',    icon: PenTool,       label: 'Write Problem', key: 'write' },
+      { to: '/feedback', icon: MessageSquare, label: 'Give Feedback',  key: 'feedback' },
     ],
   },
   {
@@ -68,10 +61,10 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    label: 'Community',
+    label: 'Compilations',
     links: [
-      { to: '/leaderboard', icon: Trophy,  label: 'Leaderboard', key: 'leaderboard' },
-      { to: '/archive',     icon: Archive, label: 'Archive',      key: 'archive' },
+      { to: '/leaderboard', icon: Trophy, label: 'Leaderboard', key: 'leaderboard' },
+      { to: '/inventory',   icon: List,   label: 'Problems',     key: 'inventory' },
     ],
   },
 ];
@@ -81,7 +74,6 @@ const hasAccess = (user, key) => {
   if (!key) return true; // Dashboard always allowed
   if (!user) return true;
   const pa = user.pageAccess || {};
-  // If key is absent from pageAccess, default is true (all access enabled)
   return pa[key] !== false;
 };
 

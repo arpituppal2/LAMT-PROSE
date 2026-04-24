@@ -7,6 +7,7 @@ import userRoutes from './routes/user.js';
 import problemRoutes from './routes/problem.js';
 import feedbackRoutes from './routes/feedback.js';
 import testRoutes from './routes/test.js';
+import testsolveRoutes from './routes/testsolve.js';
 import statsRoutes from './routes/stats.js';
 import adminRoutes from './routes/admin.js';
 import problemCommentsRoutes from './routes/problemComments.js';
@@ -44,6 +45,7 @@ app.use('/api/problems', problemRoutes);
 app.use('/api/problems/:problemId/comments', problemCommentsRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/tests', testRoutes);
+app.use('/api/testsolve', testsolveRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/admin', adminRoutes);
 

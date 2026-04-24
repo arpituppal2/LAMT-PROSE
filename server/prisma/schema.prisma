@@ -18,12 +18,13 @@ model User {
   pageAccess Json     @default("{}")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  problems        Problem[]
-  feedbacks       Feedback[]
-  testsAuthored   Test[]           @relation("TestAuthor")
-  testComments    TestComment[]
-  problemComments ProblemComment[]
-  notifications   Notification[]
+  problems          Problem[]
+  feedbacks         Feedback[]
+  testsAuthored     Test[]           @relation("TestAuthor")
+  testComments      TestComment[]
+  problemComments   ProblemComment[]
+  notifications     Notification[]
+  testsolveSessions TestsolveSession[]
 }
 model Problem {
   id           String   @id
@@ -117,11 +118,20 @@ model Test {
   tournamentId     String?
   authorId         String?
   slots            Json?
+  // ── Testsolving fields ──────────────────────────────────────────────
+  isLocked          Boolean  @default(false)
+  lockedAt          DateTime?
+  timeLimit         Int?
+  testsolveStatus   String   @default("none") // "none" | "active" | "paused"
+  testsolvePassword String?
+  testsolveVersion  Int      @default(1)
+  // ───────────────────────────────────────────────────────────────────
   createdAt        DateTime @default(now())
   author           User?         @relation("TestAuthor", fields: [authorId], references: [id], onDelete: SetNull)
   tournament       Tournament?   @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
   problems         Problem[]     @relation("ProblemToTest")
   comments         TestComment[]
+  testsolveSessions TestsolveSession[]
   @@index([authorId])
   @@index([tournamentId])
 }
@@ -151,4 +161,47 @@ model ProblemComment {
   @@index([problemId])
   @@index([userId])
   @@index([parentId])
+}
+
+// ════════════════════════════════════════════════════════════
+// TESTSOLVING MODELS
+// ════════════════════════════════════════════════════════════
+
+model TestsolveSession {
+  id               String    @id @default(uuid())
+  testId           String
+  userId           String
+  examVersion      Int       @default(1)
+  submittedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  problemResponses TestsolveProblemResponse[]
+  overall          TestsolveOverall?
+  test             Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([testId])
+  @@index([userId])
+}
+
+model TestsolveProblemResponse {
+  id          String  @id @default(uuid())
+  sessionId   String
+  problemId   String
+  slotIndex   Int
+  answer      String  @db.Text @default("")
+  workArea    String  @db.Text @default("")
+  comment     String  @db.Text @default("")
+  timeMinutes Int?
+  session     TestsolveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  @@index([sessionId])
+}
+
+model TestsolveOverall {
+  id              String @id @default(uuid())
+  sessionId       String @unique
+  generalComments String @db.Text @default("")
+  difficultyNotes String @db.Text @default("")
+  techniqueNotes  String @db.Text @default("")
+  reworkNotes     String @db.Text @default("")
+  finalRating     String @default("needs_work")
+  session         TestsolveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }

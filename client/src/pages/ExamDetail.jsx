@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, ChevronUp,
-  Loader2, X, AlertTriangle,
+  Loader2, X, AlertTriangle, Settings, Download,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -12,14 +12,6 @@ import { getProblemStatus } from '../utils/problemStatus';
 /* ══════════════════════════════════════════════════════════════
    CONSTANTS
 ══════════════════════════════════════════════════════════════ */
-const TEMPLATE_LABELS = {
-  'indiv-alg-nt': 'Individual: Algebra & NT',
-  'indiv-geo':    'Individual: Geometry',
-  'indiv-combo':  'Individual: Combinatorics',
-  shopping:       'Team: Shopping Spree',
-  guts:           'Team: Guts',
-};
-
 const STAGES = ['Idea', 'Needs Review', 'Resolved', 'Endorsed'];
 const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
@@ -37,42 +29,22 @@ const STAGE_CFG = {
   Endorsed:       { dot: 'bg-green-500',  rail: 'bg-green-100 dark:bg-green-900/30' },
 };
 
-/* ── Slot builders per template ─────────────────────────────── */
-const buildSlots = (templateType) => {
-  if (!templateType) return Array.from({ length: 10 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' }));
-  switch (templateType) {
-    case 'indiv-alg-nt':
-    case 'indiv-geo':
-    case 'indiv-combo':
-      return [
-        ...Array.from({ length: 10 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' })),
-        { label: 'Estimation', slotType: 'estimation' },
-      ];
-    case 'shopping':
-      return [
-        ...Array.from({ length: 24 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' })),
-        { label: 'Estimation Wager', slotType: 'estimation' },
-      ];
-    case 'guts': {
-      const slots = [];
-      for (let set = 1; set <= 7; set++)
-        for (let q = 1; q <= 3; q++)
-          slots.push({ label: `S${set}.${q}`, slotType: 'normal' });
-      slots.push({ label: 'S8.1', slotType: 'normal' });
-      slots.push({ label: 'S8.2', slotType: 'normal' });
-      slots.push({ label: 'Estimation', slotType: 'estimation' });
-      return slots;
-    }
-    default:
-      return Array.from({ length: 10 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' }));
+/* ── Slot builders ─────────────────────────────────────────── */
+const buildSlotsFromExam = (exam) => {
+  if (!exam) return Array.from({ length: 10 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' }));
+  const { numSets = 1, questionsPerSet = 10, estimationSets = 0 } = exam;
+  const slots = [];
+  if (numSets === 1) {
+    for (let q = 1; q <= questionsPerSet; q++)
+      slots.push({ label: `Q${q}`, slotType: 'normal' });
+  } else {
+    for (let s = 1; s <= numSets; s++)
+      for (let q = 1; q <= questionsPerSet; q++)
+        slots.push({ label: `S${s}.${q}`, slotType: 'normal' });
   }
-};
-
-const examTopicFilter = (templateType) => {
-  if (templateType === 'indiv-alg-nt') return ['Algebra', 'Number Theory'];
-  if (templateType === 'indiv-geo') return ['Geometry'];
-  if (templateType === 'indiv-combo') return ['Combinatorics'];
-  return null;
+  for (let e = 1; e <= estimationSets; e++)
+    slots.push({ label: estimationSets === 1 ? 'Estimation' : `Est. ${e}`, slotType: 'estimation' });
+  return slots;
 };
 
 /* ── Slot-map helpers ───────────────────────────────────────── */
@@ -182,7 +154,6 @@ const StageChip = ({ stage }) => {
   );
 };
 
-/* ── Grip dots ──────────────────────────────────────────────── */
 const Grip = () => (
   <div className="flex-shrink-0 grid grid-cols-2 gap-[2px] opacity-30">
     {[0,1,2,3,4,5].map(i => (
@@ -210,7 +181,6 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData('problemId'); if (id) onDrop(index, id); }}
     >
-      {/* Metadata row */}
       <div className="flex items-center gap-1.5 px-2 pt-1.5 pb-0.5">
         <Grip />
         <span className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider flex-shrink-0">{slot.label}</span>
@@ -234,10 +204,9 @@ const SlotCard = ({ slot, index, entry, problem, onRemove, onDrop, onPreview }) 
           <span className="text-[9px] text-[var(--color-text-faint)] italic ml-1">Drop here</span>
         )}
       </div>
-      {/* KaTeX preview row */}
       {problem && (
         <div
-          className="px-2 pb-1.5 pl-7 text-[11px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none"
+          className="px-2 pb-1.5 pl-7 text-[13px] text-[var(--color-text-muted)] leading-snug overflow-hidden pointer-events-none"
           style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
         >
           <KatexRenderer latex={(problem.latex || '').slice(0, 300)} />
@@ -317,7 +286,7 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
   );
 };
 
-/* ── Preview Modal ──────────────────────────────────────────── */
+/* ── Problem quick-view modal ───────────────────────────────── */
 const ProbModal = ({ problem, onClose }) => {
   const [showSol, setShowSol] = useState(false);
   if (!problem) return null;
@@ -367,7 +336,7 @@ const ProbModal = ({ problem, onClose }) => {
   );
 };
 
-/* ── Live Preview ───────────────────────────────────────────── */
+/* ── Live Preview modal ─────────────────────────────────────── */
 const LivePreview = ({ slotDefs, slotMap, problemMap, includeSolutions }) => (
   <div className="space-y-4 py-4">
     {slotDefs.map((slot, i) => {
@@ -396,6 +365,298 @@ const LivePreview = ({ slotDefs, slotMap, problemMap, includeSolutions }) => (
   </div>
 );
 
+const PreviewModal = ({ exam, slotDefs, slotMap, problemMap, includeSolutions, onClose, onDownload }) => (
+  <div className="modal-overlay" onClick={onClose}>
+    <div
+      className="surface-card shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-bg)] z-10">
+        <h2 className="font-bold text-sm">
+          {exam.name} — {includeSolutions ? 'Answer Key' : 'Problems Only'}
+        </h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onDownload}
+            className="btn-outline flex items-center gap-1.5 px-3 py-1.5 text-xs"
+          >
+            <Download size={12} />
+            Download .tex
+          </button>
+          <button onClick={onClose} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+            <X size={15} />
+          </button>
+        </div>
+      </div>
+      <div className="px-5 overflow-y-auto">
+        <LivePreview slotDefs={slotDefs} slotMap={slotMap} problemMap={problemMap} includeSolutions={includeSolutions} />
+      </div>
+    </div>
+  </div>
+);
+
+/* ── Configure Exam panel ───────────────────────────────────── */
+const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
+  const [tournaments, setTournaments] = useState([]);
+  const [form, setForm] = useState({
+    name:            exam.name            || '',
+    competition:     exam.competition     || '',
+    roundType:       exam.roundType       || 'Individual',
+    roundName:       exam.roundName       || '',
+    numSets:         exam.numSets         ?? 1,
+    questionsPerSet: exam.questionsPerSet ?? 10,
+    estimationSets:  exam.estimationSets  ?? 0,
+    examTopics:      exam.examTopics      || [],
+    tournamentId:    exam.tournamentId    || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState('');
+  const [warning, setWarning] = useState(null); // { removedCount, removedIds, payload }
+
+  useEffect(() => {
+    api.get('/admin/tournaments').then(r => setTournaments(r.data || [])).catch(() => {});
+  }, []);
+
+  const set    = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const setNum = k => e => setForm(f => ({ ...f, [k]: Math.max(0, parseInt(e.target.value) || 0) }));
+  const toggleTopic = t =>
+    setForm(f => ({
+      ...f,
+      examTopics: f.examTopics.includes(t) ? f.examTopics.filter(x => x !== t) : [...f.examTopics, t],
+    }));
+
+  const newTotalSlots = form.numSets * form.questionsPerSet + form.estimationSets;
+  const oldTotalSlots = (exam.numSets ?? 1) * (exam.questionsPerSet ?? 10) + (exam.estimationSets ?? 0);
+
+  // Slots that would be truncated
+  const truncatedSlots = useMemo(() => {
+    if (newTotalSlots >= oldTotalSlots) return [];
+    return Object.entries(slotMap)
+      .filter(([idx]) => parseInt(idx) >= newTotalSlots && parseInt(idx) < oldTotalSlots)
+      .map(([, v]) => v.problemId)
+      .filter(Boolean);
+  }, [slotMap, newTotalSlots, oldTotalSlots]);
+
+  const buildPayload = () => ({
+    name:            form.name.trim(),
+    competition:     form.competition.trim() || tournaments.find(t => t.id === form.tournamentId)?.name || '',
+    roundType:       form.roundType  || null,
+    roundName:       form.roundName  || null,
+    numSets:         form.numSets,
+    questionsPerSet: form.questionsPerSet,
+    estimationSets:  form.estimationSets,
+    examTopics:      form.examTopics,
+    tournamentId:    form.tournamentId || null,
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) { setError('Exam name is required.'); return; }
+    if (form.numSets < 1)  { setError('Must have at least 1 set.'); return; }
+    if (form.questionsPerSet < 1) { setError('Must have at least 1 question per set.'); return; }
+
+    // Warn if truncation will happen
+    if (truncatedSlots.length > 0) {
+      setWarning({ removedCount: truncatedSlots.length, removedIds: truncatedSlots, payload: buildPayload() });
+      return;
+    }
+
+    await doSave(buildPayload(), slotMap);
+  };
+
+  const doSave = async (payload, currentSlotMap) => {
+    setSaving(true);
+    setError('');
+    try {
+      // Trim slotMap to new total
+      const newTotal = payload.numSets * payload.questionsPerSet + payload.estimationSets;
+      const trimmedSlotMap = Object.fromEntries(
+        Object.entries(currentSlotMap).filter(([idx]) => parseInt(idx) < newTotal)
+      );
+      // Save metadata
+      await api.put(`/tests/${exam.id}`, payload);
+      // Save trimmed slots
+      const slotsPayload = [];
+      for (let i = 0; i < newTotal; i++) {
+        const entry = trimmedSlotMap[i];
+        slotsPayload.push(entry ? { problemId: entry.problemId } : null);
+      }
+      await api.put(`/tests/${exam.id}/slots`, { slots: slotsPayload });
+      onSave({ ...payload, id: exam.id }, trimmedSlotMap);
+    } catch {
+      setError('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+      setWarning(null);
+    }
+  };
+
+  const selectedTournament = tournaments.find(t => t.id === form.tournamentId);
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center gap-2 px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+        <button onClick={onCancel} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
+          <ArrowLeft size={14} />
+        </button>
+        <h2 className="text-sm font-semibold flex-1">Configure Exam</h2>
+        <button
+          form="configure-exam-form"
+          type="submit"
+          disabled={saving}
+          className="btn-filled px-4 py-1.5 text-xs disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+
+      {/* Warning overlay */}
+      {warning && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="surface-card shadow-2xl w-full max-w-sm mx-4 p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold mb-1">
+                  {warning.removedCount} filled slot{warning.removedCount !== 1 ? 's' : ''} will be removed
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Reducing the total slot count will permanently remove the following problems from the exam:
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {warning.removedIds.map(id => (
+                    <span key={id} className="font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-accent)]">{id}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setWarning(null)} className="btn-outline flex-1 py-2 text-xs">Cancel</button>
+              <button
+                onClick={() => doSave(warning.payload, slotMap)}
+                className="flex-1 py-2 text-xs font-semibold rounded-sm bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+              >
+                Remove & Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form id="configure-exam-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
+
+        {/* Tournament */}
+        <div>
+          <label className="section-label">Tournament</label>
+          <div className="relative mt-1.5">
+            <select className="input-base w-full pr-8 appearance-none" value={form.tournamentId} onChange={set('tournamentId')}>
+              <option value="">— None / standalone —</option>
+              {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
+          </div>
+        </div>
+
+        {/* Round type */}
+        <div>
+          <label className="section-label">Round Type</label>
+          <div className="flex gap-2 mt-1.5">
+            {['Individual', 'Team'].map(rt => (
+              <button
+                key={rt} type="button"
+                onClick={() => setForm(f => ({ ...f, roundType: rt }))}
+                className={[
+                  'flex-1 py-2 text-xs font-semibold rounded-sm border transition',
+                  form.roundType === rt
+                    ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
+                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40',
+                ].join(' ')}
+              >
+                {rt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Round name */}
+        <div>
+          <label className="section-label">Round Name</label>
+          <input className="input-base w-full mt-1.5" value={form.roundName} onChange={set('roundName')} placeholder="e.g. Individual: Algebra & NT" />
+        </div>
+
+        {/* Exam name */}
+        <div>
+          <label className="section-label">Exam Name *</label>
+          <input className="input-base w-full mt-1.5" value={form.name} onChange={set('name')} />
+        </div>
+
+        {/* Competition label */}
+        <div>
+          <label className="section-label">Competition Label</label>
+          <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-1">Shown on the exam header. Defaults to the tournament name if blank.</p>
+          <input className="input-base w-full" value={form.competition} onChange={set('competition')} placeholder={selectedTournament?.name || 'e.g. LAMT 2026'} />
+        </div>
+
+        {/* Structure */}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="section-label">Sets</label>
+            <input type="number" min={1} className="input-base w-full mt-1.5" value={form.numSets} onChange={setNum('numSets')} />
+          </div>
+          <div>
+            <label className="section-label">Questions / Set</label>
+            <input type="number" min={1} className="input-base w-full mt-1.5" value={form.questionsPerSet} onChange={setNum('questionsPerSet')} />
+          </div>
+          <div>
+            <label className="section-label">Estimation Slots</label>
+            <input type="number" min={0} className="input-base w-full mt-1.5" value={form.estimationSets} onChange={setNum('estimationSets')} />
+          </div>
+        </div>
+
+        {/* Total count */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-sm bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-xs">
+          <span className="text-[var(--color-text-muted)]">Total slots:</span>
+          <span className="font-bold tabular-nums text-[var(--color-accent)]">{newTotalSlots}</span>
+          {newTotalSlots < oldTotalSlots && truncatedSlots.length > 0 && (
+            <span className="ml-1 text-amber-500 font-semibold">
+              ⚠ {truncatedSlots.length} filled slot{truncatedSlots.length !== 1 ? 's' : ''} will be removed
+            </span>
+          )}
+        </div>
+
+        {/* Exam topics */}
+        <div>
+          <label className="section-label">Exam Topics</label>
+          <p className="text-[10px] text-[var(--color-text-faint)] mt-0.5 mb-1.5">Used to pre-filter the problem bank. Leave blank to show all.</p>
+          <div className="flex flex-wrap gap-1.5">
+            {TOPICS.map(t => (
+              <button
+                key={t} type="button"
+                onClick={() => toggleTopic(t)}
+                className={[
+                  'px-2.5 py-1 text-xs font-medium rounded-sm border transition',
+                  form.examTopics.includes(t)
+                    ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/8 text-[var(--color-accent)]'
+                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40',
+                ].join(' ')}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-xs text-[var(--badge-needs-review-text)] flex items-center gap-1.5">
+            <AlertTriangle size={12} /> {error}
+          </p>
+        )}
+      </form>
+    </div>
+  );
+};
+
 /* ══════════════════════════════════════════════════════════════
    EXAM DETAIL — main component
 ══════════════════════════════════════════════════════════════ */
@@ -414,6 +675,7 @@ const ExamDetail = () => {
   const [previewWithSolutions, setPreviewWithSolutions] = useState(false);
   const [shortlist, setShortlist]         = useState([]);
   const [slotsPerRow, setSlotsPerRow]     = useState(3);
+  const [showConfigure, setShowConfigure] = useState(false);
 
   /* ── Filters ── */
   const [bankSearch, setBankSearch]   = useState('');
@@ -455,8 +717,12 @@ const ExamDetail = () => {
   }, []);
 
   /* ── Derived ── */
-  const slotDefs = useMemo(() => buildSlots(exam?.templateType), [exam?.templateType]);
-  const topicRestriction = useMemo(() => examTopicFilter(exam?.templateType), [exam?.templateType]);
+  const slotDefs = useMemo(() => buildSlotsFromExam(exam), [exam]);
+
+  const topicRestriction = useMemo(() => {
+    if (!exam?.examTopics?.length) return null;
+    return exam.examTopics;
+  }, [exam?.examTopics]);
 
   const problemMap = useMemo(() => {
     const map = {};
@@ -509,7 +775,7 @@ const ExamDetail = () => {
   const assignSlot = (index, problemId) => { setSlotMap((prev) => ({ ...prev, [index]: { problemId } })); setDirty(true); };
   const removeSlot = (index) => { setSlotMap((prev) => { const next = { ...prev }; delete next[index]; return next; }); setDirty(true); };
 
-  /* ── Save ── */
+  /* ── Save slots ── */
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -522,9 +788,12 @@ const ExamDetail = () => {
     setSaving(false);
   };
 
-  const doExport = (withSolutions) => {
-    const tex = buildLatex(exam, slotDefs, slotMap, problemMap, withSolutions);
-    downloadTex(tex, `${exam?.name || 'exam'}_${withSolutions ? 'solutions' : 'problems'}.tex`);
+  /* ── Configure save callback ── */
+  const handleConfigureSave = (updatedExam, updatedSlotMap) => {
+    setExam(prev => ({ ...prev, ...updatedExam }));
+    setSlotMap(updatedSlotMap);
+    setDirty(false);
+    setShowConfigure(false);
   };
 
   if (loading) {
@@ -549,6 +818,22 @@ const ExamDetail = () => {
     );
   }
 
+  /* ── Configure panel shown ── */
+  if (showConfigure) {
+    return (
+      <Layout>
+        <div className="flex flex-col" style={{ height: 'calc(100vh - 3vh)', overflow: 'hidden' }}>
+          <ConfigureExam
+            exam={exam}
+            slotMap={slotMap}
+            onSave={handleConfigureSave}
+            onCancel={() => setShowConfigure(false)}
+          />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="flex flex-col" style={{ height: 'calc(100vh - 3vh)', overflow: 'hidden' }}>
@@ -560,27 +845,42 @@ const ExamDetail = () => {
               <ArrowLeft size={14} />
             </button>
 
-            <div className="flex-1 min-w-0">
-              <h1 className="text-sm font-bold truncate leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
+            {/* Exam name → Configure button */}
+            <button
+              onClick={() => setShowConfigure(true)}
+              className="flex items-center gap-1.5 min-w-0 group"
+              title="Configure exam"
+            >
+              <h1 className="text-sm font-bold truncate leading-tight group-hover:text-[var(--color-accent)] transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                 {exam.name}
               </h1>
-              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] leading-tight">
-                <span>{exam.competition}</span>
-                {exam.templateType && (
-                  <><span className="text-[var(--color-text-faint)]">·</span><span>{TEMPLATE_LABELS[exam.templateType] || exam.templateType}</span></>
-                )}
-                <span className="text-[var(--color-text-faint)]">·</span>
-                <span className="tabular-nums">{Object.keys(slotMap).length}/{slotDefs.length} filled</span>
-                <span className="text-[var(--color-text-faint)]">·</span>
-                <span>Edited {exam.updatedAt ? new Date(exam.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'unknown'}</span>
-              </div>
+              <Settings size={12} className="flex-shrink-0 text-[var(--color-text-faint)] group-hover:text-[var(--color-accent)] transition-colors" />
+            </button>
+
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] leading-tight flex-shrink-0">
+              {exam.roundType && (
+                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15">
+                  {exam.roundType}
+                </span>
+              )}
+              {exam.competition && <><span className="text-[var(--color-text-faint)]">·</span><span>{exam.competition}</span></>}
+              <span className="text-[var(--color-text-faint)]">·</span>
+              <span className="tabular-nums">{Object.keys(slotMap).length}/{slotDefs.length} filled</span>
             </div>
 
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(false); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">Preview</button>
-              <button onClick={() => { setShowPreview(true); setPreviewWithSolutions(true); }} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">Preview + Solutions</button>
-              <button onClick={() => doExport(false)} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">Download .tex</button>
-              <button onClick={() => doExport(true)} className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap">Download + Solutions</button>
+            <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+              <button
+                onClick={() => { setShowPreview(true); setPreviewWithSolutions(false); }}
+                className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap"
+              >
+                Preview Problems
+              </button>
+              <button
+                onClick={() => { setShowPreview(true); setPreviewWithSolutions(true); }}
+                className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap"
+              >
+                Preview Key
+              </button>
               <button
                 onClick={handleSave}
                 disabled={!dirty || saving}
@@ -599,7 +899,7 @@ const ExamDetail = () => {
           )}
           {topicRestriction && (
             <div className="mt-1 text-[10px] text-[var(--color-text-faint)]">
-              Topic restriction: {topicRestriction.join(', ')}. Bank is pre-filtered.
+              Topic filter: {topicRestriction.join(', ')}. Bank is pre-filtered.
             </div>
           )}
         </div>
@@ -621,10 +921,7 @@ const ExamDetail = () => {
                 <label className="flex items-center gap-1.5 text-[9px] text-[var(--color-text-muted)] flex-shrink-0">
                   <span className="whitespace-nowrap">Per row</span>
                   <input
-                    type="range"
-                    min={1}
-                    max={5}
-                    value={slotsPerRow}
+                    type="range" min={1} max={5} value={slotsPerRow}
                     onChange={(e) => setSlotsPerRow(+e.target.value)}
                     className="w-16 accent-[var(--color-accent)]"
                     style={{ height: '3px' }}
@@ -707,7 +1004,6 @@ const ExamDetail = () => {
 
           {/* RIGHT: Problem bank */}
           <div className="overflow-y-auto bg-[var(--color-bg)] flex-1">
-            {/* Bank filter bar */}
             <div className="sticky top-0 z-10 bg-[var(--color-bg)] border-b border-[var(--color-border)] px-3 py-1.5">
               <div className="flex items-center gap-1.5 min-w-0">
                 <input
@@ -751,19 +1047,20 @@ const ExamDetail = () => {
         </div>
       </div>
 
-      {/* ── Preview overlay ───────────────────────────────── */}
+      {/* ── Preview modals ────────────────────────────────── */}
       {showPreview && (
-        <div className="modal-overlay" onClick={() => setShowPreview(false)}>
-          <div className="surface-card shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-bg)] z-10">
-              <h2 className="font-bold text-sm">{exam.name} — {previewWithSolutions ? 'w/ Solutions' : 'Problems Only'}</h2>
-              <button onClick={() => setShowPreview(false)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"><X size={15} /></button>
-            </div>
-            <div className="px-5">
-              <LivePreview slotDefs={slotDefs} slotMap={slotMap} problemMap={problemMap} includeSolutions={previewWithSolutions} />
-            </div>
-          </div>
-        </div>
+        <PreviewModal
+          exam={exam}
+          slotDefs={slotDefs}
+          slotMap={slotMap}
+          problemMap={problemMap}
+          includeSolutions={previewWithSolutions}
+          onClose={() => setShowPreview(false)}
+          onDownload={() => {
+            const tex = buildLatex(exam, slotDefs, slotMap, problemMap, previewWithSolutions);
+            downloadTex(tex, `${exam?.name || 'exam'}_${previewWithSolutions ? 'key' : 'problems'}.tex`);
+          }}
+        />
       )}
 
       {/* ── Problem quick-view modal ──────────────────────── */}

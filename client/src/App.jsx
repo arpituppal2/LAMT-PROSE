@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './utils/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -40,6 +40,16 @@ const PublicRoute = ({ children }) => {
   return user ? <Navigate to="/dashboard" /> : children;
 };
 
+/*
+  TestsolvingResults renders the Testsolving page pre-seeded to the results
+  phase for a specific exam ID from the URL param. Testsolving accepts an
+  optional initialTestId + initialPhase prop to jump straight to results.
+*/
+const TestsolvingResults = () => {
+  const { testId } = useParams();
+  return <Testsolving initialTestId={testId} initialPhase="results" />;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -66,6 +76,7 @@ function App() {
           <Route path="/archive" element={<PrivateRoute><ArchivePage /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
           <Route path="/testsolving" element={<PrivateRoute><Testsolving /></PrivateRoute>} />
+          <Route path="/testsolving/:testId/results" element={<PrivateRoute><TestsolvingResults /></PrivateRoute>} />
 
           {/* Fallback Route */}
           <Route path="/" element={<Navigate to="/dashboard" />} />

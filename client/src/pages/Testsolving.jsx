@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Clock, ChevronRight, Lock, ArrowLeft, CheckCircle2,
-  Circle, Loader2, AlertTriangle, X, Send, Eye,
+  Circle, Loader2, AlertTriangle, X, Eye,
   ClipboardList, Trophy, Timer, MessageSquare, ChevronDown, ChevronUp, User, Trash2,
 } from 'lucide-react';
 import api from '../utils/api';
@@ -468,11 +468,11 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
         type="button"
         onClick={onSubmit}
         disabled={loading}
-        className="btn-filled w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="btn-filled w-full py-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading
-          ? <><Loader2 size={15} className="animate-spin" /> Submitting…</>
-          : <><Send size={14} /> Submit Testsolve</>
+          ? <Loader2 size={15} className="animate-spin mx-auto" />
+          : 'Submit Testsolve'
         }
       </button>
     </div>
@@ -495,7 +495,14 @@ const ResultsView = ({ exam, onBack }) => {
     setError('');
     api.get(`/testsolve/results/${exam.id}`)
       .then(r => setData(r.data))
-      .catch(() => setError('Failed to load results.'))
+      .catch((err) => {
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          setError('access_denied');
+        } else {
+          setError('Failed to load submissions. Please try again.');
+        }
+      })
       .finally(() => setLoading(false));
   }, [exam.id]);
 
@@ -547,10 +554,20 @@ const ResultsView = ({ exam, onBack }) => {
       )}
 
       {!loading && error && (
-        <div className="flex items-center gap-2 border px-4 py-3 text-sm"
-          style={{ background: 'var(--badge-needs-review-bg)', borderColor: 'var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}>
-          <AlertTriangle size={14} /> {error}
-        </div>
+        error === 'access_denied' ? (
+          <div className="surface-card px-6 py-16 text-center">
+            <Lock size={28} className="mx-auto mb-4" style={{ color: 'var(--color-text-faint)' }} />
+            <h2 className="text-base font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Access restricted</h2>
+            <p className="mt-2" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+              Only the exam author or an admin can view testsolve submissions.
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 border px-4 py-3 text-sm"
+            style={{ background: 'var(--badge-needs-review-bg)', borderColor: 'var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}>
+            <AlertTriangle size={14} /> {error}
+          </div>
+        )
       )}
 
       {!loading && !error && data && (
@@ -960,10 +977,9 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
             <button
               type="button"
               onClick={() => setCurrentIdx('overall')}
-              className="btn-outline px-3 py-1.5 flex items-center gap-1.5"
+              className="btn-outline px-3 py-1.5"
               style={{ fontSize: 'var(--text-xs)', ...(isOverall ? { borderColor: 'var(--color-accent)', color: 'var(--color-accent)' } : {}) }}
             >
-              <MessageSquare size={13} />
               Overall
             </button>
           </div>
@@ -1038,10 +1054,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                 </div>
 
                 <div className="surface-card px-5 py-5 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare size={14} style={{ color: 'var(--color-accent)' }} />
-                    <p className="section-label">Problem Feedback</p>
-                  </div>
+                  <p className="section-label">Problem Feedback</p>
 
                   <div>
                     <label className="section-label" style={{ fontSize: 'var(--text-xs)' }}>
@@ -1061,8 +1074,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                   </div>
 
                   <div>
-                    <label className="section-label flex items-center gap-1.5" style={{ fontSize: 'var(--text-xs)' }}>
-                      <Timer size={12} />
+                    <label className="section-label" style={{ fontSize: 'var(--text-xs)' }}>
                       Estimated time spent on this problem
                     </label>
                     <div className="flex items-center gap-2 mt-2">
@@ -1105,9 +1117,8 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                     <button
                       type="button"
                       onClick={() => setCurrentIdx('overall')}
-                      className="btn-filled px-4 py-2 text-sm flex items-center gap-1.5"
+                      className="btn-filled px-4 py-2 text-sm"
                     >
-                      <MessageSquare size={14} />
                       Overall Comments →
                     </button>
                   )}

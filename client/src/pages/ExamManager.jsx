@@ -242,69 +242,106 @@ const NewExamModal = ({ onClose, onCreate }) => {
 /* ── Exam card ─────────────────────────────────────────────── */
 const ExamCard = ({ exam, onClick }) => {
   const problemCount = Array.isArray(exam.problems) ? exam.problems.length : 0;
-  const totalSlots = (exam.numSets ?? 1) * (exam.questionsPerSet ?? 10) + (exam.estimationSets ?? 0);
+  const totalSlots   = (exam.numSets ?? 1) * (exam.questionsPerSet ?? 10) + (exam.estimationSets ?? 0);
+  const authorName   = [exam.author?.firstName, exam.author?.lastName].filter(Boolean).join(' ');
 
   return (
     <div
       onClick={onClick}
       className="cursor-pointer surface-card px-5 py-4 hover:bg-[var(--color-surface)] transition-all"
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="flex items-center gap-2.5 flex-1 min-w-0 flex-wrap">
+      {/* ── Exam name ── */}
+      <p
+        className="font-bold leading-tight mb-1.5 truncate"
+        style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)' }}
+      >
+        {exam.name}
+      </p>
 
-          {/* Exam name — display font, bigger */}
+      {/* ── Metadata row ── */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+
+        {exam.roundType && (
           <span
-            className="font-bold text-base whitespace-nowrap tracking-tight"
-            style={{ fontFamily: 'var(--font-display)' }}
+            className="font-semibold"
+            style={{ fontSize: 'var(--text-sm)', color: 'var(--color-accent)' }}
           >
-            {exam.name}
+            {exam.roundType}
           </span>
+        )}
 
-          {exam.roundType && (
-            <>
-              <span className="text-[var(--color-text-faint)] text-sm">·</span>
-              <span className="text-sm font-semibold text-[var(--color-accent)] whitespace-nowrap">
-                {exam.roundType}
-              </span>
-            </>
-          )}
+        {exam.tournament?.name && (
+          <>
+            <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)' }}>·</span>
+            <span
+              className="truncate max-w-[200px]"
+              style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}
+            >
+              {exam.tournament.name}
+            </span>
+          </>
+        )}
 
-          {exam.tournament?.name && (
-            <>
-              <span className="text-[var(--color-text-faint)] text-sm">·</span>
-              <span className="text-sm text-[var(--color-text-muted)] whitespace-nowrap truncate max-w-[200px]">
-                {exam.tournament.name}
-              </span>
-            </>
-          )}
+        <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)' }}>·</span>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+          <span className="font-semibold tabular-nums" style={{ color: 'var(--color-text)' }}>{totalSlots}</span>
+          {' '}slots
+        </span>
 
-          <span className="text-[var(--color-text-faint)] text-sm">·</span>
-          <span className="text-sm font-semibold tabular-nums text-[var(--color-text)] whitespace-nowrap">
-            {totalSlots} <span className="font-normal text-[var(--color-text-muted)]">slots</span>
-          </span>
+        <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)' }}>·</span>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+          <span className="font-semibold tabular-nums" style={{ color: 'var(--color-text)' }}>{problemCount}</span>
+          {' '}filled
+        </span>
 
-          <span className="text-[var(--color-text-faint)] text-sm">·</span>
-          <span className="text-sm tabular-nums text-[var(--color-text-muted)] whitespace-nowrap">
-            {problemCount} <span className="text-[var(--color-text-faint)]">filled</span>
-          </span>
+        {authorName && (
+          <>
+            <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)' }}>·</span>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{authorName}</span>
+          </>
+        )}
+      </div>
 
-          {(exam.author?.firstName || exam.author?.lastName) && (
-            <>
-              <span className="text-[var(--color-text-faint)] text-sm">·</span>
-              <span className="text-sm text-[var(--color-text-muted)] whitespace-nowrap">
-                {[exam.author.firstName, exam.author.lastName].filter(Boolean).join(' ')}
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* No trash button — delete is only in ExamDetail > Settings */}
+      {/* ── Action row ── */}
+      <div className="mt-3 flex items-center gap-2">
         <button
           onClick={e => { e.stopPropagation(); onClick(); }}
-          className="btn-outline px-3 py-1.5 text-sm flex-shrink-0"
+          className="btn-outline btn-sm"
         >
-          View
+          Enter
         </button>
+        {exam.testsolveStatus === 'active' && (
+          <span
+            className="text-[11px] font-semibold px-2 py-0.5 border"
+            style={{
+              color: 'var(--color-success)',
+              borderColor: 'rgba(67,122,34,0.35)',
+              background: 'var(--badge-endorsed-bg)',
+            }}
+          >
+            Testsolving Active
+          </span>
+        )}
+        {exam.isLocked && exam.testsolveStatus !== 'active' && (
+          <span
+            className="text-[11px] font-semibold px-2 py-0.5 border"
+            style={{
+              color: 'var(--color-orange)',
+              borderColor: 'rgba(218,113,1,0.35)',
+              background: 'var(--badge-idea-bg)',
+            }}
+          >
+            Locked
+          </span>
+        )}
+        <span
+          className="ml-auto text-[11px] tabular-nums"
+          style={{ color: 'var(--color-text-faint)' }}
+        >
+          {totalSlots > 0
+            ? `${Math.round((problemCount / totalSlots) * 100)}% filled`
+            : '0% filled'}
+        </span>
       </div>
     </div>
   );

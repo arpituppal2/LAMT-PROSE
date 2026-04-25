@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, ChevronUp,
-  Loader2, X, AlertTriangle, Settings, Download, Lock, Unlock, ClipboardList,
+  Loader2, X, AlertTriangle,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -293,11 +293,22 @@ const ProbModal = ({ problem, onClose }) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="surface-card shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Header with Go to Problem Page */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-bg)] z-10">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <span className="font-mono text-sm font-semibold text-[var(--color-accent)]">{problem.id}</span>
             <StageChip stage={problem._displayStatus || getProblemStatus(problem, problem.feedbacks)} />
             <span className="text-xs text-[var(--color-text-muted)] tabular-nums">{problem.quality || '?'}/10</span>
+            <a
+              href={`/problem/${problem.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline btn-sm"
+              style={{ fontSize: 'var(--text-xs)', padding: '0.2rem 0.65rem' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Go to Problem Page
+            </a>
           </div>
           <button onClick={onClose} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"><X size={15} /></button>
         </div>
@@ -376,11 +387,7 @@ const PreviewModal = ({ exam, slotDefs, slotMap, problemMap, includeSolutions, o
           {exam.name} — {includeSolutions ? 'Answer Key' : 'Problems Only'}
         </h2>
         <div className="flex items-center gap-2">
-          <button
-            onClick={onDownload}
-            className="btn-outline flex items-center gap-1.5 px-3 py-1.5 text-xs"
-          >
-            <Download size={12} />
+          <button onClick={onDownload} className="btn-outline px-3 py-1.5 text-xs">
             Download .tex
           </button>
           <button onClick={onClose} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
@@ -396,7 +403,7 @@ const PreviewModal = ({ exam, slotDefs, slotMap, problemMap, includeSolutions, o
 );
 
 /* ── Configure Exam panel ───────────────────────────────────────────── */
-const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
+const ConfigureExam = ({ exam, onSave, onCancel, slotMap, onDelete }) => {
   const [tournaments, setTournaments] = useState([]);
   const [form, setForm] = useState({
     name:            exam.name            || '',
@@ -412,6 +419,7 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
   const [warning, setWarning] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     api.get('/admin/tournaments').then(r => setTournaments(r.data || [])).catch(() => {});
@@ -492,10 +500,10 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 flex items-center gap-2 px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
-        <button onClick={onCancel} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
-          <ArrowLeft size={14} />
+        <button onClick={onCancel} className="btn-ghost btn-sm">
+          Back
         </button>
-        <h2 className="text-sm font-semibold flex-1">Configure Exam</h2>
+        <h2 className="text-sm font-semibold flex-1" style={{ fontFamily: 'var(--font-display)' }}>Configure Exam</h2>
         <button
           form="configure-exam-form"
           type="submit"
@@ -539,7 +547,33 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
         </div>
       )}
 
-      {/* Form — centered, ~2× wider */}
+      {/* Delete confirmation overlay */}
+      {confirmDelete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="surface-card shadow-2xl w-full max-w-sm mx-4 p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ fontFamily: 'var(--font-display)' }}>Delete "{exam.name}"?</p>
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  This will permanently delete the exam and all its slot assignments. This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setConfirmDelete(false)} className="btn-outline flex-1 py-2 text-xs">Cancel</button>
+              <button
+                onClick={() => onDelete(exam.id)}
+                className="flex-1 py-2 text-xs font-semibold rounded-sm bg-red-600 hover:bg-red-700 text-white transition-colors"
+              >
+                Delete Exam
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Form */}
       <div className="overflow-y-auto flex-1">
         <form
           id="configure-exam-form"
@@ -560,7 +594,7 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
             </div>
           </div>
 
-          {/* Round type — dropdown */}
+          {/* Round type */}
           <div>
             <label className="section-label">Round Type</label>
             <div className="relative mt-1.5">
@@ -623,7 +657,7 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
             )}
           </div>
 
-          {/* Exam topics — btn-toggle */}
+          {/* Exam topics */}
           <div>
             <label className="section-label">Exam Topics</label>
             <p className="text-[13px] text-[var(--color-text-faint)] mt-0.5 mb-2.5">
@@ -648,13 +682,31 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
               <AlertTriangle size={12} /> {error}
             </p>
           )}
+
+          {/* Danger zone */}
+          <div className="border-t border-[var(--color-border)] pt-6 mt-6">
+            <p className="section-label mb-3" style={{ color: 'var(--color-text-faint)' }}>Danger Zone</p>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="btn-outline btn-sm"
+              style={{
+                color: '#dc2626',
+                borderColor: 'rgba(220,38,38,0.35)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#dc2626'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#dc2626'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.35)'; }}
+            >
+              Delete Exam
+            </button>
+          </div>
         </form>
       </div>
     </div>
   );
 };
 
-/* ── LockModal ───────────────────────────────────────────────────────── */
+/* ── LockModal — LAMT styled ─────────────────────────────────────────── */
 const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
   const [password, setPassword] = useState('');
   const [version, setVersion]   = useState((exam.testsolveVersion || 0) + 1);
@@ -686,32 +738,44 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="surface-card shadow-2xl max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-          <div className="flex items-center gap-2">
-            <Lock size={14} className="text-[var(--color-accent)]" />
-            <h2 className="text-sm font-semibold">Lock for Testsolving</h2>
+      <div
+        className="surface-card shadow-2xl w-full mx-4"
+        style={{ maxWidth: '480px' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--color-border)]">
+          <div>
+            <span className="gold-rule mb-2" />
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 800, lineHeight: 1.2 }}>
+              Lock for Testsolving
+            </h2>
           </div>
-          <button onClick={onClose} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"><X size={15} /></button>
+          <button onClick={onClose} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+            <X size={15} />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
-          <p className="text-xs text-[var(--color-text-muted)]">
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
             Locking freezes the exam for testsolvers. They will need the password to access it.
           </p>
 
-          {/* ── Empty slot warning ── */}
+          {/* Empty slot warning */}
           {hasEmptySlots && (
             <div
-              className="flex items-start gap-2.5 rounded-sm border px-3 py-2.5 text-xs"
               style={{
+                display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                padding: '0.875rem 1rem',
                 background: 'var(--badge-idea-bg)',
-                borderColor: 'var(--badge-idea-border)',
+                border: '1px solid var(--badge-idea-border)',
                 color: 'var(--badge-idea-text)',
+                fontSize: 'var(--text-sm)',
               }}
             >
-              <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '0.1rem' }} />
               <div>
-                <span className="font-semibold">
+                <span style={{ fontWeight: 700 }}>
                   {emptySlotCount} of {totalSlots} slot{totalSlots !== 1 ? 's' : ''} {emptySlotCount === 1 ? 'is' : 'are'} empty.
                 </span>
                 {' '}Testsolvers will see blank problems for those slots. You can still lock and proceed.
@@ -719,6 +783,7 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
             </div>
           )}
 
+          {/* Password */}
           <div>
             <label className="section-label">Testsolve Password *</label>
             <input
@@ -730,8 +795,10 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
               autoFocus
             />
           </div>
+
+          {/* Version */}
           <div>
-            <label className="section-label">Version</label>
+            <label className="section-label">Version Increment</label>
             <input
               className="input-base w-full mt-1.5"
               type="number"
@@ -739,8 +806,12 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
               value={version}
               onChange={e => setVersion(Math.max(1, parseInt(e.target.value) || 1))}
             />
-            <p className="text-[13px] text-[var(--color-text-faint)] mt-1">Increment when re-locking after edits so testsolvers know which version they solved.</p>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginTop: '0.375rem' }}>
+              Increment when re-locking after edits so testsolvers know which version they solved.
+            </p>
           </div>
+
+          {/* Status */}
           <div>
             <label className="section-label">Testsolve Status</label>
             <div className="relative mt-1.5">
@@ -756,14 +827,16 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
               <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
             </div>
           </div>
+
           {error && (
-            <p className="text-xs text-[var(--badge-needs-review-text)] flex items-center gap-1.5">
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--badge-needs-review-text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <AlertTriangle size={12} /> {error}
             </p>
           )}
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="btn-outline flex-1 py-2 text-xs">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-filled flex-1 py-2 text-xs disabled:opacity-50">
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="btn-outline flex-1 py-2.5">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-filled flex-1 py-2.5 disabled:opacity-50">
               {saving ? 'Locking…' : 'Lock Exam'}
             </button>
           </div>
@@ -920,6 +993,16 @@ const ExamDetail = () => {
     setShowConfigure(false);
   };
 
+  /* ── Delete exam ── */
+  const handleDeleteExam = async (id) => {
+    try {
+      await api.delete(`/tests/${id}`);
+      navigate('/exams');
+    } catch {
+      alert('Failed to delete exam.');
+    }
+  };
+
   /* ── Lock / Unlock handlers ── */
   const handleLocked = (updates) => {
     setExam(prev => ({ ...prev, ...updates }));
@@ -970,6 +1053,7 @@ const ExamDetail = () => {
             slotMap={slotMap}
             onSave={handleConfigureSave}
             onCancel={() => setShowConfigure(false)}
+            onDelete={handleDeleteExam}
           />
         </div>
       </Layout>
@@ -982,33 +1066,26 @@ const ExamDetail = () => {
 
         {/* ── Top bar ─────────────────────────────────────────── */}
         <div className="flex-shrink-0 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button onClick={() => navigate('/exams')} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] flex-shrink-0">
               <ArrowLeft size={14} />
             </button>
 
-            {/* Exam name → Configure button */}
+            {/* Exam name */}
+            <h1
+              className="text-sm font-bold truncate leading-tight flex-shrink-0"
+              style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)' }}
+            >
+              {exam.name}
+            </h1>
+
+            {/* Configure button */}
             <button
               onClick={() => setShowConfigure(true)}
-              className="flex items-center gap-1.5 min-w-0 group"
-              title="Configure exam"
+              className="btn-outline btn-sm flex-shrink-0"
             >
-              <h1 className="text-sm font-bold truncate leading-tight group-hover:text-[var(--color-accent)] transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
-                {exam.name}
-              </h1>
-              <Settings size={12} className="flex-shrink-0 text-[var(--color-text-faint)] group-hover:text-[var(--color-accent)] transition-colors" />
+              Configure
             </button>
-
-            <div className="flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] leading-tight flex-shrink-0">
-              {exam.roundType && (
-                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15">
-                  {exam.roundType}
-                </span>
-              )}
-              {exam.competition && <><span className="text-[var(--color-text-faint)]">·</span><span>{exam.competition}</span></>}
-              <span className="text-[var(--color-text-faint)]">·</span>
-              <span className="tabular-nums">{Object.keys(slotMap).length}/{slotDefs.length} filled</span>
-            </div>
 
             <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
               <button
@@ -1031,41 +1108,26 @@ const ExamDetail = () => {
                 {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
               </button>
               {exam.isLocked ? (
-                <>
-                  <Link
-                    to="/testsolving"
-                    className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-[var(--color-accent)] border-[var(--color-accent)]/40 hover:border-[var(--color-accent)] whitespace-nowrap"
-                    title="Go to testsolving page"
-                  >
-                    <ClipboardList size={11} />
-                    Testsolve
-                  </Link>
-                  <button
-                    onClick={handleUnlock}
-                    disabled={lockSaving}
-                    className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-amber-600 border-amber-400/50 hover:border-amber-500 whitespace-nowrap disabled:opacity-50"
-                    title="Unlock exam"
-                  >
-                    <Unlock size={11} />
-                    {lockSaving ? 'Unlocking…' : 'Unlock'}
-                  </button>
-                </>
+                <button
+                  onClick={handleUnlock}
+                  disabled={lockSaving}
+                  className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap disabled:opacity-50"
+                  style={{ color: 'var(--color-orange)', borderColor: 'rgba(218,113,1,0.4)' }}
+                >
+                  {lockSaving ? 'Unlocking…' : 'Unlock'}
+                </button>
               ) : (
                 <button
                   onClick={() => setShowLockModal(true)}
-                  className={[
-                    'btn-outline flex items-center gap-1.5 px-2.5 py-1 text-[11px] whitespace-nowrap',
+                  className="btn-outline px-2.5 py-1 text-[11px] whitespace-nowrap"
+                  style={
                     emptySlotCount > 0
-                      ? 'text-amber-600 border-amber-400/50 hover:border-amber-500'
-                      : 'text-green-600 border-green-400/50 hover:border-green-500',
-                  ].join(' ')}
+                      ? { color: 'var(--color-orange)', borderColor: 'rgba(218,113,1,0.4)' }
+                      : { color: 'var(--color-success)', borderColor: 'rgba(67,122,34,0.4)' }
+                  }
                   title={emptySlotCount > 0 ? `${emptySlotCount} slot${emptySlotCount !== 1 ? 's' : ''} empty` : 'Lock for testsolving'}
                 >
-                  {emptySlotCount > 0
-                    ? <AlertTriangle size={11} />
-                    : <Lock size={11} />
-                  }
-                  Lock
+                  {emptySlotCount > 0 ? '⚠ Lock' : 'Lock'}
                 </button>
               )}
             </div>
@@ -1087,19 +1149,11 @@ const ExamDetail = () => {
         {/* ── Locked banner ──────────────────────────────────────────── */}
         {exam.isLocked && (
           <div className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-500/10 border-b border-amber-400/30 text-[13px] text-amber-700 dark:text-amber-400">
-            <Lock size={10} className="flex-shrink-0" />
             <span>
               <strong>Locked for testsolving</strong> — v{exam.testsolveVersion} · status: <strong>{exam.testsolveStatus || 'inactive'}</strong>
               {exam.testsolvePassword && <> · password: <code className="font-mono">{exam.testsolvePassword}</code></>}
             </span>
             <div className="ml-auto flex items-center gap-3">
-              <Link
-                to="/testsolving"
-                className="inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
-              >
-                <ClipboardList size={10} />
-                View Testsolve →
-              </Link>
               <button
                 onClick={() => setShowLockModal(true)}
                 className="font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"

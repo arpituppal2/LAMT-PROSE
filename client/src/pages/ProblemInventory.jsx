@@ -9,7 +9,7 @@ import { getProblemStatus, STATUS_BADGE_CLASS } from '../utils/problemStatus';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-/* ── Shimmer skeleton ──────────────────────────────────────────── */
+/* ── Shimmer skeleton ─────────────────────────────────────────────────────── */
 const shimmerBase = [
   'bg-gradient-to-r from-[var(--color-surface)] via-[var(--color-surface-2)] to-[var(--color-surface)]',
   'bg-[length:200%_100%] animate-[shimmer_1.5s_ease-in-out_infinite]',
@@ -25,7 +25,7 @@ const InventorySkeleton = () => (
     <style>{`@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}`}</style>
     <div className="max-w-7xl mx-auto space-y-5">
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {[1,2,3,4].map((i) => (
+        {[1,2,3,4,5].map((i) => (
           <div key={i} className="surface-card p-4 space-y-2">
             <SkeletonBox className="h-3 w-20" />
             <SkeletonBox className="h-8 w-12" />
@@ -51,7 +51,7 @@ const InventorySkeleton = () => (
   </Layout>
 );
 
-/* ── Preview modal ───────────────────────────────────────────── */
+/* ── Preview modal ─────────────────────────────────────────────────── */
 const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   const [showSol, setShowSol] = useState(false);
   const data = fullProblem || problem;
@@ -179,7 +179,7 @@ const PreviewPanel = ({ problem, fullProblem, onClose, onNavigate }) => {
   );
 };
 
-/* ── Status count cards ──────────────────────────────────────────── */
+/* ── Status count cards ──────────────────────────────────────────────────── */
 const StatusCard = ({ label, count, color }) => (
   <div className="surface-card px-4 py-4">
     <p className="section-label">{label}</p>
@@ -301,6 +301,8 @@ const ProblemInventory = () => {
 
   if (loading) return <InventorySkeleton />;
 
+  const totalProblems = problems.length;
+
   return (
     <Layout pageKey="inventory">
       <div className="max-w-7xl mx-auto space-y-5">
@@ -315,10 +317,11 @@ const ProblemInventory = () => {
 
         {/* ── Status counts ── */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <StatusCard label="Idea"         count={statusCounts.Idea}            color="text-[var(--badge-idea-text)]" />
-          <StatusCard label="Needs Review" count={statusCounts['Needs Review']} color="text-[var(--badge-needs-review-text)]" />
-          <StatusCard label="Resolved"     count={statusCounts.Resolved}        color="text-[var(--badge-resolved-text)]" />
-          <StatusCard label="Endorsed"     count={statusCounts.Endorsed}        color="text-[var(--badge-endorsed-text)]" />
+          <StatusCard label="Idea"          count={statusCounts.Idea}            color="text-[var(--badge-idea-text)]" />
+          <StatusCard label="Needs Review"  count={statusCounts['Needs Review']} color="text-[var(--badge-needs-review-text)]" />
+          <StatusCard label="Resolved"      count={statusCounts.Resolved}        color="text-[var(--badge-resolved-text)]" />
+          <StatusCard label="Endorsed"      count={statusCounts.Endorsed}        color="text-[var(--badge-endorsed-text)]" />
+          <StatusCard label="Total"         count={totalProblems}                color="text-[var(--color-text)]" />
         </div>
 
         {/* ── Growth chart ── */}

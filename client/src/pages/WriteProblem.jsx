@@ -5,74 +5,11 @@ import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
-
-/* ── Theme helper ────────────────────────────────────────── */
-const isDarkMode = () =>
-  document.documentElement.getAttribute('data-theme') === 'dark' ||
-  (!document.documentElement.hasAttribute('data-theme') &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-/* ── Topic Button ───────────────────────────────────────── */
-// Idle:     border only  — Blue (light) / Gold (dark)
-// Hover:    filled       — Gold (light) / Blue (dark)
-// Selected: filled       — Blue (light) / Gold (dark)  [opposite of hover]
-const TopicButton = ({ label, selected, onToggle }) => {
-  const [hovered, setHovered] = useState(false);
-  const [dark, setDark] = useState(isDarkMode);
-
-  useEffect(() => {
-    const obs = new MutationObserver(() => setDark(isDarkMode()));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => obs.disconnect();
-  }, []);
-
-  const BLUE   = 'var(--ucla-blue)';
-  const GOLD   = 'var(--ucla-gold)';
-  const border = dark ? GOLD : BLUE;
-
-  let bg, color;
-  if (selected) {
-    // filled with same color as border
-    bg    = border;
-    color = dark ? '#000' : '#fff';
-  } else if (hovered) {
-    // filled with opposite
-    bg    = dark ? BLUE : GOLD;
-    color = dark ? '#fff' : '#000';
-  } else {
-    bg    = 'transparent';
-    color = border;
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        border: `2px solid ${border}`,
-        background: bg,
-        color,
-        padding: '0.375rem 0.75rem',
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        borderRadius: 0,
-        cursor: 'pointer',
-        transition: 'background 150ms ease, color 150ms ease',
-        lineHeight: 1.4,
-      }}
-    >
-      {label}
-    </button>
-  );
-};
-
-/* ── Preview block ──────────────────────────────────────────── */
+/* ── Preview block ────────────────────────────────────────── */
 const PreviewSection = ({ label, content, placeholder, minH = 'min-h-[80px]' }) => (
   <div>
     <p className="section-label">{label}</p>
-    <div className={`${minH} rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm leading-relaxed mt-2`}>
+    <div className={`${minH} border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm leading-relaxed mt-2`}>
       {content
         ? <KatexRenderer latex={content} />
         : <span className="italic text-[var(--color-text-faint)]">{placeholder}</span>}
@@ -91,7 +28,7 @@ const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, image
       {images.filter(img => img.destination === 'problem').length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {images.filter(img => img.destination === 'problem').map((img, i) => (
-            <img key={i} src={img.dataUrl} className="rounded-sm border border-[var(--color-border)]" alt="preview" />
+            <img key={i} src={img.dataUrl} className="border border-[var(--color-border)]" alt="preview" />
           ))}
         </div>
       )}
@@ -99,7 +36,7 @@ const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, image
       {answer && (
         <div>
           <p className="section-label">Answer</p>
-          <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm mt-2">
+          <div className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm mt-2">
             <KatexRenderer latex={answer} />
           </div>
         </div>
@@ -107,17 +44,17 @@ const FullPreview = ({ latex, solution, answer, notes, difficulty, topics, image
       {notes && (
         <div>
           <p className="section-label">Author Notes</p>
-          <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm mt-2 italic text-[var(--color-text-muted)]">
+          <div className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm mt-2 italic text-[var(--color-text-muted)]">
             <KatexRenderer latex={notes} />
           </div>
         </div>
       )}
       <div className="flex items-center gap-2 flex-wrap pt-1">
-        <span className="text-[13px] font-semibold px-2 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
+        <span className="text-[13px] font-semibold px-2 py-0.5 bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
           Difficulty {difficulty}/10
         </span>
         {topics.map(t => (
-          <span key={t} className="text-[13px] font-medium px-1.5 py-0.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]">
+          <span key={t} className="text-[13px] font-medium px-1.5 py-0.5 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]">
             {t}
           </span>
         ))}
@@ -136,9 +73,9 @@ const DifficultySlider = ({ value, onChange }) => {
         <span className="text-sm text-[var(--color-text-faint)]">/10</span>
       </div>
       <div className="relative h-5 flex items-center">
-        <div className="absolute inset-x-0 h-[6px] rounded-full bg-[var(--color-border)]" />
+        <div className="absolute inset-x-0 h-[6px] bg-[var(--color-border)]" />
         <div
-          className="absolute left-0 h-[6px] rounded-full bg-[var(--color-accent)] transition-all"
+          className="absolute left-0 h-[6px] bg-[var(--color-accent)] transition-all"
           style={{ width: `${pct}%` }}
         />
         <input
@@ -149,7 +86,7 @@ const DifficultySlider = ({ value, onChange }) => {
           style={{ margin: 0 }}
         />
         <div
-          className="absolute w-4 h-4 rounded-full border-2 border-[var(--color-accent)] bg-[var(--color-bg)] shadow transition-all pointer-events-none"
+          className="absolute w-4 h-4 border-2 border-[var(--color-accent)] bg-[var(--color-bg)] shadow transition-all pointer-events-none"
           style={{ left: `calc(${pct}% - 8px)` }}
         />
       </div>
@@ -173,7 +110,7 @@ const DifficultySlider = ({ value, onChange }) => {
   );
 };
 
-/* ── Main component ─────────────────────────────────────────── */
+/* ── Main component ───────────────────────────────────────────── */
 const WriteProblem = () => {
   const [step, setStep]             = useState(1);
   const [latex, setLatex]           = useState('');
@@ -186,16 +123,15 @@ const WriteProblem = () => {
   const [loading, setLoading]       = useState(false);
   const [message, setMessage]       = useState({ text: '', type: '' });
   const [submitted, setSubmitted]   = useState(false);
-  const navigate = useNavigate();
   const [topicOptions, setTopicOptions] = useState([]);
+  const navigate = useNavigate();
 
-useEffect(() => {
-  api.get('/config')
-    .then(r => setTopicOptions(r.data.topics || []))
-    .catch(() => {});
-}, []);
+  useEffect(() => {
+    api.get('/config')
+      .then(r => setTopicOptions(r.data.topics || []))
+      .catch(() => {});
+  }, []);
 
-  
   const isDirty = !submitted && !!(latex || solution || answer || notes || topics.length || images.length);
 
   useEffect(() => {
@@ -228,12 +164,6 @@ useEffect(() => {
       ),
     );
 
-  const safeNavigate = (to) => {
-    if (!isDirty || window.confirm('You have unsaved changes. Leave anyway?')) {
-      navigate(to);
-    }
-  };
-
   const goToStep2 = (e) => {
     e.preventDefault();
     if (!latex.trim() || !solution.trim() || !answer.trim()) {
@@ -265,9 +195,9 @@ useEffect(() => {
       const problemImgs  = images.filter(img => img.destination === 'problem');
       const solutionImgs = images.filter(img => img.destination === 'solution');
       if (problemImgs.length)
-        finalLatex += '\\n\\n' + problemImgs.map((img, i) => `![Problem Image ${i + 1}](${img.dataUrl})`).join('\\n');
+        finalLatex += '\n\n' + problemImgs.map((img, i) => `![Problem Image ${i + 1}](${img.dataUrl})`).join('\n');
       if (solutionImgs.length)
-        finalSolution += '\\n\\n' + solutionImgs.map((img, i) => `![Solution Image ${i + 1}](${img.dataUrl})`).join('\\n');
+        finalSolution += '\n\n' + solutionImgs.map((img, i) => `![Solution Image ${i + 1}](${img.dataUrl})`).join('\n');
 
       const response = await api.post('/problems', {
         latex: finalLatex,
@@ -298,7 +228,7 @@ useEffect(() => {
             type="button"
             onClick={() => n < step && goToStep1()}
             className={[
-              'w-6 h-6 rounded-sm text-xs font-bold flex items-center justify-center border transition-all',
+              'w-6 h-6 text-xs font-bold flex items-center justify-center border-2 transition-all',
               n === step
                 ? 'bg-[var(--ucla-blue)] dark:bg-[var(--ucla-gold)] border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-white dark:text-black'
                 : n < step
@@ -317,10 +247,10 @@ useEffect(() => {
     </div>
   );
 
-  /* ── Message banner ─────────────────────────────────────── */
+  /* ── Message banner ────────────────────────────────────── */
   const MessageBanner = () => message.text ? (
     <div className={[
-      'flex items-start gap-2.5 px-4 py-3 rounded-sm text-sm border',
+      'flex items-start gap-2.5 px-4 py-3 text-sm border',
       message.type === 'success'
         ? 'bg-[var(--badge-endorsed-bg)] border-[var(--badge-endorsed-border)] text-[var(--badge-endorsed-text)]'
         : 'bg-[var(--badge-needs-review-bg)] border-[var(--badge-needs-review-border)] text-[var(--badge-needs-review-text)]',
@@ -332,9 +262,9 @@ useEffect(() => {
     </div>
   ) : null;
 
-  /* ════════════════════════════════════════════════════════════
+  /* ════════════════════════════════════════════════════════════════
      STEP 1 — Write
-  ════════════════════════════════════════════════════════════ */
+  ════════════════════════════════════════════════════════════════ */
   if (step === 1) return (
     <Layout pageKey="write">
       <div className="mx-auto max-w-7xl">
@@ -398,7 +328,7 @@ useEffect(() => {
               <p className="section-label" style={{ marginBottom: 0 }}>Attachments</p>
               <div className="flex flex-wrap gap-2.5">
                 {images.map((img, idx) => (
-                  <div key={idx} className="relative w-24 h-28 rounded-sm overflow-hidden border border-[var(--color-border)] group bg-[var(--color-surface)]">
+                  <div key={idx} className="relative w-24 h-28 overflow-hidden border border-[var(--color-border)] group bg-[var(--color-surface)]">
                     <img src={img.dataUrl} alt="upload" className="w-full h-16 object-cover" />
                     <button
                       type="button"
@@ -413,13 +343,13 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={() => removeImage(idx)}
-                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-0.5 bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X size={10} />
                     </button>
                   </div>
                 ))}
-                <label className="w-24 h-28 flex flex-col items-center justify-center rounded-sm border-2 border-dashed border-[var(--color-border)] cursor-pointer hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 transition-all group">
+                <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-border)] cursor-pointer hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 transition-all group">
                   <ImageIcon size={16} className="text-[var(--color-text-faint)] group-hover:text-[var(--color-accent)] transition-colors" />
                   <span className="text-[13px] text-[var(--color-text-faint)] mt-1.5 font-semibold uppercase">Add File</span>
                   <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
@@ -432,9 +362,9 @@ useEffect(() => {
     </Layout>
   );
 
-  /* ════════════════════════════════════════════════════════════
+  /* ════════════════════════════════════════════════════════════════
      STEP 2 — Review & Submit
-  ════════════════════════════════════════════════════════════ */
+  ════════════════════════════════════════════════════════════════ */
   return (
     <Layout pageKey="write">
       <div className="mx-auto max-w-7xl">
@@ -470,16 +400,19 @@ useEffect(() => {
                 <DifficultySlider value={difficulty} onChange={setDifficulty} />
               </div>
 
+              {/* Topics — LAMT btn-toggle */}
               <div>
                 <label className="section-label">Topics</label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {topicOptions.map(topic => (
-                    <TopicButton
+                    <button
                       key={topic}
-                      label={topic}
-                      selected={topics.includes(topic)}
-                      onToggle={() => handleTopicToggle(topic)}
-                    />
+                      type="button"
+                      onClick={() => handleTopicToggle(topic)}
+                      className={['btn-toggle btn-sm', topics.includes(topic) ? 'active' : ''].join(' ')}
+                    >
+                      {topic}
+                    </button>
                   ))}
                 </div>
                 {topics.length === 0 && (

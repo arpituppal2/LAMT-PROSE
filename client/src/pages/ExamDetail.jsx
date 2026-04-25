@@ -284,122 +284,166 @@ const DeleteModal = ({ examName, onConfirm, onClose }) => {
 };
 
 /* ══════════════════════════════════════════════════════════════
-   PROBLEM SLOT
+   PROBLEM CARD (slot row)
 ══════════════════════════════════════════════════════════════ */
-const ProblemSlot = ({
-  index, slotDef, entry, problemMap,
-  isEditing, onSearch, onRemove,
-  searchQuery, setSearchQuery,
-  searchResults, searching,
-  activeSearchSlot, setActiveSearchSlot,
+const ProblemCard = ({
+  slotIndex,
+  slotLabel,
+  slotType,
+  problemId,
+  problem,
+  onRemove,
+  onSearch,
+  isEditing,
+  searchQuery,
+  setSearchQuery,
+  searchResults,
+  searching,
+  activeSearchSlot,
+  setActiveSearchSlot,
 }) => {
-  const prob = entry ? problemMap[entry.problemId] : null;
-  const isSearchOpen = isEditing && activeSearchSlot === index;
+  const inputRef = useRef(null);
+  const isActive = activeSearchSlot === slotIndex;
+
+  const statusObj  = problem ? getProblemStatus(problem) : null;
+  const authorName = problem
+    ? [problem.author?.firstName, problem.author?.lastName].filter(Boolean).join(' ')
+    : null;
+
+  const handleFocus = () => {
+    setActiveSearchSlot(slotIndex);
+    setSearchQuery('');
+  };
+
+  const handleChange = (e) => {
+    setSearchQuery(e.target.value);
+    onSearch(e.target.value, slotIndex);
+  };
+
+  const handleSelect = (prob) => {
+    onSearch(prob, slotIndex, true);
+    if (inputRef.current) inputRef.current.blur();
+  };
 
   return (
-    <div
-      className="flex items-start gap-3 px-4 py-3"
-      style={{ borderBottom: '1px solid var(--color-border)' }}
-    >
+    <div className="flex items-start gap-3 px-4 py-3 border-b border-[var(--color-border)] last:border-b-0">
       {/* Slot label */}
       <span
-        className="flex-shrink-0 tabular-nums font-semibold"
-        style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', width: '2.5rem', paddingTop: '0.1rem' }}
+        className="flex-shrink-0 mt-0.5 font-mono text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 border"
+        style={{
+          color: slotType === 'estimation' ? 'var(--color-text-muted)' : 'var(--color-accent)',
+          borderColor: slotType === 'estimation'
+            ? 'oklch(from var(--color-text-muted) l c h / 0.3)'
+            : 'oklch(from var(--color-accent) l c h / 0.3)',
+          background: 'transparent',
+          minWidth: '2.5rem',
+          textAlign: 'center',
+        }}
       >
-        {slotDef.label}
+        {slotLabel}
       </span>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {prob ? (
-          <div className="flex items-start gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                <span className="font-mono font-semibold" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent)' }}>
-                  {prob.id}
-                </span>
-                {(prob.topics || []).map(t => (
-                  <span key={t} className="px-1.5 py-0.5 border border-[var(--color-border)]"
-                    style={{ fontSize: 'var(--text-xs)', background: 'var(--color-surface)' }}>
-                    {TOPIC_ABBR[t] || t}
-                  </span>
-                ))}
-                {prob.quality && (
-                  <span className="tabular-nums" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
-                    {prob.quality}/10
+        {problem ? (
+          /* ── Filled slot ── */
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                {problem.topic && (
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: 'var(--color-accent)' }}
+                  >
+                    {TOPIC_ABBR[problem.topic] || problem.topic}
                   </span>
                 )}
+                {problem.difficulty != null && (
+                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
+                    D{problem.difficulty}
+                  </span>
+                )}
+                {statusObj && (
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5"
+                    style={{
+                      background: `var(--badge-${statusObj.badgeKey}-bg)`,
+                      color: `var(--badge-${statusObj.badgeKey}-text)`,
+                      border: `1px solid var(--badge-${statusObj.badgeKey}-border)`,
+                    }}
+                  >
+                    {statusObj.label}
+                  </span>
+                )}
+                {authorName && (
+                  <span className="text-[10px]" style={{ color: 'var(--color-text-faint)' }}>{authorName}</span>
+                )}
               </div>
-              <div className="text-sm leading-6 line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>
-                {prob.latex ? <KatexRenderer latex={prob.latex} /> : <span className="italic">No problem text</span>}
+              <div className="text-sm leading-snug line-clamp-2" style={{ color: 'var(--color-text)' }}>
+                <KatexRenderer content={problem.statement || problem.latex || '(no statement)'} />
               </div>
             </div>
             {isEditing && (
               <button
                 type="button"
-                onClick={() => onRemove(index)}
-                className="flex-shrink-0 p-1 text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)] transition-colors"
+                onClick={() => onRemove(slotIndex)}
+                className="flex-shrink-0 mt-0.5 p-1 text-[var(--color-text-faint)] hover:text-[var(--color-error)] transition-colors"
+                aria-label="Remove problem"
               >
                 <X size={13} />
               </button>
             )}
           </div>
+        ) : isEditing ? (
+          /* ── Empty slot (editing) — search input ── */
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={isActive ? searchQuery : ''}
+              onFocus={handleFocus}
+              onChange={handleChange}
+              placeholder="Search problems…"
+              className="input-base w-full text-sm py-1.5"
+            />
+            {isActive && searchResults.length > 0 && (
+              <div
+                className="absolute top-full left-0 right-0 z-20 mt-1 border border-[var(--color-border)] bg-[var(--color-bg)] shadow-xl overflow-y-auto"
+                style={{ maxHeight: '240px' }}
+              >
+                {searchResults.map(prob => (
+                  <button
+                    key={prob.id}
+                    type="button"
+                    onMouseDown={() => handleSelect(prob)}
+                    className="w-full text-left px-3 py-2.5 hover:bg-[var(--color-surface)] transition-colors border-b border-[var(--color-border)] last:border-b-0"
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      {prob.topic && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
+                          {TOPIC_ABBR[prob.topic] || prob.topic}
+                        </span>
+                      )}
+                      {prob.difficulty != null && (
+                        <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'var(--color-text-muted)' }}>D{prob.difficulty}</span>
+                      )}
+                    </div>
+                    <p className="text-xs line-clamp-2" style={{ color: 'var(--color-text)' }}>
+                      <KatexRenderer content={prob.statement || prob.latex || '(no statement)'} />
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+            {isActive && searching && (
+              <div className="absolute top-full left-0 right-0 z-20 mt-1 px-3 py-2 border border-[var(--color-border)] bg-[var(--color-bg)] text-xs text-[var(--color-text-muted)]">
+                Searching…
+              </div>
+            )}
+          </div>
         ) : (
-          isEditing ? (
-            <div>
-              {isSearchOpen ? (
-                <div>
-                  <input
-                    autoFocus
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); onSearch(e.target.value, index); }}
-                    onBlur={() => setTimeout(() => setActiveSearchSlot(null), 200)}
-                    placeholder="Search by ID or topic…"
-                    className="input-base w-full"
-                    style={{ fontSize: 'var(--text-sm)' }}
-                  />
-                  {searching && (
-                    <div className="flex items-center gap-2 py-2 px-1" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
-                      <Loader2 size={11} className="animate-spin" /> Searching…
-                    </div>
-                  )}
-                  {!searching && searchResults.length > 0 && (
-                    <div className="mt-1 border border-[var(--color-border)] overflow-hidden"
-                      style={{ background: 'var(--color-bg)', maxHeight: '200px', overflowY: 'auto' }}>
-                      {searchResults.map(r => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onMouseDown={() => onSearch(r, index, true)}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--color-surface)] transition-colors"
-                        >
-                          <span className="font-mono font-semibold" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent)' }}>{r.id}</span>
-                          <span className="flex-1 truncate text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                            {r.topics?.join(', ')}
-                            {r.quality ? ` · ${r.quality}/10` : ''}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => { setActiveSearchSlot(index); setSearchQuery(''); }}
-                  className="text-left transition-colors"
-                  style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}
-                >
-                  + Assign problem
-                </button>
-              )}
-            </div>
-          ) : (
-            <span className="italic" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)' }}>
-              Empty
-            </span>
-          )
+          /* ── Empty slot (viewing) ── */
+          <span className="text-sm italic" style={{ color: 'var(--color-text-faint)' }}>Empty</span>
         )}
       </div>
     </div>
@@ -451,7 +495,9 @@ const ExamDetail = () => {
       // Backend is mounted at /api/tests — NOT /api/exams
       const res = await api.get(`/tests/${id}`);
       const data = res.data;
-      setExam(data);
+      // Normalise _id → id in case backend returns MongoDB _id
+      const normData = { ...data, id: data.id ?? data._id };
+      setExam(normData);
 
       const map = deriveSlotMap(data.slots);
       setSlotMap(map);
@@ -460,7 +506,7 @@ const ExamDetail = () => {
       if (ids.length > 0) {
         const probs = await Promise.all(ids.map(pid => api.get(`/problems/${pid}`).catch(() => null)));
         const pm = {};
-        probs.forEach(r => { if (r?.data) pm[r.data.id] = r.data; });
+        probs.forEach(r => { if (r?.data) pm[r.data.id ?? r.data._id] = r.data; });
         setProblemMap(pm);
       }
 
@@ -531,42 +577,53 @@ const ExamDetail = () => {
         timeLimit:        editTimeLimit ? parseInt(editTimeLimit) : null,
         slots:            slotsToPayload(slotMap, totalSlots),
       };
-      await api.put(`/tests/${id}`, payload);
-      setSaveMsg('Saved.');
+      const res = await api.put(`/tests/${id}`, payload);
+      const updated = res.data;
+      const normUpdated = { ...updated, id: updated.id ?? updated._id };
+      setExam(normUpdated);
+      setSlotMap(deriveSlotMap(updated.slots));
       setIsEditing(false);
-      fetchExam();
-    } catch (err) {
-      setSaveMsg(err?.response?.data?.error || 'Failed to save.');
+      setSaveMsg('Saved!');
+      setTimeout(() => setSaveMsg(''), 2500);
+    } catch (e) {
+      setSaveMsg(e?.response?.data?.error || 'Failed to save.');
     } finally {
       setSaving(false);
     }
   };
 
-  // Backend lock endpoint: POST /tests/:id/testsolve/publish  { password }
-  // For status-only updates on an already-locked exam: PUT /tests/:id  { testsolveStatus }
+  const handleCancelEdit = () => {
+    if (!exam) return;
+    setEditName(exam.name || '');
+    setEditComp(exam.competition || '');
+    setEditRoundType(exam.roundType || '');
+    setEditRoundName(exam.roundName || '');
+    setEditNumSets(exam.numSets || 1);
+    setEditQPS(exam.questionsPerSet || 10);
+    setEditEstSets(exam.estimationSets || 0);
+    setEditTimeLimit(exam.timeLimit != null ? String(exam.timeLimit) : '');
+    setSlotMap(deriveSlotMap(exam.slots));
+    setIsEditing(false);
+    setSaveMsg('');
+  };
+
   const handleLockSave = async ({ status, password }) => {
-    if (!exam.isLocked) {
-      // Not yet locked — use the publish endpoint (sets active + password)
-      await api.post(`/tests/${id}/testsolve/publish`, { password });
-    } else {
-      // Already locked — update status and optionally password via PUT
-      await api.put(`/tests/${id}`, {
-        testsolveStatus: status,
-        ...(password ? { testsolvePassword: password } : {}),
-      });
-    }
+    const res = await api.put(`/tests/${id}`, {
+      isLocked: true,
+      testsolveStatus: status,
+      testsolvePassword: password,
+    });
+    const updated = res.data;
+    setExam({ ...updated, id: updated.id ?? updated._id });
     setShowLock(false);
-    fetchExam();
   };
 
   const handleUnlock = async () => {
-    if (!window.confirm('Unlock this exam? It will no longer be available for testsolving.')) return;
     setUnlocking(true);
     try {
-      await api.post(`/tests/${id}/unlock`);
-      fetchExam();
-    } catch (err) {
-      setSaveMsg(err?.response?.data?.error || 'Failed to unlock.');
+      const res = await api.put(`/tests/${id}`, { isLocked: false, testsolveStatus: 'closed' });
+      const updated = res.data;
+      setExam({ ...updated, id: updated.id ?? updated._id });
     } finally {
       setUnlocking(false);
     }
@@ -583,120 +640,232 @@ const ExamDetail = () => {
     const { numSets = 1, questionsPerSet = 10, estimationSets = 0 } = exam;
     const groups = [];
     if (numSets === 1) {
-      groups.push({ label: 'Problems', startIndex: 0, count: questionsPerSet });
+      const slots = slotDefs.filter(s => s.slotType === 'normal');
+      groups.push({ label: null, slots, startIndex: 0 });
     } else {
       for (let s = 0; s < numSets; s++) {
-        groups.push({ label: `Set ${s + 1}`, startIndex: s * questionsPerSet, count: questionsPerSet });
+        const startIndex = s * questionsPerSet;
+        const slots = slotDefs.slice(startIndex, startIndex + questionsPerSet);
+        groups.push({ label: `Set ${s + 1}`, slots, startIndex });
       }
     }
     if (estimationSets > 0) {
-      groups.push({ label: 'Estimation', startIndex: numSets * questionsPerSet, count: estimationSets });
+      const estStart = numSets * questionsPerSet;
+      const estSlots = slotDefs.slice(estStart);
+      groups.push({ label: 'Estimation', slots: estSlots, startIndex: estStart });
     }
     return groups;
-  }, [exam]);
+  }, [exam, slotDefs]);
 
-  /* ── Locked banner info ── */
-  const lockedStatusLabel = exam?.testsolveStatus
-    ? (TESTSOLVE_STATUS_LABEL[exam.testsolveStatus] || exam.testsolveStatus)
-    : 'Open to Feedback';
+  /* ── Expand all sets by default ── */
+  useEffect(() => {
+    if (setGroups.length > 0) {
+      const initial = {};
+      setGroups.forEach((_, i) => { initial[i] = true; });
+      setExpandedSets(initial);
+    }
+  }, [setGroups.length]);
 
-  /* ══════════════════════════════════════════════════════════════
+  const toggleSet = (i) => setExpandedSets(prev => ({ ...prev, [i]: !prev[i] }));
+
+  /* ── Stats ── */
+  const filledCount = useMemo(
+    () => Object.values(slotMap).filter(e => e?.problemId).length,
+    [slotMap]
+  );
+
+  /* ── Export ── */
+  const handleExportLatex = (includeSolutions = false) => {
+    if (!exam) return;
+    const latex = buildLatex(exam, slotDefs, slotMap, problemMap, includeSolutions);
+    const blob = new Blob([latex], { type: 'text/plain' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${exam.name || 'exam'}.tex`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /* ════════════════════════════════════════════════════
      RENDER
-  ══════════════════════════════════════════════════════════════ */
-  if (loading) return (
-    <Layout pageKey="exams">
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 size={20} className="animate-spin text-[var(--color-accent)]" />
-      </div>
-    </Layout>
-  );
+  ════════════════════════════════════════════════════ */
+  if (loading) {
+    return (
+      <Layout pageKey="exams">
+        <div className="flex items-center justify-center py-32 text-[var(--color-text-muted)]">
+          <Loader2 size={22} className="animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
-  if (error || !exam) return (
-    <Layout pageKey="exams">
-      <div className="mx-auto max-w-2xl py-20 text-center space-y-4">
-        <AlertTriangle size={32} className="mx-auto" style={{ color: 'var(--color-text-faint)' }} />
-        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{error || 'Exam not found.'}</p>
-        <button type="button" onClick={() => navigate('/exams')} className="btn-outline btn-sm">
-          Back to Exams
-        </button>
-      </div>
-    </Layout>
-  );
+  if (error || !exam) {
+    return (
+      <Layout pageKey="exams">
+        <div className="max-w-[960px] mx-auto space-y-4">
+          <button type="button" onClick={() => navigate('/exams')} className="btn-outline btn-sm">
+            ← Back to Exams
+          </button>
+          <div
+            className="flex items-center gap-2 px-4 py-3 text-sm"
+            style={{
+              background: 'var(--badge-needs-review-bg)',
+              color: 'var(--badge-needs-review-text)',
+              border: '1px solid var(--badge-needs-review-border)',
+            }}
+          >
+            <AlertTriangle size={14} />
+            {error || 'Exam not found.'}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
-  const currentSlotDefs = isEditing
-    ? buildSlotsFromExam({ numSets: editNumSets, questionsPerSet: editQPS, estimationSets: editEstSets })
-    : slotDefs;
+  const isLocked = exam.isLocked;
+  const totalSlots = slotDefs.length;
 
   return (
     <Layout pageKey="exams">
-      <div className="mx-auto max-w-4xl space-y-5">
+      <div className="max-w-[960px] mx-auto space-y-4 pb-16">
 
-        {/* ── Breadcrumb ── */}
-        <div>
+        {/* ── Back nav ── */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate('/exams')}
-            className="inline-flex items-center gap-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-            style={{ fontSize: 'var(--text-sm)' }}
+            className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
           >
             <ArrowLeft size={14} />
-            All Exams
+            Exams
           </button>
         </div>
 
-        {/* ── Header ── */}
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <span className="gold-rule mb-3" />
-            {isEditing ? (
-              <input
-                type="text"
-                value={editName}
-                onChange={e => setEditName(e.target.value)}
-                className="input-base text-xl font-bold"
-                style={{ fontFamily: 'var(--font-display)' }}
-              />
-            ) : (
-              <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                {exam.name}
-              </h1>
-            )}
-            {exam.competition && !isEditing && (
-              <p className="mt-1" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
-                {exam.competition}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {!isEditing && (
-              <>
-                {exam.isLocked ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setShowLock(true)}
-                      className="btn-outline btn-sm"
-                    >
-                      Edit Testsolve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleUnlock}
-                      disabled={unlocking}
-                      className="btn-outline btn-sm"
-                    >
-                      {unlocking ? <Loader2 size={13} className="animate-spin" /> : 'Unlock'}
-                    </button>
-                  </>
-                ) : (
+        {/* ── Header card ── */}
+        <div
+          className="surface-card px-5 py-4"
+          style={{ border: '1px solid var(--color-border)' }}
+        >
+          {isEditing ? (
+            /* Edit mode header */
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="section-label">Exam Name</label>
+                  <input className="input-base w-full mt-1" value={editName} onChange={e => setEditName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="section-label">Competition</label>
+                  <input className="input-base w-full mt-1" value={editComp} onChange={e => setEditComp(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="section-label">Round Type</label>
+                  <select className="input-base w-full mt-1" value={editRoundType} onChange={e => setEditRoundType(e.target.value)}>
+                    <option value="">—</option>
+                    <option value="Individual">Individual</option>
+                    <option value="Team">Team</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="section-label">Round Name</label>
+                  <input className="input-base w-full mt-1" value={editRoundName} onChange={e => setEditRoundName(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="section-label">Sets</label>
+                  <input type="number" min={1} className="input-base w-full mt-1" value={editNumSets} onChange={e => setEditNumSets(Math.max(1, parseInt(e.target.value) || 1))} />
+                </div>
+                <div>
+                  <label className="section-label">Qs / Set</label>
+                  <input type="number" min={1} className="input-base w-full mt-1" value={editQPS} onChange={e => setEditQPS(Math.max(1, parseInt(e.target.value) || 1))} />
+                </div>
+                <div>
+                  <label className="section-label">Est. Slots</label>
+                  <input type="number" min={0} className="input-base w-full mt-1" value={editEstSets} onChange={e => setEditEstSets(Math.max(0, parseInt(e.target.value) || 0))} />
+                </div>
+                <div>
+                  <label className="section-label">Time (min)</label>
+                  <input type="number" min={0} className="input-base w-full mt-1" value={editTimeLimit} onChange={e => setEditTimeLimit(e.target.value)} placeholder="—" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* View mode header */
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1
+                  className="font-bold leading-tight truncate"
+                  style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)' }}
+                >
+                  {exam.name}
+                </h1>
+                <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                  {exam.competition && (
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-accent)' }}>{exam.competition}</span>
+                  )}
+                  {exam.roundType && (
+                    <>
+                      <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)' }}>·</span>
+                      <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{exam.roundType}</span>
+                    </>
+                  )}
+                  {exam.roundName && (
+                    <>
+                      <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)' }}>·</span>
+                      <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{exam.roundName}</span>
+                    </>
+                  )}
+                  <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)' }}>·</span>
+                  <span className="text-sm tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
+                    <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{filledCount}</span>/{totalSlots} filled
+                  </span>
+                  {exam.timeLimit && (
+                    <>
+                      <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)' }}>·</span>
+                      <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{exam.timeLimit} min</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                {/* Lock/unlock */}
+                {isLocked ? (
                   <button
                     type="button"
-                    onClick={() => setShowLock(true)}
-                    className="btn-outline btn-sm"
+                    onClick={() => handleUnlock()}
+                    disabled={unlocking}
+                    className="btn-outline btn-sm flex items-center gap-1.5"
+                    style={{ color: 'var(--color-text-muted)' }}
                   >
-                    Lock for Testsolving
+                    {unlocking ? <Loader2 size={12} className="animate-spin" /> : null}
+                    Unlock
                   </button>
-                )}
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setShowLock(true)}
+                  className="btn-outline btn-sm"
+                >
+                  {isLocked ? 'Testsolve Settings' : 'Lock for Testsolving'}
+                </button>
+
+                {/* Export */}
+                <button
+                  type="button"
+                  onClick={() => handleExportLatex(false)}
+                  className="btn-outline btn-sm"
+                >
+                  Export LaTeX
+                </button>
+
+                {/* Edit */}
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
@@ -704,148 +873,91 @@ const ExamDetail = () => {
                 >
                   Edit Exam
                 </button>
-              </>
-            )}
-            {isEditing && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => { setIsEditing(false); fetchExam(); }}
-                  className="btn-outline btn-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="btn-filled btn-sm disabled:opacity-50"
-                >
-                  {saving ? <Loader2 size={13} className="animate-spin" /> : 'Save'}
-                </button>
-              </>
-            )}
-          </div>
-        </header>
-
-        {/* ── Save message ── */}
-        {saveMsg && (
-          <div
-            className="border px-4 py-3 text-sm"
-            style={{
-              background: saveMsg.includes('ail') ? 'var(--badge-needs-review-bg)' : 'var(--badge-endorsed-bg)',
-              borderColor: saveMsg.includes('ail') ? 'var(--badge-needs-review-border)' : 'var(--badge-endorsed-border)',
-              color: saveMsg.includes('ail') ? 'var(--badge-needs-review-text)' : 'var(--badge-endorsed-text)',
-            }}
-          >
-            {saveMsg}
-          </div>
-        )}
-
-        {/* ── Locked banner ── */}
-        {exam.isLocked && (
-          <div
-            className="flex items-center gap-3 border px-4 py-3"
-            style={{ background: 'var(--badge-resolved-bg)', borderColor: 'var(--badge-resolved-border)', color: 'var(--badge-resolved-text)' }}
-          >
-            <span className="font-semibold text-sm">
-              Locked: {lockedStatusLabel}
-            </span>
-            {exam.testsolvePassword && (
-              <span style={{ fontSize: 'var(--text-xs)', opacity: 0.75 }}>
-                · Password: <span className="font-mono">{exam.testsolvePassword}</span>
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* ── Metadata panel ── */}
-        {isEditing && (
-          <div className="surface-card px-5 py-5 space-y-4">
-            <p className="section-label">Exam Metadata</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="section-label">Competition</label>
-                <input type="text" value={editComp} onChange={e => setEditComp(e.target.value)} className="input-base w-full mt-1" placeholder="e.g. LAMT 2025" />
-              </div>
-              <div>
-                <label className="section-label">Round Type</label>
-                <input type="text" value={editRoundType} onChange={e => setEditRoundType(e.target.value)} className="input-base w-full mt-1" placeholder="e.g. Individual, Team" />
-              </div>
-              <div>
-                <label className="section-label">Round Name</label>
-                <input type="text" value={editRoundName} onChange={e => setEditRoundName(e.target.value)} className="input-base w-full mt-1" placeholder="e.g. Sprint, Relay" />
-              </div>
-              <div>
-                <label className="section-label">Time Limit (min)</label>
-                <input type="number" value={editTimeLimit} onChange={e => setEditTimeLimit(e.target.value)} className="input-base w-full mt-1" placeholder="e.g. 30" min={0} />
-              </div>
-              <div>
-                <label className="section-label">Number of Sets</label>
-                <input type="number" value={editNumSets} onChange={e => setEditNumSets(Math.max(1, parseInt(e.target.value) || 1))} className="input-base w-full mt-1" min={1} max={10} />
-              </div>
-              <div>
-                <label className="section-label">Questions per Set</label>
-                <input type="number" value={editQPS} onChange={e => setEditQPS(Math.max(1, parseInt(e.target.value) || 1))} className="input-base w-full mt-1" min={1} max={30} />
-              </div>
-              <div>
-                <label className="section-label">Estimation Sets</label>
-                <input type="number" value={editEstSets} onChange={e => setEditEstSets(Math.max(0, parseInt(e.target.value) || 0))} className="input-base w-full mt-1" min={0} max={5} />
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Exam info chips (view mode) ── */}
-        {!isEditing && (
-          <div className="flex flex-wrap gap-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-            {exam.roundType && (
-              <span className="border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 font-semibold uppercase tracking-wide">
-                {exam.roundType}
-              </span>
-            )}
-            {exam.roundName && <span>{exam.roundName}</span>}
-            {exam.questionsPerSet && (
-              <span className="tabular-nums">
-                {exam.numSets > 1 ? `${exam.numSets} × ${exam.questionsPerSet}` : exam.questionsPerSet} problems
-                {exam.estimationSets > 0 && ` + ${exam.estimationSets} estimation`}
-              </span>
-            )}
-            {exam.timeLimit && <span className="tabular-nums">{exam.timeLimit} min</span>}
-          </div>
-        )}
+          {/* Lock status banner */}
+          {isLocked && !isEditing && (
+            <div
+              className="mt-3 flex items-center gap-2 px-3 py-2 text-xs font-medium"
+              style={{
+                background: 'var(--badge-endorsed-bg)',
+                color: 'var(--color-success)',
+                border: '1px solid oklch(from var(--color-success) l c h / 0.3)',
+              }}
+            >
+              <span className="font-semibold">{TESTSOLVE_STATUS_LABEL[exam.testsolveStatus] || 'Locked'}</span>
+              {exam.testsolvePassword && (
+                <span style={{ color: 'var(--color-text-muted)' }}>· Password: <span className="font-mono">{exam.testsolvePassword}</span></span>
+              )}
+            </div>
+          )}
 
-        {/* ── Slot sets (accordion) ── */}
-        <div className="space-y-3">
+          {/* Save/cancel bar */}
+          {isEditing && (
+            <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[var(--color-border)]">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="btn-filled btn-sm flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {saving && <Loader2 size={12} className="animate-spin" />}
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+              <button type="button" onClick={handleCancelEdit} className="btn-outline btn-sm">Cancel</button>
+              {saveMsg && (
+                <span className="text-xs ml-1" style={{ color: saveMsg === 'Saved!' ? 'var(--color-success)' : 'var(--color-error)' }}>
+                  {saveMsg}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Slots ── */}
+        <div className="space-y-2">
           {setGroups.map((group, gi) => {
-            const isOpen = expandedSets[gi] !== false; // default open
+            const isExpanded = expandedSets[gi] !== false;
             return (
-              <div key={gi} className="surface-card overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
-                <button
-                  type="button"
-                  onClick={() => setExpandedSets(prev => ({ ...prev, [gi]: !isOpen }))}
-                  className="flex items-center justify-between w-full px-5 py-3 hover:bg-[var(--color-surface)] transition-colors"
-                >
-                  <span className="section-label">{group.label}</span>
-                  {isOpen
-                    ? <ChevronUp size={15} style={{ color: 'var(--color-text-faint)' }} />
-                    : <ChevronDown size={15} style={{ color: 'var(--color-text-faint)' }} />}
-                </button>
-                {isOpen && (
+              <div
+                key={gi}
+                className="surface-card overflow-hidden"
+                style={{ border: '1px solid var(--color-border)' }}
+              >
+                {/* Group header */}
+                {group.label && (
+                  <button
+                    type="button"
+                    onClick={() => toggleSet(gi)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[var(--color-surface)] transition-colors border-b border-[var(--color-border)]"
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
+                      {group.label}
+                    </span>
+                    {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                )}
+
+                {/* Slots */}
+                {isExpanded && (
                   <div>
-                    {Array.from({ length: group.count }, (_, qi) => {
-                      const slotIndex = group.startIndex + qi;
-                      const def = currentSlotDefs[slotIndex] || { label: `Q${slotIndex + 1}`, slotType: 'normal' };
+                    {group.slots.map((slot, si) => {
+                      const index = group.startIndex + si;
+                      const entry = slotMap[index];
+                      const problem = entry ? problemMap[entry.problemId] : null;
                       return (
-                        <ProblemSlot
-                          key={slotIndex}
-                          index={slotIndex}
-                          slotDef={def}
-                          entry={slotMap[slotIndex]}
-                          problemMap={problemMap}
-                          isEditing={isEditing}
-                          onSearch={handleSearch}
+                        <ProblemCard
+                          key={index}
+                          slotIndex={index}
+                          slotLabel={slot.label}
+                          slotType={slot.slotType}
+                          problemId={entry?.problemId}
+                          problem={problem}
                           onRemove={handleRemoveSlot}
+                          onSearch={handleSearch}
+                          isEditing={isEditing}
                           searchQuery={searchQuery}
                           setSearchQuery={setSearchQuery}
                           searchResults={searchResults}

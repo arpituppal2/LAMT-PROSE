@@ -29,6 +29,13 @@ const STAGE_CFG = {
   Endorsed:       { dot: 'bg-green-500',  rail: 'bg-green-100 dark:bg-green-900/30' },
 };
 
+/* Testsolve status labels shown in the locked banner */
+const TESTSOLVE_STATUS_LABEL = {
+  active: 'Open to Feedback',
+  closed: 'Closed for Feedback',
+  inactive: 'Inactive',
+};
+
 /* ── Slot builders ────────────────────────────────────────────── */
 const buildSlotsFromExam = (exam) => {
   if (!exam) return Array.from({ length: 10 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' }));
@@ -710,7 +717,12 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap, onDelete }) => {
 const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
   const [password, setPassword] = useState('');
   const [version, setVersion]   = useState((exam.testsolveVersion || 0) + 1);
-  const [status, setStatus]     = useState(exam.testsolveStatus || 'inactive');
+  /* Default to 'active' (Open to Feedback) when first locking; preserve existing status when editing */
+  const [status, setStatus]     = useState(
+    exam.testsolveStatus && exam.testsolveStatus !== 'inactive'
+      ? exam.testsolveStatus
+      : 'active'
+  );
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
 
@@ -811,7 +823,7 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
             </p>
           </div>
 
-          {/* Status */}
+          {/* Status — only two meaningful locked states */}
           <div>
             <label className="section-label">Testsolve Status</label>
             <div className="relative mt-1.5">
@@ -820,12 +832,15 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
                 value={status}
                 onChange={e => setStatus(e.target.value)}
               >
-                <option value="inactive">Inactive (not visible to testsolvers)</option>
-                <option value="active">Active (visible &amp; joinable)</option>
-                <option value="closed">Closed (locked but submissions closed)</option>
+                <option value="active">Open to Feedback</option>
+                <option value="closed">Closed for Feedback</option>
               </select>
               <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
             </div>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginTop: '0.375rem' }}>
+              <strong>Open to Feedback</strong> — visible and joinable by testsolvers.{' '}
+              <strong>Closed for Feedback</strong> — locked but no new submissions accepted.
+            </p>
           </div>
 
           {error && (
@@ -1060,6 +1075,9 @@ const ExamDetail = () => {
     );
   }
 
+  /* ── Locked banner status label ── */
+  const lockedStatusLabel = TESTSOLVE_STATUS_LABEL[exam.testsolveStatus] || exam.testsolveStatus || 'inactive';
+
   return (
     <Layout noPadding pageKey="exams">
       <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
@@ -1150,7 +1168,7 @@ const ExamDetail = () => {
         {exam.isLocked && (
           <div className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-500/10 border-b border-amber-400/30 text-[13px] text-amber-700 dark:text-amber-400">
             <span>
-              <strong>Locked for testsolving</strong> — v{exam.testsolveVersion} · status: <strong>{exam.testsolveStatus || 'inactive'}</strong>
+              <strong>Locked: {lockedStatusLabel}</strong> — v{exam.testsolveVersion}
               {exam.testsolvePassword && <> · password: <code className="font-mono">{exam.testsolvePassword}</code></>}
             </span>
             <div className="ml-auto flex items-center gap-3">

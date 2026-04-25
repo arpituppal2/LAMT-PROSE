@@ -24,7 +24,7 @@ const InventorySkeleton = () => (
   <Layout>
     <style>{`@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}`}</style>
     <div className="max-w-7xl mx-auto space-y-5">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[1,2,3,4].map((i) => (
           <div key={i} className="surface-card p-4 space-y-2">
             <SkeletonBox className="h-3 w-20" />
@@ -314,7 +314,7 @@ const ProblemInventory = () => {
         </header>
 
         {/* ── Status counts ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <StatusCard label="Idea"         count={statusCounts.Idea}            color="text-[var(--badge-idea-text)]" />
           <StatusCard label="Needs Review" count={statusCounts['Needs Review']} color="text-[var(--badge-needs-review-text)]" />
           <StatusCard label="Resolved"     count={statusCounts.Resolved}        color="text-[var(--badge-resolved-text)]" />

@@ -9,9 +9,9 @@ import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 import { getProblemStatus } from '../utils/problemStatus';
 
-/* ══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════
    CONSTANTS
-══════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════ */
 const STAGES = ['Idea', 'Needs Review', 'Resolved', 'Endorsed'];
 const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
@@ -22,13 +22,6 @@ const TOPIC_ABBR = {
   'Number Theory': 'NT',
 };
 
-const TOPIC_CFG = {
-  Algebra:        { dot: 'bg-blue-500',   active: 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400',   idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-blue-400/50' },
-  Geometry:       { dot: 'bg-green-500',  active: 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-green-400/50' },
-  Combinatorics:  { dot: 'bg-amber-500',  active: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-amber-400/50' },
-  'Number Theory':{ dot: 'bg-purple-500', active: 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-purple-400/50' },
-};
-
 const STAGE_CFG = {
   Idea:           { dot: 'bg-amber-400',  rail: 'bg-amber-100 dark:bg-amber-900/30' },
   'Needs Review': { dot: 'bg-rose-500',   rail: 'bg-rose-100 dark:bg-rose-900/30' },
@@ -36,7 +29,7 @@ const STAGE_CFG = {
   Endorsed:       { dot: 'bg-green-500',  rail: 'bg-green-100 dark:bg-green-900/30' },
 };
 
-/* ── Slot builders ─────────────────────────────────────────── */
+/* ── Slot builders ────────────────────────────────────────────── */
 const buildSlotsFromExam = (exam) => {
   if (!exam) return Array.from({ length: 10 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' }));
   const { numSets = 1, questionsPerSet = 10, estimationSets = 0 } = exam;
@@ -54,7 +47,7 @@ const buildSlotsFromExam = (exam) => {
   return slots;
 };
 
-/* ── Slot-map helpers ───────────────────────────────────────── */
+/* ── Slot-map helpers ─────────────────────────────────────────────── */
 const deriveSlotMap = (slots) => {
   const map = {};
   if (!slots) return map;
@@ -79,7 +72,7 @@ const slotsToPayload = (slotMap, totalSlots) => {
 
 const fixLatex = (str = '') => str.replace(/\$([\s\S]*?)\$/g, (_, m) => `$${m}$`);
 
-/* ── Build LaTeX export ─────────────────────────────────────── */
+/* ── Build LaTeX export ───────────────────────────────────────────── */
 const buildLatex = (exam, slotDefs, slotMap, problemMap, includeSolutions) => {
   const lines = [
     '\\documentclass[11pt]{article}',
@@ -123,7 +116,7 @@ const downloadTex = (content, filename) => {
   URL.revokeObjectURL(url);
 };
 
-/* ── Cross-exam duplicate detection ─────────────────────────── */
+/* ── Cross-exam duplicate detection ────────────────────────────────────── */
 const useDuplicates = (examId, slotMap) => {
   const [dupes, setDupes] = useState([]);
   useEffect(() => {
@@ -147,9 +140,9 @@ const useDuplicates = (examId, slotMap) => {
   return dupes;
 };
 
-/* ══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════
    SUB-COMPONENTS
-══════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════ */
 
 const StageChip = ({ stage }) => {
   const cfg = STAGE_CFG[stage] || STAGE_CFG.Idea;
@@ -293,7 +286,7 @@ const BankRow = ({ problem, isUsed, onPreview }) => {
   );
 };
 
-/* ── Problem quick-view modal ───────────────────────────────── */
+/* ── Problem quick-view modal ────────────────────────────────────────── */
 const ProbModal = ({ problem, onClose }) => {
   const [showSol, setShowSol] = useState(false);
   if (!problem) return null;
@@ -343,7 +336,7 @@ const ProbModal = ({ problem, onClose }) => {
   );
 };
 
-/* ── Live Preview modal ─────────────────────────────────────── */
+/* ── Live Preview modal ───────────────────────────────────────────── */
 const LivePreview = ({ slotDefs, slotMap, problemMap, includeSolutions }) => (
   <div className="space-y-4 py-4">
     {slotDefs.map((slot, i) => {
@@ -402,7 +395,7 @@ const PreviewModal = ({ exam, slotDefs, slotMap, problemMap, includeSolutions, o
   </div>
 );
 
-/* ── Configure Exam panel ───────────────────────────────────── */
+/* ── Configure Exam panel ───────────────────────────────────────────── */
 const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
   const [tournaments, setTournaments] = useState([]);
   const [form, setForm] = useState({
@@ -630,31 +623,23 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
             )}
           </div>
 
-          {/* Exam topics — LAMT styled chips */}
+          {/* Exam topics — btn-toggle */}
           <div>
             <label className="section-label">Exam Topics</label>
             <p className="text-[13px] text-[var(--color-text-faint)] mt-0.5 mb-2.5">
               Which topics should appear in the problem bank for this exam? Leave blank to show all.
             </p>
             <div className="flex flex-wrap gap-2">
-              {TOPICS.map(t => {
-                const cfg = TOPIC_CFG[t];
-                const active = form.examTopics.includes(t);
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => toggleTopic(t)}
-                    className={[
-                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-xs font-semibold transition-all',
-                      active ? cfg.active : cfg.idle,
-                    ].join(' ')}
-                  >
-                    <span className={`h-2 w-2 rounded-full flex-shrink-0 ${cfg.dot} ${active ? 'opacity-100' : 'opacity-40'}`} />
-                    {t}
-                  </button>
-                );
-              })}
+              {TOPICS.map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTopic(t)}
+                  className={`btn-toggle btn-sm${form.examTopics.includes(t) ? ' active' : ''}`}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -669,7 +654,7 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap }) => {
   );
 };
 
-/* ── LockModal ─────────────────────────────────────────────── */
+/* ── LockModal ───────────────────────────────────────────────────────── */
 const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
   const [password, setPassword] = useState('');
   const [version, setVersion]   = useState((exam.testsolveVersion || 0) + 1);
@@ -788,9 +773,9 @@ const LockModal = ({ exam, onClose, onLocked, emptySlotCount, totalSlots }) => {
   );
 };
 
-/* ══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════
    EXAM DETAIL — main component
-══════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════ */
 const ExamDetail = () => {
   const { id: examId } = useParams();
   const navigate = useNavigate();
@@ -995,7 +980,7 @@ const ExamDetail = () => {
     <Layout noPadding pageKey="exams">
       <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
 
-        {/* ── Top bar ─────────────────────────────────────── */}
+        {/* ── Top bar ─────────────────────────────────────────── */}
         <div className="flex-shrink-0 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2">
           <div className="flex items-center gap-2">
             <button onClick={() => navigate('/exams')} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] flex-shrink-0">
@@ -1099,7 +1084,7 @@ const ExamDetail = () => {
           )}
         </div>
 
-        {/* ── Locked banner ────────────────────────────────── */}
+        {/* ── Locked banner ──────────────────────────────────────────── */}
         {exam.isLocked && (
           <div className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-500/10 border-b border-amber-400/30 text-[13px] text-amber-700 dark:text-amber-400">
             <Lock size={10} className="flex-shrink-0" />
@@ -1125,7 +1110,7 @@ const ExamDetail = () => {
           </div>
         )}
 
-        {/* ── Body: resizable split ───────────────────────── */}
+        {/* ── Body: resizable split ────────────────────────────────────── */}
         <div ref={containerRef} className="flex flex-1 overflow-hidden">
 
           {/* LEFT: Slot grid + Shortlist */}
@@ -1268,7 +1253,7 @@ const ExamDetail = () => {
         </div>
       </div>
 
-      {/* ── Preview modals ────────────────────────────────── */}
+      {/* ── Preview modals ───────────────────────────────────────────── */}
       {showPreview && (
         <PreviewModal
           exam={exam}
@@ -1284,10 +1269,10 @@ const ExamDetail = () => {
         />
       )}
 
-      {/* ── Problem quick-view modal ──────────────────────── */}
+      {/* ── Problem quick-view modal ───────────────────────────────────────── */}
       {previewProblem && <ProbModal problem={previewProblem} onClose={() => setPreviewProblem(null)} />}
 
-      {/* ── Lock modal ───────────────────────────────────── */}
+      {/* ── Lock modal ─────────────────────────────────────────────────── */}
       {showLockModal && (
         <LockModal
           exam={exam}

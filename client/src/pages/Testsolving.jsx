@@ -97,20 +97,19 @@ const ExamCard = ({ exam, onStart, onViewResults }) => (
           )}
         </div>
       </div>
+      {/* UCLA-style action buttons — no icons, clean text only */}
       <div className="flex-shrink-0 flex items-center gap-2">
         <button
           type="button"
           onClick={() => onViewResults(exam)}
-          className="btn-outline px-3 py-1.5"
-          style={{ fontSize: 'var(--text-xs)' }}
+          className="btn-outline btn-sm"
         >
           Results
         </button>
         <button
           type="button"
           onClick={() => onStart(exam)}
-          className="btn-filled px-3 py-1.5"
-          style={{ fontSize: 'var(--text-xs)' }}
+          className="btn-filled btn-sm"
         >
           Enter
         </button>
@@ -517,7 +516,7 @@ const ResultsView = ({ exam, onBack }) => {
 
   const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
-  /* ── Check if user is an author of this exam ── */
+  /* ── Check if user is an author / admin ── */
   const isAuthor = user?.isAdmin || (exam.authorId && user?.id && String(exam.authorId) === String(user.id));
 
   return (
@@ -556,6 +555,7 @@ const ResultsView = ({ exam, onBack }) => {
 
       {!loading && !error && data && (
         <>
+          {/* Zero-state: explicitly shown when no sessions */}
           {data.sessions.length === 0 ? (
             <div className="surface-card px-6 py-16 text-center">
               <ClipboardList size={28} className="mx-auto mb-4" style={{ color: 'var(--color-text-faint)' }} />
@@ -595,6 +595,7 @@ const ResultsView = ({ exam, onBack }) => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Authors and admins can delete any submission */}
                         {(user?.isAdmin || isAuthor) && (
                           <button
                             type="button"

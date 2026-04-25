@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, X, AlertCircle, Loader2, FileText, ChevronDown } from 'lucide-react';
+import { Plus, X, AlertCircle, Loader2, FileText, ChevronDown } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
@@ -23,7 +23,7 @@ const ErrorMsg = ({ msg }) =>
     </div>
   ) : null;
 
-/* ── Field wrapper ───────────────────────────────────────────── */
+/* ── Field wrapper ──────────────────────────────────────────── */
 const Field = ({ label, hint, children }) => (
   <div>
     <label className="section-label">{label}</label>
@@ -32,7 +32,7 @@ const Field = ({ label, hint, children }) => (
   </div>
 );
 
-/* ── New Exam Modal ──────────────────────────────────────────── */
+/* ── New Exam Modal ────────────────────────────────────────── */
 const NewExamModal = ({ onClose, onCreate }) => {
   const [tournaments, setTournaments] = useState([]);
   const [form, setForm] = useState({
@@ -112,7 +112,7 @@ const NewExamModal = ({ onClose, onCreate }) => {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-sm font-semibold">New Exam</h2>
+          <h2 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-display)' }}>New Exam</h2>
           <button onClick={onClose} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors" aria-label="Close">
             <X size={16} />
           </button>
@@ -132,14 +132,10 @@ const NewExamModal = ({ onClose, onCreate }) => {
               </div>
             </Field>
 
-            {/* Round type — dropdown */}
+            {/* Round type */}
             <Field label="Round Type">
               <div className="relative">
-                <select
-                  className="input-base w-full pr-8 appearance-none"
-                  value={form.roundType}
-                  onChange={set('roundType')}
-                >
+                <select className="input-base w-full pr-8 appearance-none" value={form.roundType} onChange={set('roundType')}>
                   <option value="Individual">Individual</option>
                   <option value="Team">Team</option>
                   <option value="Other">Other</option>
@@ -173,38 +169,26 @@ const NewExamModal = ({ onClose, onCreate }) => {
               <input className="input-base w-full" value={form.name} onChange={set('name')} placeholder="e.g. LAMT 2026 — Individual: Algebra & NT" autoFocus />
             </Field>
 
-            {/* Competition / tournament label */}
+            {/* Competition label */}
             <Field label="Competition Label" hint="Shown on the exam header. Defaults to the tournament name if left blank.">
               <input className="input-base w-full" value={form.competition} onChange={set('competition')} placeholder={selectedTournament?.name || 'e.g. LAMT 2026'} />
             </Field>
 
             {/* Structure */}
             <div className="grid grid-cols-3 gap-3">
-              <Field
-                label="Sets"
-                hint="Groups of questions. Use 1 for most rounds; Guts uses multiple sets."
-              >
-                <input
-                  type="number" min={1} className="input-base w-full"
-                  value={form.numSets} onChange={setNum('numSets')}
-                />
+              <Field label="Sets" hint="Groups of questions. Use 1 for most rounds; Guts uses multiple sets.">
+                <input type="number" min={1} className="input-base w-full" value={form.numSets} onChange={setNum('numSets')} />
               </Field>
               <Field label="Questions / Set" hint="Number of scored questions in each set.">
-                <input
-                  type="number" min={1} className="input-base w-full"
-                  value={form.questionsPerSet} onChange={setNum('questionsPerSet')}
-                />
+                <input type="number" min={1} className="input-base w-full" value={form.questionsPerSet} onChange={setNum('questionsPerSet')} />
               </Field>
               <Field label="Estimation Slots" hint="Tiebreak / estimation questions appended after the main questions.">
-                <input
-                  type="number" min={0} className="input-base w-full"
-                  value={form.estimationSets} onChange={setNum('estimationSets')}
-                />
+                <input type="number" min={0} className="input-base w-full" value={form.estimationSets} onChange={setNum('estimationSets')} />
               </Field>
             </div>
 
             {/* Total count badge */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-sm bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-xs">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-xs">
               <span className="text-[var(--color-text-muted)]">Total slots:</span>
               <span className="font-bold tabular-nums text-[var(--color-accent)]">{totalSlots}</span>
               <span className="text-[var(--color-text-faint)]">
@@ -213,7 +197,7 @@ const NewExamModal = ({ onClose, onCreate }) => {
               </span>
             </div>
 
-            {/* Exam topics — LAMT colored-dot chips */}
+            {/* Exam topics — LAMT btn-toggle */}
             <Field label="Exam Topics" hint="Which topics should appear in the problem bank for this exam? Leave blank to show all.">
               <div className="flex flex-wrap gap-2">
                 {TOPICS.map(t => {
@@ -225,7 +209,7 @@ const NewExamModal = ({ onClose, onCreate }) => {
                       type="button"
                       onClick={() => toggleTopic(t)}
                       className={[
-                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-xs font-semibold transition-all',
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 border text-xs font-semibold transition-all',
                         active ? cfg.active : cfg.idle,
                       ].join(' ')}
                     >
@@ -260,7 +244,7 @@ const NewExamModal = ({ onClose, onCreate }) => {
               disabled={loading}
               className="btn-filled flex-1 py-2 text-sm flex items-center justify-center gap-2"
             >
-              {loading ? <Spinner size={15} /> : <Plus size={15} />}
+              {loading ? <Spinner size={15} /> : null}
               {loading ? 'Creating…' : 'Create Exam'}
             </button>
           </div>
@@ -270,78 +254,80 @@ const NewExamModal = ({ onClose, onCreate }) => {
   );
 };
 
-/* ── Exam card ───────────────────────────────────────────────── */
-const ExamCard = ({ exam, canEdit, onDelete, onClick }) => {
+/* ── Exam card ─────────────────────────────────────────────── */
+const ExamCard = ({ exam, onClick }) => {
   const problemCount = Array.isArray(exam.problems) ? exam.problems.length : 0;
   const totalSlots = (exam.numSets ?? 1) * (exam.questionsPerSet ?? 10) + (exam.estimationSets ?? 0);
 
   return (
     <div
       onClick={onClick}
-      className="cursor-pointer surface-card px-5 py-3.5 hover:bg-[var(--color-surface)] transition-all"
+      className="cursor-pointer surface-card px-5 py-4 hover:bg-[var(--color-surface)] transition-all"
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
-          <span className="font-semibold text-sm whitespace-nowrap">{exam.name}</span>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0 flex-wrap">
+
+          {/* Exam name — display font, bigger */}
+          <span
+            className="font-bold text-base whitespace-nowrap tracking-tight"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {exam.name}
+          </span>
 
           {exam.roundType && (
-            <span className="text-[13px] font-semibold px-1.5 py-0.5 rounded-sm bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/15 whitespace-nowrap">
-              {exam.roundType}
-            </span>
+            <>
+              <span className="text-[var(--color-text-faint)] text-sm">·</span>
+              <span className="text-sm font-semibold text-[var(--color-accent)] whitespace-nowrap">
+                {exam.roundType}
+              </span>
+            </>
           )}
 
           {exam.tournament?.name && (
             <>
-              <span className="text-[var(--color-text-faint)] text-xs">·</span>
-              <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap truncate max-w-[160px]">{exam.tournament.name}</span>
+              <span className="text-[var(--color-text-faint)] text-sm">·</span>
+              <span className="text-sm text-[var(--color-text-muted)] whitespace-nowrap truncate max-w-[200px]">
+                {exam.tournament.name}
+              </span>
             </>
           )}
 
-          <span className="text-[var(--color-text-faint)] text-xs">·</span>
-          <span className="text-[13px] font-medium px-1.5 py-0.5 rounded-sm bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] whitespace-nowrap tabular-nums">
-            {totalSlots} slots
+          <span className="text-[var(--color-text-faint)] text-sm">·</span>
+          <span className="text-sm font-semibold tabular-nums text-[var(--color-text)] whitespace-nowrap">
+            {totalSlots} <span className="font-normal text-[var(--color-text-muted)]">slots</span>
           </span>
 
-          <span className="text-[var(--color-text-faint)] text-xs">·</span>
-          <span className="text-xs text-[var(--color-text-muted)] tabular-nums whitespace-nowrap">
-            {problemCount} filled
+          <span className="text-[var(--color-text-faint)] text-sm">·</span>
+          <span className="text-sm tabular-nums text-[var(--color-text-muted)] whitespace-nowrap">
+            {problemCount} <span className="text-[var(--color-text-faint)]">filled</span>
           </span>
 
           {(exam.author?.firstName || exam.author?.lastName) && (
             <>
-              <span className="text-[var(--color-text-faint)] text-xs">·</span>
-              <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap">
+              <span className="text-[var(--color-text-faint)] text-sm">·</span>
+              <span className="text-sm text-[var(--color-text-muted)] whitespace-nowrap">
                 {[exam.author.firstName, exam.author.lastName].filter(Boolean).join(' ')}
               </span>
             </>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {canEdit && (
-            <button
-              onClick={e => { e.stopPropagation(); onDelete(exam.id); }}
-              className="p-1.5 rounded-sm text-[var(--color-text-faint)] hover:text-[var(--badge-needs-review-text)] hover:bg-[var(--badge-needs-review-bg)] transition"
-              title="Delete exam" aria-label="Delete exam"
-            >
-              <Trash2 size={13} />
-            </button>
-          )}
-          <button
-            onClick={e => { e.stopPropagation(); onClick(); }}
-            className="btn-outline flex items-center gap-1.5 px-2.5 py-1 text-xs"
-          >
-            View
-          </button>
-        </div>
+        {/* No trash button — delete is only in ExamDetail > Settings */}
+        <button
+          onClick={e => { e.stopPropagation(); onClick(); }}
+          className="btn-outline px-3 py-1.5 text-sm flex-shrink-0"
+        >
+          View
+        </button>
       </div>
     </div>
   );
 };
 
-/* ════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════
    EXAM MANAGER
-════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════ */
 const ExamManager = () => {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
@@ -368,23 +354,9 @@ const ExamManager = () => {
     }
   };
 
-  const isAdmin = currentUser?.isAdmin || false;
-  const canEditExam = exam =>
-    isAdmin || !exam.authorId || exam.author?.id === currentUser?.id || exam.authorId === currentUser?.id;
-
   const handleCreated = newExam => {
     setExams(prev => [newExam, ...prev]);
     navigate(`/exams/${newExam.id}`);
-  };
-
-  const handleDeleteExam = async examId => {
-    if (!window.confirm('Delete this exam? This cannot be undone.')) return;
-    try {
-      await api.delete(`/tests/${examId}`);
-      setExams(prev => prev.filter(e => e.id !== examId));
-    } catch (err) {
-      alert(err?.response?.data?.error || 'Failed to delete exam.');
-    }
   };
 
   return (
@@ -396,23 +368,23 @@ const ExamManager = () => {
             <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Exams</h1>
           </div>
           <button onClick={() => setShowModal(true)} className="btn-filled flex items-center gap-1.5 px-4 py-2.5 text-sm">
-            <Plus size={15} /> New Exam
+            New Exam
           </button>
         </header>
 
         {examsLoading ? (
           <div className="flex items-center justify-center py-20 text-[var(--color-text-muted)]"><Spinner size={20} /></div>
         ) : examsError ? (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-sm bg-[var(--badge-needs-review-bg)] border border-[var(--badge-needs-review-border)] text-[var(--badge-needs-review-text)] text-sm">
+          <div className="flex items-center gap-2 px-4 py-3 bg-[var(--badge-needs-review-bg)] border border-[var(--badge-needs-review-border)] text-[var(--badge-needs-review-text)] text-sm">
             <AlertCircle size={14} className="flex-shrink-0" />{examsError}
           </div>
         ) : exams.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-[var(--color-border)] rounded-sm surface-card">
+          <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-[var(--color-border)] surface-card">
             <FileText size={32} className="text-[var(--color-text-faint)] mb-3" />
             <p className="text-sm font-medium">No exams yet</p>
             <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-4">Create your first exam to get started.</p>
             <button onClick={() => setShowModal(true)} className="btn-filled flex items-center gap-1.5 px-4 py-2 text-sm">
-              <Plus size={14} /> New Exam
+              New Exam
             </button>
           </div>
         ) : (
@@ -421,8 +393,6 @@ const ExamManager = () => {
               <ExamCard
                 key={exam.id}
                 exam={exam}
-                canEdit={canEditExam(exam)}
-                onDelete={handleDeleteExam}
                 onClick={() => navigate(`/exams/${exam.id}`)}
               />
             ))}

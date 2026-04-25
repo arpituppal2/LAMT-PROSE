@@ -9,9 +9,9 @@ import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 import { getProblemStatus } from '../utils/problemStatus';
 
-/* ══════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
    CONSTANTS
-══════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════ */
 const STAGES = ['Idea', 'Needs Review', 'Resolved', 'Endorsed'];
 const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
@@ -33,9 +33,10 @@ const STAGE_CFG = {
 const TESTSOLVE_STATUS_LABEL = {
   active: 'Open to Feedback',
   closed: 'Closed for Feedback',
+  paused: 'Paused',
 };
 
-/* ── Slot builders ────────────────────────────────────────────── */
+/* ── Slot builders ─────────────────────────────────────────── */
 const buildSlotsFromExam = (exam) => {
   if (!exam) return Array.from({ length: 10 }, (_, i) => ({ label: `Q${i + 1}`, slotType: 'normal' }));
   const { numSets = 1, questionsPerSet = 10, estimationSets = 0 } = exam;
@@ -53,7 +54,7 @@ const buildSlotsFromExam = (exam) => {
   return slots;
 };
 
-/* ── Slot-map helpers ─────────────────────────────────────────────── */
+/* ── Slot-map helpers ──────────────────────────────────────────────── */
 const deriveSlotMap = (slots) => {
   const map = {};
   if (!slots) return map;
@@ -78,7 +79,7 @@ const slotsToPayload = (slotMap, totalSlots) => {
 
 const fixLatex = (str = '') => str.replace(/\$([\\s\\S]*?)\$/g, (_, m) => `$${m}$`);
 
-/* ── Build LaTeX export ───────────────────────────────────────────── */
+/* ── Build LaTeX export ─────────────────────────────────────────────── */
 const buildLatex = (exam, slotDefs, slotMap, problemMap, includeSolutions) => {
   const lines = [
     '\\documentclass[11pt]{article}',
@@ -105,9 +106,9 @@ const buildLatex = (exam, slotDefs, slotMap, problemMap, includeSolutions) => {
   return lines.join('\n');
 };
 
-/* ══════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
    LOCK MODAL
-══════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════ */
 const LockModal = ({ exam, onSave, onClose }) => {
   const isLocked = exam.isLocked;
 
@@ -204,9 +205,9 @@ const LockModal = ({ exam, onSave, onClose }) => {
   );
 };
 
-/* ══════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
    PROBLEM SLOT
-══════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════ */
 const ProblemSlot = ({
   index, slotDef, entry, problemMap,
   isEditing, onSearch, onRemove,
@@ -327,9 +328,9 @@ const ProblemSlot = ({
   );
 };
 
-/* ══════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
    MAIN COMPONENT
-══════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════ */
 const ExamDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -368,7 +369,8 @@ const ExamDetail = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get(`/exams/${id}`);
+      // Backend is mounted at /api/tests — NOT /api/exams
+      const res = await api.get(`/tests/${id}`);
       const data = res.data;
       setExam(data);
 
@@ -391,8 +393,9 @@ const ExamDetail = () => {
       setEditQPS(data.questionsPerSet || 10);
       setEditEstSets(data.estimationSets || 0);
       setEditTimeLimit(data.timeLimit != null ? String(data.timeLimit) : '');
-    } catch {
-      setError('Failed to load exam. You may not have access.');
+    } catch (err) {
+      const msg = err?.response?.data?.error || 'Failed to load exam.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -449,19 +452,30 @@ const ExamDetail = () => {
         timeLimit:        editTimeLimit ? parseInt(editTimeLimit) : null,
         slots:            slotsToPayload(slotMap, totalSlots),
       };
-      await api.put(`/exams/${id}`, payload);
+      await api.put(`/tests/${id}`, payload);
       setSaveMsg('Saved.');
       setIsEditing(false);
       fetchExam();
-    } catch {
-      setSaveMsg('Failed to save.');
+    } catch (err) {
+      setSaveMsg(err?.response?.data?.error || 'Failed to save.');
     } finally {
       setSaving(false);
     }
   };
 
+  // Backend lock endpoint: POST /tests/:id/testsolve/publish  { password }
+  // For status-only updates on an already-locked exam: PUT /tests/:id  { testsolveStatus }
   const handleLockSave = async ({ status, password }) => {
-    await api.post(`/exams/${id}/lock`, { status, password });
+    if (!exam.isLocked) {
+      // Not yet locked — use the publish endpoint (sets active + password)
+      await api.post(`/tests/${id}/testsolve/publish`, { password });
+    } else {
+      // Already locked — update status and optionally password via PUT
+      await api.put(`/tests/${id}`, {
+        testsolveStatus: status,
+        ...(password ? { testsolvePassword: password } : {}),
+      });
+    }
     setShowLock(false);
     fetchExam();
   };
@@ -470,10 +484,10 @@ const ExamDetail = () => {
     if (!window.confirm('Unlock this exam? It will no longer be available for testsolving.')) return;
     setUnlocking(true);
     try {
-      await api.post(`/exams/${id}/unlock`);
+      await api.post(`/tests/${id}/unlock`);
       fetchExam();
-    } catch {
-      setSaveMsg('Failed to unlock.');
+    } catch (err) {
+      setSaveMsg(err?.response?.data?.error || 'Failed to unlock.');
     } finally {
       setUnlocking(false);
     }
@@ -502,9 +516,9 @@ const ExamDetail = () => {
     ? (TESTSOLVE_STATUS_LABEL[exam.testsolveStatus] || exam.testsolveStatus)
     : 'Open to Feedback';
 
-  /* ════════════════════════════════════════════════════════════════
+  /* ══════════════════════════════════════════════════════════════
      RENDER
-  ════════════════════════════════════════════════════════════════ */
+  ══════════════════════════════════════════════════════════════ */
   if (loading) return (
     <Layout pageKey="exams">
       <div className="flex h-64 items-center justify-center">

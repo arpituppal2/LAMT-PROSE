@@ -6,6 +6,7 @@ import {
   User, Lock, Unlock, Eye, EyeOff,
   Plus, Trash2, Pencil, Trophy, ChevronDown,
   FlaskConical, KeyRound, Users, Copy, ChevronUp,
+  Link2, Link2Off, FileCode2,
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
@@ -341,10 +342,117 @@ const UserDetail = ({ user: initial, onBack, onSaved }) => {
 ══════════════════════════════════════════════════════════════ */
 const ROUND_TYPES = ['Individual', 'Team', 'Relay', 'Guts', 'Other'];
 
+/* ── Assign Exam Picker (inline inside a round row) ─────────── */
+const AssignExamPicker = ({ allTests, currentTestId, onAssign, onUnassign, onClose }) => {
+  const [search, setSearch] = useState('');
+
+  const filtered = allTests.filter(t => {
+    const q = search.toLowerCase();
+    return (
+      (t.name || '').toLowerCase().includes(q) ||
+      (t.competition || '').toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div style={{
+      marginTop: '0.5rem',
+      border: '1px solid var(--color-border)',
+      background: 'var(--color-bg)',
+      padding: '0.75rem',
+      display: 'flex', flexDirection: 'column', gap: '0.5rem',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>
+          Assign Exam
+        </span>
+        <button onClick={onClose} className="btn-ghost btn-sm" style={{ padding: '0.2rem' }}>
+          <X size={12} />
+        </button>
+      </div>
+
+      {currentTestId && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0.4rem 0.625rem',
+          background: 'rgba(39,116,174,0.07)', border: '1px solid var(--color-accent)',
+        }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent)', fontWeight: 600 }}>
+            {allTests.find(t => t.id === currentTestId)?.name || currentTestId}
+          </span>
+          <button onClick={onUnassign} className="btn-ghost btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0.4rem', color: 'var(--color-text-faint)', fontSize: 'var(--text-xs)' }}>
+            <Link2Off size={11} /> Unassign
+          </button>
+        </div>
+      )}
+
+      <div style={{ position: 'relative' }}>
+        <Search size={12} style={{
+          position: 'absolute', left: '0.6rem', top: '50%',
+          transform: 'translateY(-50%)', color: 'var(--color-text-faint)', pointerEvents: 'none',
+        }} />
+        <input
+          className={inp}
+          placeholder="Search exams…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          autoFocus
+          style={{ fontSize: 'var(--text-xs)', paddingLeft: '1.75rem' }}
+        />
+      </div>
+
+      <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        {filtered.length === 0 ? (
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic', padding: '0.5rem 0' }}>
+            No exams found.
+          </p>
+        ) : (
+          filtered.map(t => {
+            const isSelected = t.id === currentTestId;
+            return (
+              <button
+                key={t.id}
+                onClick={() => onAssign(t)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.45rem 0.625rem', textAlign: 'left', width: '100%',
+                  background: isSelected ? 'rgba(39,116,174,0.07)' : 'transparent',
+                  border: '1px solid',
+                  borderColor: isSelected ? 'var(--color-accent)' : 'transparent',
+                  cursor: 'pointer', transition: 'background 0.1s',
+                }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--color-surface-offset)'; }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+              >
+                {isSelected && <Check size={11} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: isSelected ? 'var(--color-accent)' : 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {t.name}
+                  </div>
+                  {t.competition && (
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {t.competition}
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+};
+
 const TournamentsTab = () => {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState('');
+
+  /* All tests — for the exam picker */
+  const [allTests, setAllTests]       = useState([]);
+  const [testsLoading, setTestsLoading] = useState(false);
 
   const [newTName, setNewTName] = useState('');
   const [newTDesc, setNewTDesc] = useState('');
@@ -366,16 +474,56 @@ const TournamentsTab = () => {
   const [editRType, setEditRType] = useState('');
   const [savingR, setSavingR]     = useState(false);
 
+  /* Which round's assign-picker is open — key: roundId */
+  const [assigningRound, setAssigningRound] = useState(null);
+  /* assignedTests: { [roundId]: testId | null } — optimistic local state */
+  const [assignedTests, setAssignedTests]   = useState({});
+  const [assigningBusy, setAssigningBusy]   = useState({});
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get('/admin/tournaments');
       setTournaments(res.data);
+
+      /* Seed assignedTests from what the server already has on each round.
+         TournamentRound doesn't carry testId directly — we derive it from
+         tests that reference tournamentId+roundName. Load tests too. */
     } catch { setError('Failed to load tournaments.'); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const loadTests = useCallback(async () => {
+    setTestsLoading(true);
+    try {
+      const res = await api.get('/tests');
+      setAllTests(res.data);
+
+      /* Build assignedTests map: for each test that has a tournamentId + roundName,
+         map roundId. We can't easily key by roundId from test data since the test
+         only stores roundName as a string, so we'll do it when tournaments are loaded. */
+    } catch { /* non-fatal */ }
+    finally { setTestsLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); loadTests(); }, [load, loadTests]);
+
+  /* Once both tournaments and tests are loaded, seed assignedTests */
+  useEffect(() => {
+    if (!tournaments.length || !allTests.length) return;
+    const map = {};
+    tournaments.forEach(t => {
+      (t.rounds || []).forEach(r => {
+        /* Find a test that belongs to this tournament + round by matching
+           tournamentId and roundName */
+        const linked = allTests.find(
+          test => test.tournamentId === t.id && test.roundName === r.name
+        );
+        if (linked) map[r.id] = linked.id;
+      });
+    });
+    setAssignedTests(prev => ({ ...map, ...prev }));
+  }, [tournaments, allTests]);
 
   const handleCreateT = async (e) => {
     e.preventDefault();
@@ -454,6 +602,58 @@ const TournamentsTab = () => {
       setEditingR(null);
     } catch (err) { alert(err.response?.data?.error || 'Failed to save.'); }
     finally { setSavingR(false); }
+  };
+
+  /* ── Assign / unassign exam to a round ─────────────────────── */
+  const handleAssignExam = async (round, tournament, test) => {
+    const roundId = round.id;
+    setAssigningBusy(prev => ({ ...prev, [roundId]: true }));
+
+    /* If there was a previously assigned test for this round, clear it first */
+    const prevTestId = assignedTests[roundId];
+    if (prevTestId && prevTestId !== test.id) {
+      try {
+        await api.put(`/tests/${prevTestId}`, { tournamentId: null, roundName: null });
+        setAllTests(prev => prev.map(t =>
+          t.id === prevTestId ? { ...t, tournamentId: null, roundName: null } : t
+        ));
+      } catch { /* best-effort */ }
+    }
+
+    try {
+      await api.put(`/tests/${test.id}`, {
+        tournamentId: tournament.id,
+        roundName: round.name,
+      });
+      setAllTests(prev => prev.map(t =>
+        t.id === test.id ? { ...t, tournamentId: tournament.id, roundName: round.name } : t
+      ));
+      setAssignedTests(prev => ({ ...prev, [roundId]: test.id }));
+      setAssigningRound(null);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to assign exam.');
+    } finally {
+      setAssigningBusy(prev => ({ ...prev, [roundId]: false }));
+    }
+  };
+
+  const handleUnassignExam = async (round) => {
+    const roundId = round.id;
+    const testId  = assignedTests[roundId];
+    if (!testId) return;
+    setAssigningBusy(prev => ({ ...prev, [roundId]: true }));
+    try {
+      await api.put(`/tests/${testId}`, { tournamentId: null, roundName: null });
+      setAllTests(prev => prev.map(t =>
+        t.id === testId ? { ...t, tournamentId: null, roundName: null } : t
+      ));
+      setAssignedTests(prev => { const n = { ...prev }; delete n[roundId]; return n; });
+      setAssigningRound(null);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to unassign exam.');
+    } finally {
+      setAssigningBusy(prev => ({ ...prev, [roundId]: false }));
+    }
   };
 
   if (loading) return <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)', padding: '2rem 0' }}>Loading…</p>;
@@ -554,54 +754,106 @@ const TournamentsTab = () => {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginBottom: '0.5rem' }}>
                         {(t.rounds || []).map(r => {
-                          const isEditR = editingR === r.id;
+                          const isEditR    = editingR === r.id;
+                          const isAssigning = assigningRound === r.id;
+                          const linkedTestId = assignedTests[r.id];
+                          const linkedTest   = linkedTestId ? allTests.find(x => x.id === linkedTestId) : null;
+                          const busy         = assigningBusy[r.id];
                           return (
-                            <div key={r.id} style={{
-                              display: 'flex', alignItems: 'center', gap: '0.5rem',
-                              padding: '0.5rem 0.75rem',
-                              background: 'var(--color-surface-offset)',
-                              border: '1px solid var(--color-border)',
-                            }}>
-                              {isEditR ? (
-                                <>
-                                  <input className={inp} value={editRName} onChange={e => setEditRName(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter') handleSaveR(t.id, r.id); if (e.key === 'Escape') setEditingR(null); }}
-                                    autoFocus style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)' }} />
-                                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                                    <select className={inp} value={editRType} onChange={e => setEditRType(e.target.value)}
-                                      style={{ fontSize: 'var(--text-xs)', paddingRight: '1.5rem', appearance: 'none' }}>
-                                      {ROUND_TYPES.map(rt => <option key={rt} value={rt}>{rt}</option>)}
-                                    </select>
-                                    <ChevronDown size={10} style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--color-text-faint)' }} />
-                                  </div>
-                                  <button onClick={() => handleSaveR(t.id, r.id)} disabled={savingR}
-                                    className="btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem' }}>
-                                    <Check size={11} />{savingR ? '…' : 'Save'}
-                                  </button>
-                                  <button onClick={() => setEditingR(null)} className="btn-ghost btn-sm" style={{ padding: '0.25rem 0.4rem' }}>
-                                    <X size={11} />
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <span style={{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 600 }}>{r.name}</span>
-                                  <span style={{
-                                    fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.07em',
-                                    textTransform: 'uppercase', padding: '0.15em 0.5em',
-                                    background: 'var(--color-accent-alpha, rgba(39,116,174,0.1))',
-                                    color: 'var(--color-accent)', border: '1px solid var(--color-accent)', opacity: 0.75,
-                                  }}>{r.roundType}</span>
-                                  <button onClick={() => { setEditingR(r.id); setEditRName(r.name); setEditRType(r.roundType || 'Individual'); }}
-                                    className="btn-ghost btn-sm" title="Edit round"
-                                    style={{ padding: '0.25rem 0.4rem', display: 'inline-flex', alignItems: 'center' }}>
-                                    <Pencil size={11} />
-                                  </button>
-                                  <button onClick={() => handleDeleteR(t.id, r.id)}
-                                    className="btn-ghost btn-sm" title="Delete round"
-                                    style={{ padding: '0.25rem 0.4rem', display: 'inline-flex', alignItems: 'center', color: 'var(--color-text-faint)' }}>
-                                    <Trash2 size={11} />
-                                  </button>
-                                </>
+                            <div key={r.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                padding: '0.5rem 0.75rem',
+                                background: 'var(--color-surface-offset)',
+                                border: '1px solid var(--color-border)',
+                              }}>
+                                {isEditR ? (
+                                  <>
+                                    <input className={inp} value={editRName} onChange={e => setEditRName(e.target.value)}
+                                      onKeyDown={e => { if (e.key === 'Enter') handleSaveR(t.id, r.id); if (e.key === 'Escape') setEditingR(null); }}
+                                      autoFocus style={{ flex: 1, minWidth: 0, fontSize: 'var(--text-xs)' }} />
+                                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                                      <select className={inp} value={editRType} onChange={e => setEditRType(e.target.value)}
+                                        style={{ fontSize: 'var(--text-xs)', paddingRight: '1.5rem', appearance: 'none' }}>
+                                        {ROUND_TYPES.map(rt => <option key={rt} value={rt}>{rt}</option>)}
+                                      </select>
+                                      <ChevronDown size={10} style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--color-text-faint)' }} />
+                                    </div>
+                                    <button onClick={() => handleSaveR(t.id, r.id)} disabled={savingR}
+                                      className="btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem' }}>
+                                      <Check size={11} />{savingR ? '…' : 'Save'}
+                                    </button>
+                                    <button onClick={() => setEditingR(null)} className="btn-ghost btn-sm" style={{ padding: '0.25rem 0.4rem' }}>
+                                      <X size={11} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span style={{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 600 }}>{r.name}</span>
+                                    <span style={{
+                                      fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.07em',
+                                      textTransform: 'uppercase', padding: '0.15em 0.5em',
+                                      background: 'var(--color-accent-alpha, rgba(39,116,174,0.1))',
+                                      color: 'var(--color-accent)', border: '1px solid var(--color-accent)', opacity: 0.75,
+                                    }}>{r.roundType}</span>
+
+                                    {/* Assigned exam chip */}
+                                    {linkedTest ? (
+                                      <span style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                        fontSize: 'var(--text-xs)', fontWeight: 600,
+                                        padding: '0.15em 0.5em',
+                                        background: 'rgba(67,122,34,0.08)',
+                                        border: '1px solid rgba(67,122,34,0.35)',
+                                        color: '#437a22',
+                                        maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                      }}>
+                                        <Link2 size={10} style={{ flexShrink: 0 }} />
+                                        {linkedTest.name}
+                                      </span>
+                                    ) : (
+                                      <span style={{
+                                        fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)',
+                                        fontStyle: 'italic',
+                                      }}>
+                                        No exam
+                                      </span>
+                                    )}
+
+                                    {/* Assign button */}
+                                    <button
+                                      onClick={() => setAssigningRound(isAssigning ? null : r.id)}
+                                      className="btn-ghost btn-sm"
+                                      title={linkedTest ? 'Change assigned exam' : 'Assign exam'}
+                                      disabled={busy}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.4rem' }}
+                                    >
+                                      <Link2 size={11} />
+                                    </button>
+
+                                    <button onClick={() => { setEditingR(r.id); setEditRName(r.name); setEditRType(r.roundType || 'Individual'); }}
+                                      className="btn-ghost btn-sm" title="Edit round"
+                                      style={{ padding: '0.25rem 0.4rem', display: 'inline-flex', alignItems: 'center' }}>
+                                      <Pencil size={11} />
+                                    </button>
+                                    <button onClick={() => handleDeleteR(t.id, r.id)}
+                                      className="btn-ghost btn-sm" title="Delete round"
+                                      style={{ padding: '0.25rem 0.4rem', display: 'inline-flex', alignItems: 'center', color: 'var(--color-text-faint)' }}>
+                                      <Trash2 size={11} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Inline exam picker */}
+                              {isAssigning && !isEditR && (
+                                <AssignExamPicker
+                                  allTests={allTests}
+                                  currentTestId={linkedTestId || null}
+                                  onAssign={(test) => handleAssignExam(r, t, test)}
+                                  onUnassign={() => handleUnassignExam(r)}
+                                  onClose={() => setAssigningRound(null)}
+                                />
                               )}
                             </div>
                           );
@@ -722,7 +974,7 @@ const SessionViewer = ({ testId, testName, onClose }) => {
     })();
   }, [testId]);
 
-  const submitted = sessions.filter(s => s.submittedAt);
+  const submitted  = sessions.filter(s => s.submittedAt);
   const inProgress = sessions.filter(s => !s.submittedAt);
 
   return (
@@ -807,65 +1059,33 @@ const SessionViewer = ({ testId, testName, onClose }) => {
                           ? new Date(s.submittedAt).toLocaleDateString()
                           : <span style={{ color: '#d19900' }}>In progress</span>}
                       </span>
-                      <span style={{
-                        fontSize: 'var(--text-xs)', fontWeight: 700, padding: '0.15em 0.5em',
-                        background: 'var(--color-surface-offset)', border: '1px solid var(--color-border)',
-                        color: 'var(--color-text-faint)',
-                      }}>{s.problemResponses?.length ?? 0} responses</span>
                     </div>
 
                     {/* Expanded detail */}
                     {isOpen && (
-                      <div style={{ borderTop: '1px solid var(--color-border)', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-                        {/* Overall feedback */}
-                        {s.overall ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <span className={hdr}>Overall Feedback</span>
-                            {[
-                              ['General Comments',    s.overall.generalComments],
-                              ['Difficulty Notes',    s.overall.difficultyNotes],
-                              ['Technique Notes',     s.overall.techniqueNotes],
-                              ['Rework Notes',        s.overall.reworkNotes],
-                            ].map(([label, val]) => val ? (
-                              <div key={label}>
-                                <p style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{label}</p>
-                                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text)', whiteSpace: 'pre-wrap' }}>{val}</p>
-                              </div>
-                            ) : null)}
-                          </div>
-                        ) : (
-                          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>No overall feedback submitted.</p>
-                        )}
-
-                        {/* Per-problem responses */}
+                      <div style={{ borderTop: '1px solid var(--color-border)', padding: '0.75rem 0.875rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                         {s.problemResponses?.length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                            <span className={hdr}>Problem Responses ({s.problemResponses.length})</span>
-                            {[...s.problemResponses]
-                              .sort((a, b) => a.slotIndex - b.slotIndex)
-                              .map(r => (
-                                <div key={r.id} style={{
-                                  background: 'var(--color-surface-offset)',
-                                  border: '1px solid var(--color-border)',
-                                  padding: '0.5rem 0.75rem',
-                                  display: 'flex', flexDirection: 'column', gap: '0.25rem',
+                          <div>
+                            <p style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-faint)', marginBottom: '0.375rem' }}>Answers</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                              {s.problemResponses.map((pr, idx) => (
+                                <span key={pr.id} style={{
+                                  fontFamily: 'monospace', fontSize: 'var(--text-xs)',
+                                  padding: '0.2em 0.5em', background: 'var(--color-surface-offset)',
+                                  border: '1px solid var(--color-border)', color: 'var(--color-text-muted)',
                                 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 800, color: 'var(--color-text-faint)' }}>#{r.slotIndex + 1}</span>
-                                    {r.answer && (
-                                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                                        Answer: <strong style={{ color: 'var(--color-text)' }}>{r.answer}</strong>
-                                      </span>
-                                    )}
-                                    {r.timeMinutes != null && (
-                                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{r.timeMinutes} min</span>
-                                    )}
-                                  </div>
-                                  {r.comment && (
-                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', whiteSpace: 'pre-wrap', marginTop: '0.15rem' }}>{r.comment}</p>
-                                  )}
-                                </div>
+                                  Q{idx + 1}: {pr.answer || '—'}
+                                </span>
                               ))}
+                            </div>
+                          </div>
+                        )}
+                        {s.overall && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <p style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-faint)' }}>Overall Feedback</p>
+                            {s.overall.comments && (
+                              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>{s.overall.comments}</p>
+                            )}
                           </div>
                         )}
                       </div>
@@ -881,41 +1101,101 @@ const SessionViewer = ({ testId, testName, onClose }) => {
   );
 };
 
-/* Main Testsolving tab */
+/* ── Testsolving tab main component ─────────────────────────── */
 const TestsolvingTab = () => {
-  const [exams, setExams]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
-  const [pwModal, setPwModal]     = useState(null); // { testId, testName, password }
-  const [pwLoading, setPwLoading] = useState(null); // testId being loaded
-  const [sessions, setSessions]   = useState(null); // { testId, testName }
+  const [tests, setTests]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
+  const [pwModal, setPwModal]   = useState(null); // { testId, testName, password }
+  const [sessModal, setSessModal] = useState(null); // { testId, testName }
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/tests');
-      setExams(res.data.filter(t => t.isLocked));
-    } catch { setError('Failed to load exams.'); }
-    finally { setLoading(false); }
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await api.get('/tests');
+        setTests(res.data.filter(t => t.isLocked || t.testsolveStatus));
+      } catch { setError('Failed to load exams.'); }
+      finally { setLoading(false); }
+    })();
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-
-  const handleViewPassword = async (testId, testName) => {
-    setPwLoading(testId);
+  const handleShowPassword = async (test) => {
     try {
-      const res = await api.get(`/tests/${testId}/testsolve/password`);
-      setPwModal({ testId, testName, password: res.data.password });
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to fetch password.');
-    } finally { setPwLoading(null); }
+      const res = await api.get(`/tests/${test.id}/testsolve/password`);
+      setPwModal({ testId: test.id, testName: test.name, password: res.data.password });
+    } catch { setPwModal({ testId: test.id, testName: test.name, password: null }); }
   };
 
   if (loading) return <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)', padding: '2rem 0' }}>Loading…</p>;
   if (error)   return <p style={{ fontSize: 'var(--text-sm)', color: '#dc2626', padding: '2rem 0' }}>{error}</p>;
 
   return (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 800 }}>Testsolving</h2>
+        <span style={{
+          background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+          fontSize: 'var(--text-xs)', fontWeight: 700, padding: '0.25em 0.65em',
+          color: 'var(--color-text-muted)', letterSpacing: '0.08em',
+        }}>{tests.length} EXAM{tests.length !== 1 ? 'S' : ''}</span>
+      </div>
+
+      {tests.length === 0 ? (
+        <div style={{
+          textAlign: 'center', padding: '3rem 2rem', border: '1px dashed var(--color-border)',
+          color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)',
+        }}>
+          <FlaskConical size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
+          No locked exams yet.
+        </div>
+      ) : (
+        <div className={card} style={{ overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                {['Exam', 'Status', 'Actions'].map(col => (
+                  <th key={col} style={{
+                    padding: '0.65rem 1rem', textAlign: 'left',
+                    fontSize: 'var(--text-xs)', fontWeight: 700,
+                    letterSpacing: '0.14em', textTransform: 'uppercase',
+                    color: 'var(--color-text-faint)', background: 'var(--color-surface-2)',
+                  }}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tests.map((t, i) => (
+                <tr key={t.id} style={{
+                  borderBottom: i < tests.length - 1 ? '1px solid var(--color-border)' : 'none',
+                  background: 'transparent',
+                }}>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{t.name}</div>
+                    {t.competition && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{t.competition}</div>}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <StatusPill status={t.testsolveStatus || 'none'} />
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button onClick={() => handleShowPassword(t)} className="btn-ghost btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <KeyRound size={12} /> Password
+                      </button>
+                      <button onClick={() => setSessModal({ testId: t.id, testName: t.name })} className="btn-ghost btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Users size={12} /> Sessions
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {pwModal && (
         <PasswordModal
           testName={pwModal.testName}
@@ -923,189 +1203,102 @@ const TestsolvingTab = () => {
           onClose={() => setPwModal(null)}
         />
       )}
-      {sessions && (
+      {sessModal && (
         <SessionViewer
-          testId={sessions.testId}
-          testName={sessions.testName}
-          onClose={() => setSessions(null)}
+          testId={sessModal.testId}
+          testName={sessModal.testName}
+          onClose={() => setSessModal(null)}
         />
       )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 800 }}>Testsolving</h2>
-          <span style={{
-            background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
-            fontSize: 'var(--text-xs)', fontWeight: 700, padding: '0.25em 0.65em',
-            color: 'var(--color-text-muted)', letterSpacing: '0.08em',
-          }}>{exams.length} LOCKED EXAM{exams.length !== 1 ? 'S' : ''}</span>
-        </div>
-
-        {exams.length === 0 ? (
-          <div style={{
-            textAlign: 'center', padding: '3rem 2rem', border: '1px dashed var(--color-border)',
-            color: 'var(--color-text-faint)', fontSize: 'var(--text-sm)',
-          }}>
-            <FlaskConical size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
-            No locked exams. Lock an exam from the Exams page to enable testsolving.
-          </div>
-        ) : (
-          <div className={card} style={{ overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  {['Exam', 'Status', 'Version', 'Time Limit', 'Actions'].map(col => (
-                    <th key={col} style={{
-                      padding: '0.65rem 1rem', textAlign: 'left',
-                      fontSize: 'var(--text-xs)', fontWeight: 700,
-                      letterSpacing: '0.14em', textTransform: 'uppercase',
-                      color: 'var(--color-text-faint)', background: 'var(--color-surface-2)',
-                    }}>{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {exams.map((exam, i) => (
-                  <tr key={exam.id} style={{
-                    borderBottom: i < exams.length - 1 ? '1px solid var(--color-border)' : 'none',
-                    background: 'transparent',
-                  }}>
-                    <td style={{ padding: '0.75rem 1rem' }}>
-                      <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{exam.name}</div>
-                      {exam.competition && (
-                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginTop: '0.1rem' }}>{exam.competition}</div>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem' }}>
-                      <StatusPill status={exam.testsolveStatus || 'none'} />
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                      v{exam.testsolveVersion ?? 1}
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                      {exam.timeLimit ? `${exam.timeLimit} min` : '—'}
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem' }}>
-                      <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-                        <button
-                          className="btn-ghost btn-sm"
-                          disabled={pwLoading === exam.id}
-                          onClick={() => handleViewPassword(exam.id, exam.name)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                        >
-                          <KeyRound size={12} />
-                          {pwLoading === exam.id ? 'Loading…' : 'Password'}
-                        </button>
-                        <button
-                          className="btn-ghost btn-sm"
-                          onClick={() => setSessions({ testId: exam.id, testName: exam.name })}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                        >
-                          <Users size={12} /> Sessions
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </>
+    </div>
   );
 };
 
 /* ══════════════════════════════════════════════════════════════
-   MAIN PAGE
+   ROOT
 ══════════════════════════════════════════════════════════════ */
 const TABS = [
-  { id: 'users',        label: 'Users' },
-  { id: 'tournaments',  label: 'Tournaments' },
-  { id: 'testsolving',  label: 'Testsolving' },
+  { key: 'users',        label: 'Users',        icon: User },
+  { key: 'tournaments',  label: 'Tournaments',  icon: Trophy },
+  { key: 'testsolving',  label: 'Testsolving',  icon: FlaskConical },
 ];
 
-export default function AdminPanel() {
-  const { user, loading } = useAuth();
-  const [tab,      setTab]      = useState('users');
-  const [users,    setUsers]    = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [search,   setSearch]   = useState('');
-  const [fetching, setFetching] = useState(true);
+const AdminPanel = () => {
+  const { user } = useAuth();
+  const [tab, setTab]         = useState('users');
+  const [users, setUsers]     = useState([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userSearch, setUserSearch]     = useState('');
 
-  const load = useCallback(async () => {
-    setFetching(true);
-    try { const res = await api.get('/admin/users'); setUsers(res.data); }
-    catch { /* silent */ }
-    finally { setFetching(false); }
-  }, []);
+  useEffect(() => {
+    if (!user?.isAdmin) return;
+    (async () => {
+      setUsersLoading(true);
+      try {
+        const res = await api.get('/admin/users');
+        setUsers(res.data);
+      } catch { /* handled in render */ }
+      finally { setUsersLoading(false); }
+    })();
+  }, [user]);
 
-  useEffect(() => { if (user?.isAdmin) load(); }, [user, load]);
-
-  if (loading) return null;
   if (!user?.isAdmin) return <NotAdminGate />;
 
-  const handleSaved = (updated) => {
-    setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
-    setSelected(updated);
-  };
-
   return (
-    <Layout>
-      <div style={{ padding: '0 clamp(1rem, 4vw, 3rem)', paddingBottom: '4rem', maxWidth: '1100px', margin: '0 auto' }}>
-
-        {/* Page heading */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.25rem' }}>
-            <span className="gold-rule" />
-            <span className={hdr}>Admin</span>
-          </div>
+    <Layout pageKey="admin">
+      <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Page header */}
+        <div>
+          <span className="gold-rule" style={{ marginBottom: '0.75rem' }} />
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 800 }}>Admin Panel</h1>
         </div>
 
-        {/* Tab bar — only shown when not drilling into a user */}
-        {!selected && (
-          <div style={{
-            display: 'flex', gap: 0,
-            borderBottom: '2px solid var(--color-border)',
-            marginBottom: '1.75rem',
-          }}>
-            {TABS.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  padding: '0.55rem 1.1rem',
-                  fontSize: 'var(--text-sm)', fontWeight: 700,
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  borderBottom: tab === t.id ? '2px solid var(--color-accent)' : '2px solid transparent',
-                  marginBottom: '-2px',
-                  color: tab === t.id ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                  transition: 'color 0.15s',
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Tab bar */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--color-border)' }}>
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button key={key} onClick={() => { setTab(key); setSelectedUser(null); }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.625rem 1rem', fontSize: 'var(--text-sm)', fontWeight: 700,
+                background: 'none', border: 'none', cursor: 'pointer',
+                borderBottom: tab === key ? '2px solid var(--color-accent)' : '2px solid transparent',
+                color: tab === key ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                transition: 'color 0.15s',
+                marginBottom: '-1px',
+              }}>
+              <Icon size={14} /> {label}
+            </button>
+          ))}
+        </div>
 
         {/* Tab content */}
         {tab === 'users' && (
-          fetching ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '40vh' }}>
-              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)' }}>Loading users…</span>
-            </div>
-          ) : selected ? (
-            <UserDetail user={selected} onBack={() => setSelected(null)} onSaved={handleSaved} />
+          usersLoading ? (
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)', padding: '2rem 0' }}>Loading users…</p>
+          ) : selectedUser ? (
+            <UserDetail
+              user={selectedUser}
+              onBack={() => setSelectedUser(null)}
+              onSaved={(updated) => {
+                setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+                setSelectedUser(updated);
+              }}
+            />
           ) : (
-            <UserList users={users} onSelect={setSelected} search={search} setSearch={setSearch} />
+            <UserList
+              users={users}
+              onSelect={setSelectedUser}
+              search={userSearch}
+              setSearch={setUserSearch}
+            />
           )
         )}
-
         {tab === 'tournaments' && <TournamentsTab />}
-        {tab === 'testsolving'  && <TestsolvingTab />}
+        {tab === 'testsolving' && <TestsolvingTab />}
       </div>
     </Layout>
   );
-}
+};
+
+export default AdminPanel;

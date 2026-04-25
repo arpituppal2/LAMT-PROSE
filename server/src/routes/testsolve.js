@@ -177,10 +177,13 @@ router.get('/results/:testId', authenticate, async (req, res) => {
     if (!test) return res.status(404).json({ error: 'Test not found.' });
 
     const sessions = await prisma.testsolveSession.findMany({
-      where: { testId },
+      where: {
+        testId,
+        submittedAt: { not: null }, // only completed submissions; abandoned sessions are excluded
+      },
       orderBy: { submittedAt: 'desc' },
       include: {
-        responses: {
+        problemResponses: {
           orderBy: { slotIndex: 'asc' },
         },
         overall: true,
@@ -204,7 +207,12 @@ router.get('/results/:testId', authenticate, async (req, res) => {
       return { slotIndex: i, problemId: s?.problemId || null, latex: p?.latex || null, subject: p?.subject || null };
     });
 
-    res.json({ test, sessions, slots: orderedSlots });
+    // alias problemResponses → responses for frontend compatibility
+    res.json({
+      test,
+      sessions: sessions.map(s => ({ ...s, responses: s.problemResponses })),
+      slots: orderedSlots,
+    });
   } catch (error) {
     console.error('Fetch testsolve results error:', error);
     res.status(500).json({ error: 'Failed to fetch results' });

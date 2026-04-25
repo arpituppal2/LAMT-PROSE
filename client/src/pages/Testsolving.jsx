@@ -101,21 +101,18 @@ const ExamCard = ({ exam, onStart, onViewResults }) => (
         <button
           type="button"
           onClick={() => onViewResults(exam)}
-          className="btn-outline px-3 py-1.5 flex items-center gap-1.5"
+          className="btn-outline px-3 py-1.5"
           style={{ fontSize: 'var(--text-xs)' }}
         >
-          <Eye size={12} />
           Results
         </button>
         <button
           type="button"
           onClick={() => onStart(exam)}
-          className="flex items-center gap-1.5 font-semibold transition-all"
-          style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent)' }}
+          className="btn-filled px-3 py-1.5"
+          style={{ fontSize: 'var(--text-xs)' }}
         >
-          <Lock size={12} />
           Enter
-          <ChevronRight size={13} />
         </button>
       </div>
     </div>
@@ -520,6 +517,9 @@ const ResultsView = ({ exam, onBack }) => {
 
   const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
+  /* ── Check if user is an author of this exam ── */
+  const isAuthor = user?.isAdmin || (exam.authorId && user?.id && String(exam.authorId) === String(user.id));
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <header>
@@ -547,7 +547,7 @@ const ResultsView = ({ exam, onBack }) => {
         </div>
       )}
 
-      {error && (
+      {!loading && error && (
         <div className="flex items-center gap-2 border px-4 py-3 text-sm"
           style={{ background: 'var(--badge-needs-review-bg)', borderColor: 'var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}>
           <AlertTriangle size={14} /> {error}
@@ -595,7 +595,7 @@ const ResultsView = ({ exam, onBack }) => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {user?.isAdmin && (
+                        {(user?.isAdmin || isAuthor) && (
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); handleDelete(session.id); }}

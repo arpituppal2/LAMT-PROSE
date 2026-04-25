@@ -6,13 +6,6 @@ import Layout from '../components/Layout';
 
 const TOPICS = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
-const TOPIC_CFG = {
-  Algebra:        { dot: 'bg-blue-500',   active: 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400',   idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-blue-400/50' },
-  Geometry:       { dot: 'bg-green-500',  active: 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-green-400/50' },
-  Combinatorics:  { dot: 'bg-amber-500',  active: 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-amber-400/50' },
-  'Number Theory':{ dot: 'bg-purple-500', active: 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400', idle: 'border-[var(--ucla-blue)] dark:border-[var(--ucla-gold)] text-[var(--color-text-muted)] hover:border-purple-400/50' },
-};
-
 const Spinner = ({ size = 16 }) => <Loader2 size={size} className="animate-spin" />;
 
 const ErrorMsg = ({ msg }) =>
@@ -197,27 +190,19 @@ const NewExamModal = ({ onClose, onCreate }) => {
               </span>
             </div>
 
-            {/* Exam topics — LAMT btn-toggle */}
+            {/* Exam topics — btn-toggle */}
             <Field label="Exam Topics" hint="Which topics should appear in the problem bank for this exam? Leave blank to show all.">
               <div className="flex flex-wrap gap-2">
-                {TOPICS.map(t => {
-                  const cfg = TOPIC_CFG[t];
-                  const active = form.examTopics.includes(t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => toggleTopic(t)}
-                      className={[
-                        'inline-flex items-center gap-1.5 px-3 py-1.5 border text-xs font-semibold transition-all',
-                        active ? cfg.active : cfg.idle,
-                      ].join(' ')}
-                    >
-                      <span className={`h-2 w-2 rounded-full flex-shrink-0 ${cfg.dot} ${active ? 'opacity-100' : 'opacity-40'}`} />
-                      {t}
-                    </button>
-                  );
-                })}
+                {TOPICS.map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleTopic(t)}
+                    className={`btn-toggle btn-sm${form.examTopics.includes(t) ? ' active' : ''}`}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
               {form.examTopics.length === 0 && (
                 <p className="text-[13px] text-[var(--color-text-faint)] mt-1">All topics shown.</p>

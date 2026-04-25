@@ -439,9 +439,8 @@ const GiveFeedback = () => {
                     <button
                       type="button"
                       onClick={skipProblem}
-                      className="btn-outline px-3 py-1.5 text-sm flex items-center gap-1.5"
+                      className="btn-outline px-3 py-1.5 text-sm"
                     >
-                      <RefreshCw size={13} />
                       Skip
                     </button>
                   )}
@@ -501,7 +500,7 @@ const GiveFeedback = () => {
                 </>
               ) : (
                 <>
-                  {/* Answer recap — work intentionally omitted here; it's already saved */}
+                  {/* Answer recap */}
                   <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">
@@ -538,7 +537,7 @@ const GiveFeedback = () => {
                     />
                   </div>
 
-                  {/* Decision — labels only, no subtitles */}
+                  {/* Decision */}
                   <div>
                     <p className="section-label mb-3">Decision</p>
                     <div className="flex gap-3">
@@ -611,7 +610,7 @@ const GiveFeedback = () => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) setShowPreferences(false); }}
         >
-          <div className="w-full max-w-sm rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl">
+          <div className="w-full max-w-sm border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl" style={{ borderRadius: 0 }}>
 
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
@@ -619,7 +618,7 @@ const GiveFeedback = () => {
               <button
                 type="button"
                 onClick={() => setShowPreferences(false)}
-                className="rounded p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
               >
                 <X size={16} />
               </button>
@@ -673,7 +672,7 @@ const GiveFeedback = () => {
                 </div>
               </div>
 
-              {/* Topics */}
+              {/* Topics — LAMT btn-toggle */}
               <div>
                 <div className="mb-3 flex items-center justify-between">
                   <p className="section-label">Topics</p>
@@ -693,12 +692,7 @@ const GiveFeedback = () => {
                       key={t}
                       type="button"
                       onClick={() => toggleDraftTopic(t)}
-                      className={[
-                        'rounded-sm border px-3 py-1.5 text-xs font-semibold transition-colors',
-                        draftTopics.includes(t)
-                          ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-white'
-                          : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]',
-                      ].join(' ')}
+                      className={['btn-toggle btn-sm', draftTopics.includes(t) ? 'active' : ''].join(' ')}
                     >
                       {t}
                     </button>

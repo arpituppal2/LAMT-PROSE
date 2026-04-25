@@ -62,12 +62,12 @@ const Leaderboard = () => {
             >
               Leaderboard
             </h1>
-            {/* Inline scoring chips */}
+            {/* Inline scoring chips — text-[16px] (~3px bigger than before) */}
             <div className="flex flex-wrap items-center gap-1.5">
               {SCORE_CHIPS.map((chip) => (
                 <span
                   key={chip.label}
-                  className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[13px] font-bold uppercase tracking-[0.1em]"
+                  className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[16px] font-bold uppercase tracking-[0.1em]"
                   style={{
                     color: chip.color,
                     backgroundColor: chip.bg,
@@ -85,7 +85,7 @@ const Leaderboard = () => {
         {/* ── Leaderboard table ── */}
         <div className="surface-card overflow-hidden">
           <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[920px] text-left text-sm">
+            <table className="w-full min-w-[920px] text-left">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
                   <th className="px-4 py-3.5 section-label w-12">#</th>
@@ -103,21 +103,21 @@ const Leaderboard = () => {
                   <tr
                     key={entry.userId}
                     onClick={() => navigate(`/users/${entry.userId}`)}
-                    className="cursor-pointer hover:bg-[var(--color-surface)] transition-colors"
+                    className="cursor-pointer hover:bg-[var(--color-surface)] transition-colors text-base"
                   >
-                    <td className="px-4 py-3 tabular-nums text-[var(--color-text-muted)]">
+                    <td className="px-4 py-3.5 tabular-nums text-[var(--color-text-muted)]">
                       {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{entry.author}</p>
-                      <p className="text-xs text-[var(--color-text-muted)] font-mono">{entry.initials}</p>
+                    <td className="px-4 py-3.5">
+                      <p className="font-semibold">{entry.author}</p>
+                      <p className="text-sm text-[var(--color-text-muted)] font-mono">{entry.initials}</p>
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums">{entry.badges.endorsed || 0}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{entry.badges.idea || 0}</td>
-                    <td className="px-4 py-3 text-center tabular-nums text-[var(--badge-needs-review-text)]">{entry.badges.needsReview || 0}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{entry.badges.resolved || 0}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{entry.reviewsGiven || 0}</td>
-                    <td className="px-4 py-3 text-right font-bold tabular-nums text-[var(--color-accent)]">
+                    <td className="px-4 py-3.5 text-center tabular-nums">{entry.badges.endorsed || 0}</td>
+                    <td className="px-4 py-3.5 text-center tabular-nums">{entry.badges.idea || 0}</td>
+                    <td className="px-4 py-3.5 text-center tabular-nums text-[var(--badge-needs-review-text)]">{entry.badges.needsReview || 0}</td>
+                    <td className="px-4 py-3.5 text-center tabular-nums">{entry.badges.resolved || 0}</td>
+                    <td className="px-4 py-3.5 text-center tabular-nums">{entry.reviewsGiven || 0}</td>
+                    <td className="px-4 py-3.5 text-right font-bold tabular-nums text-[var(--color-accent)]">
                       {entry.score}
                     </td>
                   </tr>

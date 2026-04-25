@@ -87,7 +87,9 @@ const NewExamModal = ({ onClose, onCreate }) => {
         problemIds: [],
       };
       const res = await api.post('/tests', payload);
-      onCreate(res.data);
+      // Normalise id field in case backend returns _id
+      const newExam = { ...res.data, id: res.data.id ?? res.data._id };
+      onCreate(newExam);
       onClose();
     } catch {
       setError('Failed to create exam. Please try again.');
@@ -368,7 +370,9 @@ const ExamManager = () => {
     setExamsError('');
     try {
       const r = await api.get('/tests');
-      setExams(r.data);
+      // Normalise id field in case backend returns _id instead of id
+      const normalised = (r.data || []).map(e => ({ ...e, id: e.id ?? e._id }));
+      setExams(normalised);
     } catch {
       setExamsError('Failed to load exams.');
     } finally {
@@ -377,8 +381,9 @@ const ExamManager = () => {
   };
 
   const handleCreated = newExam => {
-    setExams(prev => [newExam, ...prev]);
-    navigate(`/exams/${newExam.id}`);
+    const normalised = { ...newExam, id: newExam.id ?? newExam._id };
+    setExams(prev => [normalised, ...prev]);
+    navigate(`/exams/${normalised.id}`);
   };
 
   return (

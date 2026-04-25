@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, ChevronUp,
-  Loader2, X, AlertTriangle,
+  Loader2, X, AlertTriangle, Trash2, Settings,
 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
@@ -206,6 +206,84 @@ const LockModal = ({ exam, onSave, onClose }) => {
 };
 
 /* ══════════════════════════════════════════════════════════════
+   DELETE MODAL
+══════════════════════════════════════════════════════════════ */
+const DeleteModal = ({ examName, onConfirm, onClose }) => {
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+  const matches = confirmText.trim() === examName.trim();
+
+  const handleDelete = async () => {
+    if (!matches) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await onConfirm();
+    } catch (e) {
+      setError(e?.response?.data?.error || 'Failed to delete exam.');
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-sm border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+          <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>Delete Exam</p>
+          <button type="button" onClick={onClose} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-5 py-5 space-y-4">
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            This will permanently delete <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{examName}</span> and all its slot assignments. This cannot be undone.
+          </p>
+          <div>
+            <label className="section-label">Type the exam name to confirm</label>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={e => setConfirmText(e.target.value)}
+              placeholder={examName}
+              className="input-base w-full mt-2"
+              autoComplete="off"
+              autoFocus
+            />
+          </div>
+          {error && (
+            <div className="flex items-center gap-2 text-sm px-3 py-2.5"
+              style={{ background: 'var(--badge-needs-review-bg)', color: 'var(--badge-needs-review-text)', border: '1px solid var(--badge-needs-review-border)' }}>
+              <AlertTriangle size={13} /> {error}
+            </div>
+          )}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="btn-outline flex-1 py-2.5 text-sm">Cancel</button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={!matches || deleting}
+              className="flex-1 py-2.5 text-sm flex items-center justify-center gap-2 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              style={{
+                background: matches && !deleting ? 'var(--color-error)' : undefined,
+                color: matches && !deleting ? '#fff' : 'var(--color-text-faint)',
+                border: '1px solid transparent',
+              }}
+            >
+              {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              {deleting ? 'Deleting…' : 'Delete Exam'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════
    PROBLEM SLOT
 ══════════════════════════════════════════════════════════════ */
 const ProblemSlot = ({
@@ -341,6 +419,7 @@ const ExamDetail = () => {
   const [saveMsg,     setSaveMsg]     = useState('');
   const [isEditing,   setIsEditing]   = useState(false);
   const [showLock,    setShowLock]    = useState(false);
+  const [showDelete,  setShowDelete]  = useState(false);
   const [unlocking,   setUnlocking]   = useState(false);
 
   /* slot editing */
@@ -491,6 +570,11 @@ const ExamDetail = () => {
     } finally {
       setUnlocking(false);
     }
+  };
+
+  const handleDelete = async () => {
+    await api.delete(`/tests/${id}`);
+    navigate('/exams');
   };
 
   /* ── Group slots by set for accordion display ── */
@@ -778,6 +862,41 @@ const ExamDetail = () => {
           })}
         </div>
 
+        {/* ── Danger zone ── */}
+        {!isEditing && (
+          <div
+            className="surface-card px-5 py-4"
+            style={{ border: '1px solid var(--color-border)' }}
+          >
+            <p className="section-label mb-3" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              <Settings size={13} />
+              Settings
+            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Delete this exam</p>
+                <p className="mt-0.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                  Permanently removes the exam and all slot assignments.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDelete(true)}
+                className="btn-sm flex items-center gap-1.5 font-semibold transition-colors"
+                style={{
+                  color: 'var(--color-error)',
+                  border: '1px solid color-mix(in oklch, var(--color-error) 35%, transparent)',
+                  background: 'var(--badge-needs-review-bg)',
+                  padding: '0.3rem 0.75rem',
+                }}
+              >
+                <Trash2 size={13} />
+                Delete
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {showLock && (
@@ -785,6 +904,14 @@ const ExamDetail = () => {
           exam={exam}
           onSave={handleLockSave}
           onClose={() => setShowLock(false)}
+        />
+      )}
+
+      {showDelete && (
+        <DeleteModal
+          examName={exam.name}
+          onConfirm={handleDelete}
+          onClose={() => setShowDelete(false)}
         />
       )}
     </Layout>

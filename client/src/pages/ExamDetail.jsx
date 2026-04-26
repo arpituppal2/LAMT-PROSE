@@ -507,7 +507,8 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap, onDelete }) => {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 flex items-center gap-2 px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
-        <button onClick={onCancel} className="btn-ghost btn-sm">
+        {/* FIX 1: changed btn-ghost to btn-outline so the border renders */}
+        <button onClick={onCancel} className="btn-outline btn-sm">
           Back
         </button>
         <h2 className="text-sm font-semibold flex-1" style={{ fontFamily: 'var(--font-display)' }}>Configure Exam</h2>
@@ -569,9 +570,16 @@ const ConfigureExam = ({ exam, onSave, onCancel, slotMap, onDelete }) => {
             </div>
             <div className="flex gap-2 pt-1">
               <button onClick={() => setConfirmDelete(false)} className="btn-outline flex-1 py-2 text-xs">Cancel</button>
+              {/* FIX 2: use btn-outline with red inline styles to match the design system */}
               <button
                 onClick={() => onDelete(exam.id)}
-                className="flex-1 py-2 text-xs font-semibold rounded-sm bg-red-600 hover:bg-red-700 text-white transition-colors"
+                className="btn-outline flex-1 py-2 text-xs font-semibold"
+                style={{
+                  color: '#dc2626',
+                  borderColor: 'rgba(220,38,38,0.35)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#dc2626'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#dc2626'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.35)'; }}
               >
                 Delete Exam
               </button>

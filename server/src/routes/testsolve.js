@@ -201,7 +201,7 @@ router.get('/results/:testId', authenticate, async (req, res) => {
     const problems = problemIds.length > 0
       ? await prisma.problem.findMany({
           where: { id: { in: problemIds } },
-          select: { id: true, latex: true, subject: true },
+          select: { id: true, latex: true },
         })
       : [];
     const problemMap = {};
@@ -209,7 +209,7 @@ router.get('/results/:testId', authenticate, async (req, res) => {
 
     const orderedSlots = slots.map((s, i) => {
       const p = s?.problemId ? problemMap[s.problemId] : null;
-      return { slotIndex: i, problemId: s?.problemId || null, latex: p?.latex || null, subject: p?.subject || null };
+      return { slotIndex: i, problemId: s?.problemId || null, latex: p?.latex || null };
     });
 
     // alias problemResponses → responses for frontend compatibility

@@ -31,7 +31,6 @@ const fmtDate = (d) =>
 const TABS = [
   { id: 'users',       label: 'Users',       Icon: Users },
   { id: 'tournaments', label: 'Tournaments', Icon: Trophy },
-  { id: 'guest',       label: 'Guest Content', Icon: Eye },
 ];
 
 /* ══════════════════════════════════════════════════════════════
@@ -591,91 +590,6 @@ const TournamentsTab = () => {
 };
 
 /* ══════════════════════════════════════════════════════════════
-   GUEST CONTENT TAB  (problems only — no feedbacks)
-══════════════════════════════════════════════════════════════ */
-const GuestContentTab = () => {
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
-  const [query, setQuery]     = useState('');
-
-  useEffect(() => {
-    api.get('/admin/guest-content')
-      .then(r => setData(r.data))
-      .catch(() => setError('Failed to load guest content.'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return (
-    <div className="flex h-40 items-center justify-center">
-      <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-accent)' }} />
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center gap-2 px-4 py-3 text-sm border"
-      style={{ background: 'var(--badge-needs-review-bg)', borderColor: 'var(--badge-needs-review-border)', color: 'var(--badge-needs-review-text)' }}>
-      <AlertTriangle size={14} /> {error}
-    </div>
-  );
-
-  const { problems = [] } = data || {};
-
-  const filtered = problems.filter(p =>
-    !query ||
-    p.id.toLowerCase().includes(query.toLowerCase()) ||
-    (p.latex || '').toLowerCase().includes(query.toLowerCase())
-  );
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 px-4 py-3 border"
-        style={{ background: 'var(--badge-idea-bg)', borderColor: 'var(--badge-idea-border)', color: 'var(--badge-idea-text)', fontSize: 'var(--text-xs)' }}>
-        <AlertTriangle size={13} />
-        <span>
-          Problems submitted by <strong>GUESTBRUINS</strong>. Reassign to the real author via their user profile.
-        </span>
-      </div>
-
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-faint)' }} />
-        <input
-          type="text"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search by ID or content…"
-          className="input-base w-full pl-9"
-          style={{ fontSize: 'var(--text-sm)' }}
-        />
-      </div>
-
-      {filtered.length === 0 && (
-        <p className="text-center py-10" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)' }}>
-          No guest problems.
-        </p>
-      )}
-
-      <div className="space-y-2">
-        {filtered.map(p => (
-          <div key={p.id} className="surface-card px-4 py-3" style={{ border: '1px solid var(--color-border)' }}>
-            <span className="font-mono font-semibold" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent)' }}>{p.id}</span>
-            <p className="mt-1 line-clamp-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              {p.latex?.slice(0, 160) || 'No text.'}
-            </p>
-            <div className="flex gap-2 mt-1.5 flex-wrap">
-              {[p.stage, p.quality, p.examType].filter(Boolean).map(tag => (
-                <span key={tag} className="px-2 py-0.5 border" style={{ fontSize: 'var(--text-xs)', background: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}>{tag}</span>
-              ))}
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{fmtDate(p.createdAt)}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-/* ══════════════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════════ */
 const AdminPanel = () => {
@@ -702,7 +616,7 @@ const AdminPanel = () => {
     );
   }
 
-  const ActiveTab = tab === 'users' ? UsersTab : tab === 'tournaments' ? TournamentsTab : GuestContentTab;
+  const ActiveTab = tab === 'users' ? UsersTab : TournamentsTab;
 
   return (
     <Layout pageKey="admin">
@@ -716,7 +630,7 @@ const AdminPanel = () => {
             </h1>
           </div>
           <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-            Manage users, page access, tournaments, and guest content.
+            Manage users, page access, and tournaments.
           </p>
         </header>
 

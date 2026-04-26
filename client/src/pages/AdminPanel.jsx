@@ -6,7 +6,7 @@ import {
   Plus, Trash2, Pencil, Trophy, ChevronDown,
   FlaskConical, KeyRound, Copy, Users, ChevronUp,
 } from 'lucide-react';
-import { useAuth } from '../App';
+import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 

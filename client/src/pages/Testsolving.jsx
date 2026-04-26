@@ -25,6 +25,33 @@ const RATING_META = {
 };
 
 /* ══════════════════════════════════════════════════════════════
+   DRAFT PERSISTENCE HELPERS
+   Key: prose_draft_{sessionId} — one entry per session so multiple
+   people on the shared testsolve account never collide.
+══════════════════════════════════════════════════════════════ */
+const draftKey = (sessionId) => `prose_draft_${sessionId}`;
+
+const saveDraft = (sessionId, answers, overall) => {
+  try {
+    localStorage.setItem(draftKey(sessionId), JSON.stringify({ answers, overall, savedAt: Date.now() }));
+  } catch {}
+};
+
+const loadDraft = (sessionId) => {
+  try {
+    const raw = localStorage.getItem(draftKey(sessionId));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const clearDraft = (sessionId) => {
+  try { localStorage.removeItem(draftKey(sessionId)); } catch {}
+};
+
+/* ══════════════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════════════ */
 const formatTime = (seconds) => {
@@ -49,7 +76,7 @@ const buildSlotLabel = (exam, index) => {
 };
 
 const fmtDate = (d) => {
-  if (!d) return '—';
+  if (!d) return '\u2014';
   return new Date(d).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
@@ -87,7 +114,7 @@ const ExamCard = ({ exam, onStart, onViewResults }) => (
           {exam.roundName && <span>{exam.roundName}</span>}
           {exam.questionsPerSet && (
             <span className="tabular-nums">
-              {exam.numSets > 1 ? `${exam.numSets} × ${exam.questionsPerSet}` : exam.questionsPerSet} problems
+              {exam.numSets > 1 ? `${exam.numSets} \u00d7 ${exam.questionsPerSet}` : exam.questionsPerSet} problems
               {exam.estimationSets > 0 && ` + ${exam.estimationSets} estimation`}
             </span>
           )}
@@ -179,7 +206,7 @@ const ProblemNav = ({ problems, currentIndex, answers, onSelect, examMeta }) => 
 );
 
 /* ── InstructionsModal ────────────────────────────────────── */
-const InstructionsModal = ({ exam, onBegin, onCancel }) => (
+const InstructionsModal = ({ exam, onBegin, onCancel, hasDraft }) => (
   <div
     className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
     onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
@@ -188,7 +215,7 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
         <div>
           <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-            {exam.name} — Testsolve Instructions
+            {exam.name} \u2014 Testsolve Instructions
           </p>
           <p className="mt-0.5 text-[var(--color-text-muted)]" style={{ fontSize: 'var(--text-xs)' }}>Please read before beginning</p>
         </div>
@@ -197,6 +224,17 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
         </button>
       </div>
       <div className="px-5 py-5 space-y-4">
+        {/* Draft restore notice */}
+        {hasDraft && (
+          <div
+            className="flex items-center gap-2 border px-3 py-2.5"
+            style={{ background: 'var(--badge-endorsed-bg)', borderColor: 'var(--badge-endorsed-border)', color: 'var(--badge-endorsed-text)', fontSize: 'var(--text-xs)' }}
+          >
+            <CheckCircle2 size={12} className="flex-shrink-0" />
+            <span><strong>Draft found.</strong> Your previous progress will be restored when you begin.</span>
+          </div>
+        )}
+
         {/* Exam info */}
         <div
           className="border px-4 py-3 text-sm space-y-1"
@@ -211,7 +249,7 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
           <div className="flex items-center gap-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
             <ClipboardList size={12} />
             <span>
-              {exam.numSets > 1 ? `${exam.numSets} × ${exam.questionsPerSet}` : exam.questionsPerSet || '?'} problems
+              {exam.numSets > 1 ? `${exam.numSets} \u00d7 ${exam.questionsPerSet}` : exam.questionsPerSet || '?'} problems
               {exam.estimationSets > 0 && ` + ${exam.estimationSets} estimation`}
             </span>
           </div>
@@ -224,11 +262,11 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
           </p>
           <ul className="space-y-2 text-[var(--color-text-muted)]" style={{ listStyle: 'none', padding: 0 }}>
             {[
-              'Attempt every problem — even a partial attempt or a comment is valuable.',
+              'Attempt every problem \u2014 even a partial attempt or a comment is valuable.',
               "Don't spend too long on any single problem. If you're stuck, move on and come back.",
-              'There is no strict time limit — but try to simulate real exam conditions.',
+              'There is no strict time limit \u2014 but try to simulate real exam conditions.',
               'For each problem, record your answer, your work, and any comments about clarity, difficulty, or issues.',
-              'At the end, fill out the Overall Comments section — this is critical for helping us improve the exam.',
+              'At the end, fill out the Overall Comments section \u2014 this is critical for helping us improve the exam.',
               'Do not share answers or solutions with others testsolving this exam.',
             ].map((item, i) => (
               <li key={i} className="flex items-start gap-2">
@@ -257,7 +295,7 @@ const InstructionsModal = ({ exam, onBegin, onCancel }) => (
             Cancel
           </button>
           <button type="button" onClick={onBegin} className="btn-filled flex-1 py-2.5 text-sm font-semibold">
-            Begin Testsolve →
+            {hasDraft ? 'Resume Testsolve \u2192' : 'Begin Testsolve \u2192'}
           </button>
         </div>
       </div>
@@ -310,7 +348,7 @@ const PasswordModal = ({ exam, onConfirm, onCancel, loading, error }) => {
               autoComplete="name"
             />
             <p className="mt-1" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
-              Used to identify your submission — multiple people may share this account.
+              Used to identify your submission \u2014 multiple people may share this account.
             </p>
           </div>
 
@@ -389,7 +427,7 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
             value={overall.generalComments}
             onChange={e => setOverall(o => ({ ...o, generalComments: e.target.value }))}
             rows={4}
-            placeholder="e.g. The exam felt well-balanced. The problems flowed nicely from easier to harder…"
+            placeholder="e.g. The exam felt well-balanced. The problems flowed nicely from easier to harder\u2026"
             className="input-base w-full resize-y"
           />
         </div>
@@ -403,7 +441,7 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
             value={overall.difficultyNotes}
             onChange={e => setOverall(o => ({ ...o, difficultyNotes: e.target.value }))}
             rows={3}
-            placeholder="e.g. Q3 felt harder than Q5. The jump from Q7 to Q8 was too steep…"
+            placeholder="e.g. Q3 felt harder than Q5. The jump from Q7 to Q8 was too steep\u2026"
             className="input-base w-full resize-y"
           />
         </div>
@@ -417,7 +455,7 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
             value={overall.techniqueNotes}
             onChange={e => setOverall(o => ({ ...o, techniqueNotes: e.target.value }))}
             rows={3}
-            placeholder="e.g. Q2 and Q6 both rely on AM-GM in the same way. No combinatorics problems at all…"
+            placeholder="e.g. Q2 and Q6 both rely on AM-GM in the same way. No combinatorics problems at all\u2026"
             className="input-base w-full resize-y"
           />
         </div>
@@ -431,7 +469,7 @@ const OverallFeedbackPanel = ({ overall, setOverall, problems, answers, onSubmit
             value={overall.reworkNotes}
             onChange={e => setOverall(o => ({ ...o, reworkNotes: e.target.value }))}
             rows={3}
-            placeholder="e.g. Q4 has an ambiguous condition. Q9 is essentially the same as a well-known Olympiad problem…"
+            placeholder="e.g. Q4 has an ambiguous condition. Q9 is essentially the same as a well-known Olympiad problem\u2026"
             className="input-base w-full resize-y"
           />
         </div>
@@ -739,7 +777,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
     (name, round, etc.) renders correctly.
   */
   const [resultsExam, setResultsExam] = useState(
-    initialTestId ? { id: initialTestId, name: 'Loading…' } : null,
+    initialTestId ? { id: initialTestId, name: 'Loading\u2026' } : null,
   );
 
   /* ── List phase ── */
@@ -765,6 +803,15 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
   });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError]     = useState('');
+
+  /* ── Save indicator ── */
+  const [savedFlash, setSavedFlash] = useState(false);
+  const saveFlashTimer = useRef(null);
+  const triggerSavedFlash = useCallback(() => {
+    setSavedFlash(true);
+    clearTimeout(saveFlashTimer.current);
+    saveFlashTimer.current = setTimeout(() => setSavedFlash(false), 1500);
+  }, []);
 
   /* ── Unsaved guard ── */
   const isDirtyRef = useRef(false);
@@ -839,9 +886,18 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
   const handleBeginAfterInstructions = useCallback(() => {
     if (!verifiedSession) return;
     const { sessionId, problems, timeLimit: tl, testName, examMeta, solverName } = verifiedSession;
+
+    /* Restore any saved draft for this sessionId */
+    const draft = loadDraft(sessionId);
+    const restoredAnswers = draft?.answers ?? {};
+    const restoredOverall = draft?.overall ?? {
+      generalComments: '', difficultyNotes: '', techniqueNotes: '',
+      reworkNotes: '', finalRating: 'needs_work',
+    };
+
     setSession({ sessionId, problems, timeLimit: tl, testName, examMeta, solverName });
-    setAnswers({});
-    setOverall({ generalComments: '', difficultyNotes: '', techniqueNotes: '', reworkNotes: '', finalRating: 'needs_work' });
+    setAnswers(restoredAnswers);
+    setOverall(restoredOverall);
     setElapsed(0);
     setCurrentIdx(0);
     setShowInstructions(false);
@@ -849,9 +905,29 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
     setPhase('active');
   }, [verifiedSession]);
 
+  /* ── setField: update state + persist draft ── */
   const setField = useCallback((problemId, field, value) => {
-    setAnswers(prev => ({ ...prev, [problemId]: { ...prev[problemId], [field]: value } }));
-  }, []);
+    setAnswers(prev => {
+      const next = { ...prev, [problemId]: { ...prev[problemId], [field]: value } };
+      if (session?.sessionId) {
+        saveDraft(session.sessionId, next, overall);
+        triggerSavedFlash();
+      }
+      return next;
+    });
+  }, [session?.sessionId, overall, triggerSavedFlash]);
+
+  /* ── setOverallWithSave: update overall + persist draft ── */
+  const setOverallWithSave = useCallback((updater) => {
+    setOverall(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (session?.sessionId) {
+        saveDraft(session.sessionId, answers, next);
+        triggerSavedFlash();
+      }
+      return next;
+    });
+  }, [session?.sessionId, answers, triggerSavedFlash]);
 
   const handleSubmit = useCallback(async () => {
     if (!session) return;
@@ -867,6 +943,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
         timeMinutes: answers[p.problemId]?.timeMinutes  || null,
       }));
       await api.post(`/testsolve/session/${session.sessionId}/submit`, { responses, overall });
+      clearDraft(session.sessionId);
       isDirtyRef.current = false;
       setPhase('done');
     } catch (err) {
@@ -943,7 +1020,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
             <button
               type="button"
               onClick={() => {
-                if (window.confirm('Leave testsolve? Your progress will be lost.')) {
+                if (window.confirm('Leave testsolve? Your draft is saved and will be restored if you re-enter with the same name.')) {
                   isDirtyRef.current = false;
                   setPhase('list');
                   setSession(null);
@@ -967,6 +1044,16 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
             )}
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Saved flash indicator */}
+            {savedFlash && (
+              <span
+                className="inline-flex items-center gap-1"
+                style={{ fontSize: 'var(--text-xs)', color: 'var(--badge-endorsed-text)', transition: 'opacity 0.3s' }}
+              >
+                <CheckCircle2 size={11} />
+                Saved
+              </span>
+            )}
             <span
               className="inline-flex items-center gap-1.5 font-mono text-sm font-semibold tabular-nums"
               style={{ color: timerOverrun ? 'var(--badge-needs-review-text)' : 'var(--color-text-muted)' }}
@@ -1005,7 +1092,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
             {isOverall ? (
               <OverallFeedbackPanel
                 overall={overall}
-                setOverall={setOverall}
+                setOverall={setOverallWithSave}
                 problems={problems}
                 answers={answers}
                 onSubmit={handleSubmit}
@@ -1053,7 +1140,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                       value={resp.workArea || ''}
                       onChange={e => setField(current.problemId, 'workArea', e.target.value)}
                       rows={7}
-                      placeholder="Scratch work, approach, full solution attempt…"
+                      placeholder="Scratch work, approach, full solution attempt\u2026"
                       className="input-base w-full resize-y mt-2"
                     />
                   </div>
@@ -1068,13 +1155,13 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                       <span className="font-normal" style={{ color: 'var(--color-text-faint)' }}>(required for each problem)</span>
                     </label>
                     <p className="mt-0.5 mb-2" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
-                      Clarity issues, notation, difficulty impression, what you'd change…
+                      Clarity issues, notation, difficulty impression, what you'd change\u2026
                     </p>
                     <textarea
                       value={resp.comment || ''}
                       onChange={e => setField(current.problemId, 'comment', e.target.value)}
                       rows={3}
-                      placeholder="e.g. The problem statement was unclear about whether x is an integer…"
+                      placeholder="e.g. The problem statement was unclear about whether x is an integer\u2026"
                       className="input-base w-full resize-y"
                     />
                   </div>
@@ -1096,7 +1183,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                       <span className="text-sm text-[var(--color-text-muted)]">minutes</span>
                     </div>
                     <p className="mt-1" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
-                      Approximate is fine — helps us calibrate difficulty.
+                      Approximate is fine \u2014 helps us calibrate difficulty.
                     </p>
                   </div>
                 </div>
@@ -1108,7 +1195,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                     disabled={currentIdx === 0}
                     className="btn-outline px-4 py-2 text-sm disabled:opacity-40"
                   >
-                    ← Previous
+                    \u2190 Previous
                   </button>
                   <div className="flex-1" />
                   {typeof currentIdx === 'number' && currentIdx < problems.length - 1 ? (
@@ -1117,7 +1204,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                       onClick={() => setCurrentIdx(i => typeof i === 'number' ? i + 1 : 0)}
                       className="btn-filled px-4 py-2 text-sm"
                     >
-                      Next →
+                      Next \u2192
                     </button>
                   ) : (
                     <button
@@ -1125,7 +1212,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
                       onClick={() => setCurrentIdx('overall')}
                       className="btn-filled px-4 py-2 text-sm"
                     >
-                      Overall Comments →
+                      Overall Comments \u2192
                     </button>
                   )}
                 </div>
@@ -1220,6 +1307,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
           exam={verifiedSession.examMeta || exams.find(e => e.id === verifiedSession.testId) || { name: verifiedSession.testName }}
           onBegin={handleBeginAfterInstructions}
           onCancel={() => { setShowInstructions(false); setVerifiedSession(null); }}
+          hasDraft={!!loadDraft(verifiedSession.sessionId)}
         />
       )}
     </Layout>

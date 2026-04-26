@@ -1,1 +1,1 @@
-$(cat /tmp/AdminPanel_patched.jsx)
+PLACEHOLDER

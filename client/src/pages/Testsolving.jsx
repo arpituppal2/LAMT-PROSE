@@ -828,7 +828,7 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
     api.get('/testsolve/available')
       .then(res => {
         const list = res.data || [];
-        setExams(list);
+        setExams(list.map(e => ({ ...e, id: e.id ?? e._id })));
         /*
           If we deep-linked to a results view, replace the stub exam object
           with the full one from the list so name/metadata render correctly.

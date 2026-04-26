@@ -257,8 +257,6 @@ const UserProfile = () => {
                         borderBottom: '1px solid var(--color-border)',
                         background: isActive ? 'var(--color-surface-offset)' : 'transparent',
                         cursor: 'pointer',
-                        border: 'none',
-                        borderBottom: '1px solid var(--color-border)',
                         outline: isActive ? '1px solid var(--color-accent)' : 'none',
                         outlineOffset: '-1px',
                       }}

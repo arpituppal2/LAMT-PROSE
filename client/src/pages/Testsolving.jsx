@@ -568,6 +568,13 @@ const ResultsView = ({ exam, onBack }) => {
   /* ── Check if user is an author / admin ── */
   const isAuthor = user?.isAdmin || (exam.authorId && user?.id && String(exam.authorId) === String(user.id));
 
+  /* ── Faint empty-row helper ── */
+  const EmptyRow = ({ label }) => (
+    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>
+      No {label}.
+    </p>
+  );
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <header>
@@ -676,22 +683,27 @@ const ResultsView = ({ exam, onBack }) => {
                     {/* Expanded content */}
                     {isOpen && (
                       <div className="border-t border-[var(--color-border)] divide-y divide-[var(--color-border)]">
-                        {/* Per-problem responses */}
-                        {session.responses.length > 0 && (
-                          <div className="px-5 py-4 space-y-4">
-                            <p className="section-label">Problem Responses</p>
-                            {session.responses.map((resp) => {
+
+                        {/* ── Per-problem responses — always shown ── */}
+                        <div className="px-5 py-4 space-y-4">
+                          <p className="section-label">Problem Responses</p>
+                          {session.responses.length === 0 ? (
+                            <EmptyRow label="problem responses recorded" />
+                          ) : (
+                            session.responses.map((resp) => {
                               const slot = data.slots.find(s => s.slotIndex === resp.slotIndex);
                               const label = buildSlotLabel(null, resp.slotIndex);
                               return (
                                 <div key={resp.id} className="space-y-2">
                                   <div className="flex items-center gap-2">
                                     <span className="font-semibold" style={{ fontSize: 'var(--text-sm)' }}>{label}</span>
-                                    {resp.answer && (
+                                    {resp.answer ? (
                                       <span className="px-2 py-0.5 border font-mono"
                                         style={{ fontSize: 'var(--text-xs)', background: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
                                         {resp.answer}
                                       </span>
+                                    ) : (
+                                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>no answer</span>
                                     )}
                                     {resp.timeMinutes != null && (
                                       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
@@ -704,47 +716,65 @@ const ResultsView = ({ exam, onBack }) => {
                                       <KatexRenderer latex={slot.latex} />
                                     </div>
                                   )}
-                                  {resp.workArea && (
-                                    <div>
-                                      <span className="section-label">Work</span>
-                                      <pre className="mt-1 whitespace-pre-wrap font-mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{resp.workArea}</pre>
-                                    </div>
-                                  )}
-                                  {resp.comment && (
-                                    <div>
-                                      <span className="section-label">Comment</span>
-                                      <p className="mt-1" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{resp.comment}</p>
-                                    </div>
-                                  )}
+                                  <div>
+                                    <span className="section-label">Work</span>
+                                    {resp.workArea
+                                      ? <pre className="mt-1 whitespace-pre-wrap font-mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{resp.workArea}</pre>
+                                      : <p className="mt-1" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>None.</p>
+                                    }
+                                  </div>
+                                  <div>
+                                    <span className="section-label">Comment</span>
+                                    {resp.comment
+                                      ? <p className="mt-1" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{resp.comment}</p>
+                                      : <p className="mt-1" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>None.</p>
+                                    }
+                                  </div>
                                 </div>
                               );
-                            })}
-                          </div>
-                        )}
+                            })
+                          )}
+                        </div>
 
-                        {/* Overall feedback */}
-                        {session.overall && (
-                          <div className="px-5 py-4 space-y-3">
-                            <p className="section-label">Overall Feedback</p>
-                            {[
-                              ['General Comments', session.overall.generalComments],
-                              ['Difficulty & Ordering', session.overall.difficultyNotes],
-                              ['Repeated/Missing Techniques', session.overall.techniqueNotes],
-                              ['Problems Needing Rework', session.overall.reworkNotes],
-                            ].map(([label, value]) => value ? (
-                              <div key={label}>
-                                <span className="section-label">{label}</span>
-                                <p className="mt-1" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{value}</p>
-                              </div>
-                            ) : null)}
-                          </div>
-                        )}
+                        {/* ── Overall feedback — always shown ── */}
+                        <div className="px-5 py-4 space-y-3">
+                          <p className="section-label">Overall Feedback</p>
+                          {!session.overall ? (
+                            <EmptyRow label="overall feedback recorded" />
+                          ) : (
+                            <>
+                              {[
+                                ['General Comments',           session.overall.generalComments],
+                                ['Difficulty & Ordering',      session.overall.difficultyNotes],
+                                ['Repeated/Missing Techniques',session.overall.techniqueNotes],
+                                ['Problems Needing Rework',    session.overall.reworkNotes],
+                              ].map(([label, value]) => (
+                                <div key={label}>
+                                  <span className="section-label">{label}</span>
+                                  {value
+                                    ? <p className="mt-1" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{value}</p>
+                                    : <p className="mt-1" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>None.</p>
+                                  }
+                                </div>
+                              ))}
+                              {session.overall.finalRating && (() => {
+                                const r = RATING_META[session.overall.finalRating];
+                                return r ? (
+                                  <div>
+                                    <span className="section-label">Final Rating</span>
+                                    <div className="mt-1">
+                                      <span className="px-2 py-0.5 border font-semibold uppercase tracking-wide"
+                                        style={{ fontSize: 'var(--text-xs)', background: r.bg, borderColor: r.border, color: r.color }}>
+                                        {r.label}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : null;
+                              })()}
+                            </>
+                          )}
+                        </div>
 
-                        {session.responses.length === 0 && !session.overall && (
-                          <div className="px-5 py-6 text-center" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-faint)' }}>
-                            No responses recorded yet.
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>

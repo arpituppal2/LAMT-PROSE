@@ -58,6 +58,8 @@ const fmtDate = (d) => {
 ══════════════════════════════════════════════════════════════ */
 
 /* ── ExamCard ─────────────────────────────────────────────── */
+/* onViewResults is only passed when the current user is an admin
+   or the exam author — otherwise the Results button is hidden.   */
 const ExamCard = ({ exam, onStart, onViewResults }) => (
   <div
     className="surface-card w-full text-left px-5 py-4"
@@ -99,13 +101,15 @@ const ExamCard = ({ exam, onStart, onViewResults }) => (
       </div>
       {/* UCLA-style action buttons — no icons, clean text only */}
       <div className="flex-shrink-0 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onViewResults(exam)}
-          className="btn-outline btn-sm"
-        >
-          Results
-        </button>
+        {onViewResults && (
+          <button
+            type="button"
+            onClick={() => onViewResults(exam)}
+            className="btn-outline btn-sm"
+          >
+            Results
+          </button>
+        )}
         <button
           type="button"
           onClick={() => onStart(exam)}
@@ -723,6 +727,8 @@ const ResultsView = ({ exam, onBack }) => {
      initialPhase   — 'results' to skip the list and open results view
 ══════════════════════════════════════════════════════════════ */
 const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
+  const { user } = useAuth();
+
   /* ── Phase: 'list' | 'results' | 'active' | 'done' ── */
   const [phase, setPhase] = useState(initialPhase);
 
@@ -1182,9 +1188,19 @@ const Testsolving = ({ initialTestId = null, initialPhase = 'list' }) => {
 
         {!listLoading && exams.length > 0 && (
           <div className="space-y-2">
-            {exams.map(exam => (
-              <ExamCard key={exam.id} exam={exam} onStart={handleStartExam} onViewResults={handleViewResults} />
-            ))}
+            {exams.map(exam => {
+              const canViewResults =
+                user?.isAdmin ||
+                (exam.authorId && user?.id && String(exam.authorId) === String(user.id));
+              return (
+                <ExamCard
+                  key={exam.id}
+                  exam={exam}
+                  onStart={handleStartExam}
+                  onViewResults={canViewResults ? handleViewResults : undefined}
+                />
+              );
+            })}
           </div>
         )}
       </div>

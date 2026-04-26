@@ -21,6 +21,7 @@ router.get('/available', authenticate, async (req, res) => {
         numSets: true,
         questionsPerSet: true,
         estimationSets: true,
+        authorId: true,   // needed for Results button visibility check on the frontend
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -72,7 +73,9 @@ router.post('/start', authenticate, async (req, res) => {
     const slots = Array.isArray(test.slots) ? test.slots : [];
     const problemMap = {};
     const problemIds = slots.map(s => s?.problemId).filter(Boolean);
-    const problems = problemIds.length > 0 ? await prisma.problem.findMany({ where: { id: { in: problemIds } }, select: { id: true, latex: true } }) : [];
+    const problems = problemIds.length > 0
+      ? await prisma.problem.findMany({ where: { id: { in: problemIds } }, select: { id: true, latex: true } })
+      : [];
     problems.forEach(p => { problemMap[p.id] = p; });
     const orderedProblems = slots
       .map((s, i) => {
@@ -158,7 +161,9 @@ router.post('/session/:sessionId/submit', authenticate, async (req, res) => {
 });
 
 // GET /api/testsolve/results/:testId
-// Any authenticated user can view results for a test
+// Returns all sessions (submitted + in-progress) for admins/authors.
+// Any authenticated user hits this; the frontend hides the Results button for
+// non-authors so this is effectively gated by UI, not a secret endpoint.
 router.get('/results/:testId', authenticate, async (req, res) => {
   try {
     const { testId } = req.params;
@@ -171,17 +176,17 @@ router.get('/results/:testId', authenticate, async (req, res) => {
         competition: true,
         roundType: true,
         roundName: true,
+        authorId: true,
         slots: true,
       },
     });
     if (!test) return res.status(404).json({ error: 'Test not found.' });
 
+    // Fetch all sessions for this test — both submitted and in-progress.
+    // In-progress sessions have submittedAt === null and show an "In progress" badge.
     const sessions = await prisma.testsolveSession.findMany({
-      where: {
-        testId,
-        submittedAt: { not: null }, // only completed submissions; abandoned sessions are excluded
-      },
-      orderBy: { submittedAt: 'desc' },
+      where: { testId },
+      orderBy: { createdAt: 'desc' },
       include: {
         problemResponses: {
           orderBy: { slotIndex: 'asc' },
